@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // serveur.
     <html lang="fr" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
+        {/* Filigrane de marque, commun à toutes les pages — voir `.watermark`
+            dans globals.css. Un seul élément fixe plutôt qu'un par page. */}
+        <div className="watermark" aria-hidden="true" />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

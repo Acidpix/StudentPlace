@@ -185,6 +185,23 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Filigrane de marque : posé une seule fois pour TOUT le site, et non par
+   chaque page qui en aurait besoin — `position: fixed` le fait suivre le
+   défilement partout, plan de classe compris. `z-index: -3` le place sous le
+   dégradé et le grain, qui restent la texture de fond dominante ; le
+   filigrane n'est qu'un repère discret par-dessous. Masqué à l'impression. */
+.watermark {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background-image: url("/c.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 300%;
+  opacity: 0.06;
+}
+
 /* Matière des surfaces.
    `background-image` par-dessus la couleur de fond posée par `bg-surface` :
    les deux se cumulent, donc la classe s'ajoute sans rien remplacer. */
@@ -224,7 +241,8 @@ body::after {
   }
 
   body::before,
-  body::after {
+  body::after,
+  .watermark {
     display: none;
   }
 

@@ -579,10 +579,13 @@ export function PlanEditor({
                 défilement est son enfant. Mesurer celle-ci ferait osciller la
                 largeur dès qu'une barre apparaît. */}
             <div ref={planRef}>
-              <div
-                className="overflow-auto"
-                style={{ height: planHeight || undefined, maxHeight: planHeight || "68vh" }}
-              >
+              {/* `maxHeight` seul, jamais `height` : une hauteur fixe forçait
+                  ce conteneur à occuper `planHeight` même quand la salle,
+                  contrainte par la largeur, y tenait dans moins d'espace — un
+                  vide se creusait alors avant la légende. En laissant le
+                  conteneur se réduire à son contenu, il ne défile que si la
+                  salle dépasse réellement le budget de hauteur. */}
+              <div className="overflow-auto" style={{ maxHeight: planHeight || "68vh" }}>
                 <div
                   className="relative mx-auto"
                   style={{
@@ -631,18 +634,6 @@ export function PlanEditor({
                     })}
                   </svg>
 
-                  {/* Filigrane : l'image de marque agrandie à 300 %, centrée.
-                      Il est posé APRÈS le `<svg>` et non avant : `RoomGrid`
-                      peint un rectangle opaque `--surface` sur toute la salle,
-                      qui le recouvrait entièrement. Décoratif — `aria-hidden`,
-                      sans événement de pointeur, sous les étiquettes qui
-                      suivent, et masqué à l'impression. */}
-                  <div
-                    aria-hidden="true"
-                    className="print-hidden pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-15"
-                    style={{ backgroundImage: "url('/c.png')", backgroundSize: "300%" }}
-                  />
-
                   {pxPerCm > 0 &&
                     seats.map((seat) => {
                       const occupant = assignments.get(seat.id);
@@ -678,7 +669,7 @@ export function PlanEditor({
               </div>
             </div>
 
-            <div className="print-hidden mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            <div className="print-hidden mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-2">
               <DifficultyLegend />
               <p className="text-xs text-muted">
                 La difficulté se lit au cerclage intérieur de l&apos;étiquette.
