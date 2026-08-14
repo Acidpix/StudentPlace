@@ -28,6 +28,9 @@ backups/
 # Mémoire d'architecture destinée à Claude, non versionnée
 CLAUDE.md
 
+# Marqueur de version écrit par scripts/update.sh sur le serveur
+.deployed
+
 # Divers
 .DS_Store
 *.pem

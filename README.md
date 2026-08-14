@@ -93,7 +93,7 @@ npm run db:studio           # explorateur de base Prisma
 Testé sur Debian 12 et Ubuntu 24.04.
 
 ```bash
-git clone <votre-dépôt> studentplace
+git clone https://github.com/Acidpix/StudentPlace.git studentplace
 cd studentplace
 sudo bash scripts/install.sh plans.mon-etablissement.fr
 ```
@@ -116,12 +116,32 @@ HTTPS — à réserver à un réseau interne.
 
 ### Mise à jour
 
+Le script récupère lui-même la dernière version depuis GitHub — inutile de
+cloner quoi que ce soit à la main sur le serveur :
+
 ```bash
-git pull
-sudo bash scripts/update.sh
+sudo bash /opt/studentplace/scripts/update.sh              # dernier état de main
+sudo bash /opt/studentplace/scripts/update.sh v1.2.0       # une étiquette ou une branche
 ```
 
-Une sauvegarde est prise automatiquement avant toute mise à jour.
+Le code est cloné dans un dossier temporaire puis recopié : `/opt/studentplace`
+n'a jamais besoin d'être un dépôt Git, et `.env`, la base et `node_modules`
+survivent à l'opération. Une sauvegarde est prise avant toute chose, et le
+script s'interrompt en indiquant la commande de restauration si le service ne
+redémarre pas.
+
+Pour déployer depuis une copie locale plutôt que depuis GitHub — par exemple
+pour essayer une modification avant de la pousser :
+
+```bash
+sudo LOCAL_DIR=/home/moi/studentplace bash /opt/studentplace/scripts/update.sh
+```
+
+Pour pointer vers un autre dépôt (fourche, miroir interne) :
+
+```bash
+sudo REPO_URL=https://git.interne.fr/studentplace.git bash /opt/studentplace/scripts/update.sh
+```
 
 ### Sauvegarde et restauration
 
