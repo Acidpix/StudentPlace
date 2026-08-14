@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { NAME_ORDERS } from "@/lib/csv";
 import { OBJECT_KINDS, RELATION_TYPES, ROOM_MAX_CM, ROOM_MIN_CM } from "@/lib/domain";
 
 /**
@@ -126,12 +127,14 @@ export const assignmentsSchema = z.object({
     .max(200),
 });
 
-// -------------------------------- Import CSV --------------------------------
+// ------------------------------ Import de liste ------------------------------
 
 export const csvImportSchema = z.object({
   classGroupId: z.string().min(1),
   content: z.string().min(1, "Collez ou téléversez une liste d'élèves."),
   replaceExisting: z.boolean().default(false),
+  // N'intervient que sur les lignes de texte simple, sans séparateur.
+  nameOrder: z.enum(NAME_ORDERS).default("lastFirst"),
 });
 
 export type SignUpInput = z.infer<typeof signUpSchema>;

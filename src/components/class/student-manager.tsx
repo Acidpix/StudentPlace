@@ -104,7 +104,7 @@ export function StudentManager({
         <EmptyState
           Illustration={EmptyClassArt}
           title="Aucun élève"
-          description="Ajoutez-les un par un, ou importez une liste depuis un tableur."
+          description="Ajoutez-les un par un, ou importez une liste — un nom par ligne suffit."
         />
       ) : visible.length === 0 ? (
         <p className="rounded-card border border-dashed border-border p-6 text-center text-sm text-muted">

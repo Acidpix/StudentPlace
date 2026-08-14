@@ -74,7 +74,7 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
 }
 
 /**
- * Import d'une liste collée depuis un tableur.
+ * Import d'une liste collée depuis un tableur, ou saisie en texte simple.
  *
  * Les erreurs de lignes ne bloquent pas l'import : les élèves lisibles sont
  * créés, les lignes fautives sont rapportées au professeur qui les corrigera.
@@ -86,12 +86,12 @@ export async function importStudents(
   const parsed = csvImportSchema.safeParse(input);
   if (!parsed.success) return fail(firstIssue(parsed.error));
 
-  const { classGroupId, content, replaceExisting } = parsed.data;
+  const { classGroupId, content, replaceExisting, nameOrder } = parsed.data;
 
   const classGroup = await findOwnedClassGroup(classGroupId, user.id);
   if (!classGroup) return fail("Classe introuvable.");
 
-  const { students, errors } = parseStudentList(content);
+  const { students, errors } = parseStudentList(content, { nameOrder });
   if (students.length === 0) {
     return fail(errors[0] ?? "Aucun élève n'a pu être lu.");
   }

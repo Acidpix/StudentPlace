@@ -109,12 +109,76 @@ export function parseDelimited(text: string): string[][] {
   return rows.filter((cells) => cells.some((cell) => cell.trim() !== ""));
 }
 
-function looksLikeHeader(cells: string[]): boolean {
-  const joined = cells.slice(0, 3).join(" ").toLowerCase();
-  return joined.includes("nom") || joined.includes("prenom") || joined.includes("prénom");
+/** Minuscules sans accent, pour comparer « Prénom » et « prenom ». */
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
 }
 
-export function parseStudentList(text: string): ParseResult {
+const HEADER_WORDS = new Set([
+  "nom",
+  "noms",
+  "patronyme",
+  "prenom",
+  "prenoms",
+  "eleve",
+  "eleves",
+  "difficulte",
+  "commentaire",
+  "commentaires",
+]);
+
+/**
+ * Comparaison MOT À MOT et non par sous-chaîne : « Monome » contient « nom »,
+ * et un test par `includes` sacrifiait le premier élève de la liste.
+ */
+function looksLikeHeader(cells: string[]): boolean {
+  const words = cells
+    .slice(0, 4)
+    .flatMap((cell) => fold(cell).split(/[\s'-]+/))
+    .filter(Boolean);
+
+  return words.some((word) => HEADER_WORDS.has(word));
+}
+
+/** Un mot est un patronyme d'établissement s'il est tout en capitales. */
+function isAllCaps(word: string): boolean {
+  const letters = word.replace(/[^\p{L}]/gu, "");
+  return letters.length >= 2 && letters === letters.toLocaleUpperCase("fr");
+}
+
+/**
+ * Sépare « Martin Camille » en nom et prénom.
+ *
+ * Le reste des mots va au PRÉNOM et non au nom : « Marie Claire Dupont » se lit
+ * comme un prénom composé plus souvent que comme un nom composé, et un
+ * professeur corrigera plus vite une ligne sur trente qu'il ne réécrira la
+ * liste entière.
+ */
+export function splitFullName(
+  raw: string,
+  nameOrder: NameOrder = "lastFirst",
+): { lastName: string; firstName: string } | null {
+  const words = raw.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return null;
+
+  const caps = words.filter(isAllCaps);
+  if (caps.length > 0 && caps.length < words.length) {
+    return {
+      lastName: caps.join(" "),
+      firstName: words.filter((word) => !isAllCaps(word)).join(" "),
+    };
+  }
+
+  return nameOrder === "lastFirst"
+    ? { lastName: words[0], firstName: words.slice(1).join(" ") }
+    : { lastName: words[words.length - 1], firstName: words.slice(0, -1).join(" ") };
+}
+
+export function parseStudentList(text: string, options: ParseOptions = {}): ParseResult {
+  const nameOrder = options.nameOrder ?? "lastFirst";
   const rows = parseDelimited(text);
   const errors: string[] = [];
   const students: ParsedStudentRow[] = [];
@@ -130,13 +194,24 @@ export function parseStudentList(text: string): ParseResult {
     // Numéro de ligne tel que le professeur le voit dans son tableur.
     const lineNumber = index + (hasHeader ? 2 : 1);
 
-    const lastName = (cells[0] ?? "").trim();
-    const firstName = (cells[1] ?? "").trim();
+    let lastName = (cells[0] ?? "").trim();
+    let firstName = (cells[1] ?? "").trim();
 
     if (!lastName && !firstName) return;
 
+    // Texte simple : un seul champ rempli, nom et prénom encore accolés.
+    if (lastName && !firstName) {
+      const split = splitFullName(lastName, nameOrder);
+      if (split) {
+        lastName = split.lastName;
+        firstName = split.firstName;
+      }
+    }
+
     if (!lastName || !firstName) {
-      errors.push(`Ligne ${lineNumber} : nom et prénom sont tous deux obligatoires.`);
+      errors.push(
+        `Ligne ${lineNumber} : « ${lastName || firstName} » ne donne qu'un mot, il faut le nom ET le prénom.`,
+      );
       return;
     }
 

@@ -1,16 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { useMemo, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 
 import { importStudents } from "@/actions/students";
 import { Button } from "@/components/ui/button";
-import { FieldError, Textarea } from "@/components/ui/field";
+import { FieldError, Label, Select, Textarea } from "@/components/ui/field";
+import { NAME_ORDERS, NAME_ORDER_LABELS, parseStudentList, type NameOrder } from "@/lib/csv";
 
-const EXAMPLE = `Nom;Prénom;Difficulté;Commentaire
-Martin;Camille;3;Bavarde en fin d'heure
-Dupont;Léa;1;
-Bernard;Noah;5;À garder près du bureau`;
+const EXAMPLE = `Martin Camille
+Dupont Léa
+Bernard Noah
+
+— ou, depuis un tableur —
+Nom;Prénom;Difficulté;Commentaire
+Martin;Camille;3;Bavarde en fin d'heure`;
 
 export function CsvImport({
   classGroupId,
@@ -22,10 +26,19 @@ export function CsvImport({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
+  const [nameOrder, setNameOrder] = useState<NameOrder>("lastFirst");
   const [replaceExisting, setReplaceExisting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
+
+  // L'aperçu lève l'ambiguïté du texte simple AVANT l'import : « Martin
+  // Camille » ne dit pas de lui-même lequel des deux mots est le nom. La
+  // lecture est la même côté serveur, et reste négligeable sur trente lignes.
+  const preview = useMemo(
+    () => (content.trim() === "" ? null : parseStudentList(content, { nameOrder })),
+    [content, nameOrder],
+  );
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -39,7 +52,7 @@ export function CsvImport({
     setWarnings([]);
 
     startTransition(async () => {
-      const result = await importStudents({ classGroupId, content, replaceExisting });
+      const result = await importStudents({ classGroupId, content, replaceExisting, nameOrder });
 
       if (!result.ok) {
         setError(result.error);
@@ -70,8 +83,9 @@ export function CsvImport({
     <section className="rounded-card border border-border bg-surface p-4">
       <h2 className="font-medium">Importer une liste d&apos;élèves</h2>
       <p className="mt-1 text-sm text-muted">
-        Collez les colonnes depuis un tableur, ou choisissez un fichier CSV. Ordre attendu :
-        nom, prénom, difficulté (1-5, facultative), commentaire (facultatif).
+        Un élève par ligne, en texte simple : « Martin Camille ». Vous pouvez aussi coller les
+        colonnes d&apos;un tableur ou choisir un fichier — ordre attendu : nom, prénom,
+        difficulté (1-5, facultative), commentaire (facultatif).
       </p>
 
       <form onSubmit={handleSubmit} className="mt-3">
@@ -84,7 +98,22 @@ export function CsvImport({
           aria-label="Liste d'élèves à importer"
         />
 
-        <div className="mt-3 flex flex-wrap items-center gap-4">
+        <div className="mt-3 flex flex-wrap items-end gap-4">
+          <div className="w-56">
+            <Label htmlFor="nameOrder">Ordre des lignes en texte simple</Label>
+            <Select
+              id="nameOrder"
+              value={nameOrder}
+              onChange={(event) => setNameOrder(event.target.value as NameOrder)}
+            >
+              {NAME_ORDERS.map((order) => (
+                <option key={order} value={order}>
+                  {NAME_ORDER_LABELS[order]}
+                </option>
+              ))}
+            </Select>
+          </div>
+
           <input
             type="file"
             accept=".csv,.txt,text/csv,text/plain"
@@ -112,6 +141,27 @@ export function CsvImport({
         )}
 
         <FieldError message={error} />
+
+        {preview && preview.students.length > 0 && (
+          <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
+            <p className="text-sm font-medium">
+              {preview.students.length} élève{preview.students.length > 1 ? "s" : ""} à importer
+            </p>
+            <ul className="mt-1 text-sm text-muted">
+              {preview.students.slice(0, 4).map((student, index) => (
+                <li key={`${student.lastName}-${student.firstName}-${index}`}>
+                  <span className="font-medium text-foreground">{student.lastName}</span>{" "}
+                  {student.firstName}
+                </li>
+              ))}
+              {preview.students.length > 4 && <li>…</li>}
+            </ul>
+            <p className="mt-1.5 text-xs text-muted">
+              Le nom de famille est en gras. S&apos;il est inversé, changez l&apos;ordre des
+              lignes ci-dessus.
+            </p>
+          </div>
+        )}
 
         {warnings.length > 0 && (
           <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
