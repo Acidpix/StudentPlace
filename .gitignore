@@ -1,0 +1,39 @@
+# Dépendances
+node_modules/
+.pnp
+.pnp.js
+
+# Build Next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# Client Prisma généré (recréé par `prisma generate` à chaque install)
+src/generated/
+
+# Base de données SQLite et sauvegardes
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+prisma/*.db
+backups/
+
+# Variables d'environnement (contiennent les clés de chiffrement)
+.env
+.env.local
+.env.production
+
+# Mémoire d'architecture destinée à Claude, non versionnée
+CLAUDE.md
+
+# Divers
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+coverage/
+.vitest/

@@ -1,0 +1,276 @@
+// ---------------------------------------------------------------------------
+// StudentPlace — schéma de données
+//
+// Vocabulaire : « ClassGroup » désigne la CLASSE (le groupe d'élèves) et
+// « Room » la SALLE (le lieu physique). Les deux ne se confondent jamais.
+//
+// Le lien classe <-> salle est porté par SeatingPlan : une classe peut avoir
+// plusieurs plans dans plusieurs salles, une salle accueille plusieurs classes.
+//
+// Toutes les distances et coordonnées sont exprimées en CENTIMÈTRES,
+// origine en haut à gauche de la salle, le tableau étant par convention en haut.
+//
+// SQLite ne gère pas les enum Prisma : les champs « kind » et « type » sont
+// des String contraintes côté TypeScript (voir src/lib/domain.ts).
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// --------------------------- Better Auth -----------------------------------
+// Ces quatre modèles doivent respecter exactement le schéma attendu par
+// Better Auth. Ne pas renommer leurs champs.
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions     Session[]
+  accounts     Account[]
+  classGroups  ClassGroup[]
+  rooms        Room[]
+  seatingPlans SeatingPlan[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ----------------------------- Métier --------------------------------------
+
+/// Une classe : le groupe d'élèves (ex. « 4e B »).
+model ClassGroup {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  schoolYear String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  students     Student[]
+  relations    StudentRelation[]
+  seatingPlans SeatingPlan[]
+
+  @@index([userId])
+}
+
+/// Un élève. `difficulty` va de 1 (aucune difficulté) à 5 (très perturbateur) :
+/// plus la note est élevée, plus l'élève doit être proche du bureau et isolé.
+model Student {
+  id           String     @id @default(cuid())
+  classGroupId String
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+
+  /// Commentaire libre, CHIFFRÉ au repos (AES-256-GCM, cf. src/lib/crypto.ts).
+  /// Ne jamais écrire de texte clair dans ce champ.
+  commentEnc String?
+
+  difficulty Int     @default(1)
+  /// Vue ou audition : impose le premier tiers de la salle.
+  needsFront Boolean @default(false)
+  /// Gaucher : on privilégie un bout de table.
+  leftHanded Boolean @default(false)
+  archived   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  relationsA  StudentRelation[] @relation("RelationStudentA")
+  relationsB  StudentRelation[] @relation("RelationStudentB")
+  assignments Assignment[]
+
+  @@index([classGroupId])
+}
+
+/// Relation entre deux élèves : INCOMPATIBLE (ne jamais asseoir côte à côte)
+/// ou AFFINITY (à rapprocher si possible).
+///
+/// INVARIANT : à l'écriture, studentAId < studentBId (ordre lexicographique).
+/// C'est ce qui rend la contrainte d'unicité efficace et empêche d'enregistrer
+/// deux fois la même paire dans un sens puis dans l'autre.
+/// Voir normalizePair() dans src/lib/domain.ts.
+model StudentRelation {
+  id           String     @id @default(cuid())
+  classGroupId String
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  studentAId   String
+  studentA     Student    @relation("RelationStudentA", fields: [studentAId], references: [id], onDelete: Cascade)
+  studentBId   String
+  studentB     Student    @relation("RelationStudentB", fields: [studentBId], references: [id], onDelete: Cascade)
+
+  /// "INCOMPATIBLE" | "AFFINITY"
+  type      String
+  createdAt DateTime @default(now())
+
+  @@unique([studentAId, studentBId])
+  @@index([classGroupId])
+  @@index([studentBId])
+}
+
+/// Une salle physique et son mobilier.
+model Room {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  widthCm   Int      @default(900)
+  heightCm  Int      @default(700)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  objects      RoomObject[]
+  seats        Seat[]
+  seatingPlans SeatingPlan[]
+
+  @@index([userId])
+}
+
+/// Mobilier : table, bureau du professeur, tableau, porte, fenêtre, obstacle.
+/// `x`/`y` = coin haut-gauche avant rotation ; `rotation` ∈ {0, 90, 180, 270}.
+model RoomObject {
+  id       String     @id @default(cuid())
+  roomId   String
+  room     Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  /// "TABLE" | "TEACHER_DESK" | "BOARD" | "DOOR" | "WINDOW" | "OBSTACLE"
+  kind     String
+  x        Int
+  y        Int
+  widthCm  Int
+  heightCm Int
+  rotation Int        @default(0)
+  label    String?
+
+  seats Seat[]
+
+  @@index([roomId])
+}
+
+/// Une place assise. Ses coordonnées sont ABSOLUES dans la salle et déjà
+/// pivotées : le solveur et l'export PDF lisent des positions plates, sans
+/// avoir à refaire la trigonométrie de la table qui les porte.
+model Seat {
+  id           String      @id @default(cuid())
+  roomId       String
+  room         Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomObjectId String?
+  roomObject   RoomObject? @relation(fields: [roomObjectId], references: [id], onDelete: Cascade)
+  x            Int
+  y            Int
+  label        String?
+  /// Place condamnée : conservée dans le plan mais jamais attribuée.
+  disabled     Boolean     @default(false)
+  /// true si la place est en extrémité de table (confort des gauchers).
+  isEndSeat    Boolean     @default(false)
+
+  assignments Assignment[]
+
+  @@index([roomId])
+  @@index([roomObjectId])
+}
+
+/// Un plan de classe : l'association d'une classe et d'une salle.
+model SeatingPlan {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classGroupId String
+  classGroup   ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Cascade)
+  roomId       String
+  room         Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name         String
+
+  /// Affichage « vu depuis le fond de la salle » plutôt que depuis le bureau.
+  mirrored Boolean @default(false)
+  /// Distance en dessous de laquelle deux élèves incompatibles déclenchent
+  /// une alerte (centimètres).
+  proximityCm Int @default(120)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignments Assignment[]
+
+  @@index([userId])
+  @@index([classGroupId])
+  @@index([roomId])
+}
+
+/// L'affectation d'un élève à une place dans un plan donné.
+/// `pinned` : place verrouillée, que le placement automatique ne touche pas.
+model Assignment {
+  id        String      @id @default(cuid())
+  planId    String
+  plan      SeatingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  seatId    String
+  seat      Seat        @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  pinned    Boolean     @default(false)
+
+  @@unique([planId, seatId])
+  @@unique([planId, studentId])
+  @@index([planId])
+  @@index([seatId])
+  @@index([studentId])
+}

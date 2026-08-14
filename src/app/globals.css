@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* next-themes pose la classe « dark » sur <html> ; on branche la variante
+   Tailwind dessus plutôt que sur la préférence système, pour que la bascule
+   manuelle prime. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  --background: #f5f6f8;
+  --surface: #ffffff;
+  --surface-muted: #eef1f5;
+  --border: #dde3ea;
+  --foreground: #101828;
+  --muted: #5c6b7f;
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eef2ff;
+  --danger: #d92d20;
+  --danger-soft: #fef3f2;
+  --danger-border: #fda29b;
+  --success: #067647;
+
+  /* Encre des pastilles de difficulté : volontairement très sombre, pour
+     conserver un contraste suffisant sur les cinq teintes de la palette. */
+  --pastille-ink: #1a1207;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #0a0e16;
+  --surface: #141a26;
+  --surface-muted: #1c2434;
+  --border: #2a3446;
+  --foreground: #e5ebf3;
+  --muted: #9aa8bd;
+  --primary: #8b93f8;
+  --primary-foreground: #10132a;
+  --primary-soft: #1e2440;
+  --danger: #f97066;
+  --danger-soft: #2a1614;
+  --danger-border: #7a271a;
+  --success: #47cd89;
+
+  /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
+     donc sombre, inchangée. */
+  --pastille-ink: #1a1207;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-success: var(--success);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Anneau de focus homogène et toujours visible au clavier. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* L'éditeur de salle et l'éditeur de placement manipulent des éléments au
+   pointeur : on neutralise la sélection de texte parasite pendant un glisser. */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Rendu d'impression : on masque la navigation pour que Ctrl+P donne
+   directement le plan, en complément de l'export PDF. */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    color: #000000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
