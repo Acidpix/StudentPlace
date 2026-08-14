@@ -115,7 +115,9 @@ fi
 info "Préparation de la base de données"
 # `db push` applique le schéma directement, sans fichiers de migration :
 # c'est le mode adapté à une instance unique auto-hébergée.
-npx prisma db push --skip-generate --accept-data-loss
+# Prisma 7 ne génère plus le client depuis `db push` et rejette
+# `--skip-generate` : la génération vient du postinstall et de `npm run build`.
+npx prisma db push --accept-data-loss
 
 # WAL : lectures et écritures concurrentes sans blocage. Réglage persistant,
 # inscrit une fois pour toutes dans le fichier de base.

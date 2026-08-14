@@ -118,7 +118,9 @@ main() {
   fi
 
   info "Schéma de base"
-  npx prisma db push --skip-generate
+  # Pas de `--skip-generate` : le drapeau a disparu en Prisma 7, où `db push`
+  # ne génère plus le client. C'est `npm run build` qui s'en charge, plus bas.
+  npx prisma db push
 
   info "Construction"
   npm run build
