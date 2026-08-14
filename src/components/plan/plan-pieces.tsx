@@ -4,7 +4,6 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { cn } from "@/lib/cn";
-import { SEAT_CARD_HEIGHT_CM, SEAT_CARD_WIDTH_CM } from "@/lib/domain";
 import { studentFullName, studentShortName, type SeatView, type StudentView } from "@/lib/view-models";
 
 /**
@@ -39,24 +38,47 @@ export function parseSeatDroppableId(id: string): string | null {
 export interface SeatMetrics {
   width: number;
   height: number;
+  /** Taille du prénom, ligne principale. */
   font: number;
+  /** Taille du nom de famille, ligne secondaire. */
+  fontSmall: number;
   badge: number;
   radius: number;
+  /** Assez haute pour deux lignes : prénom au-dessus, nom en dessous. */
+  twoLines: boolean;
   /** Trop étroite pour le moindre mot : « Libre » et consorts sont masqués. */
   tiny: boolean;
 }
 
-/** Traduit l'échelle du plan en dimensions d'étiquette. */
-export function seatMetrics(pxPerCm: number): SeatMetrics {
-  const width = SEAT_CARD_WIDTH_CM * pxPerCm;
-  const height = SEAT_CARD_HEIGHT_CM * pxPerCm;
+/**
+ * Traduit l'emprise disponible en dimensions d'étiquette.
+ *
+ * L'étiquette est sur DEUX LIGNES — prénom, puis nom de famille — et non plus
+ * sur une seule : c'est ce qui rend les deux lisibles. Sur une ligne unique, la
+ * pastille de difficulté et l'espace séparateur mangeaient un tiers de la
+ * largeur, et il ne restait la place que pour « Prénom N. ». Empilées, les deux
+ * lignes disposent chacune de presque toute la largeur.
+ */
+export function seatMetrics(footprint: { widthCm: number; heightCm: number }, pxPerCm: number): SeatMetrics {
+  const width = footprint.widthCm * pxPerCm;
+  const height = footprint.heightCm * pxPerCm;
+
+  // Deux lignes de texte plus le rembourrage demandent une trentaine de
+  // pixels ; en dessous, mieux vaut une seule ligne bien lisible que deux
+  // illisibles.
+  const twoLines = height >= 30 && width >= 46;
+  const font = twoLines
+    ? Math.max(7, Math.min(13, height * 0.3))
+    : Math.max(6, Math.min(13, height * 0.42));
 
   return {
     width,
     height,
-    font: Math.max(6, Math.min(13, height * 0.34)),
-    badge: Math.max(9, Math.min(20, height * 0.46)),
-    radius: Math.max(4, Math.min(10, height * 0.2)),
+    font,
+    fontSmall: Math.max(6, font * 0.85),
+    badge: Math.max(9, Math.min(18, height * (twoLines ? 0.3 : 0.5))),
+    radius: Math.max(4, Math.min(10, height * 0.18)),
+    twoLines,
     tiny: width < 44,
   };
 }
@@ -76,30 +98,46 @@ function studentInitials(student: StudentView): string {
  */
 const AVG_CHAR_RATIO = 0.55;
 
+export interface SeatLabel {
+  /** Ligne principale : prénom, ou repli plus court. */
+  primary: string | null;
+  /** Ligne secondaire : nom de famille. Absente sur une étiquette basse. */
+  secondary: string | null;
+}
+
 /**
- * Choisit la forme du nom la plus complète qui tienne dans l'étiquette.
+ * Choisit ce qu'affiche l'étiquette, selon la place dont elle dispose.
  *
- * « Prénom Nom », sinon le prénom seul, sinon les initiales, sinon rien — la
- * pastille de difficulté reste alors la seule information, et le nom complet
- * demeure dans l'infobulle et dans le panneau latéral. Le calcul est fait par
- * élève : « Léa Roy » tient là où « Maximilien Descheveaux » ne tient pas.
+ * Par ordre de préférence : prénom sur une ligne et nom sur la suivante, puis
+ * le prénom seul, puis les initiales, puis rien — la pastille de difficulté
+ * reste alors la seule information, et le nom complet demeure dans l'infobulle
+ * et dans le panneau latéral. Le calcul est fait PAR ÉLÈVE : « Léa Roy » tient
+ * là où « Maximilien Descheveaux » ne tient pas.
  */
-export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): string | null {
-  // Ce que la largeur de carte laisse au texte : bordures (2 × 2 px),
-  // rembourrage (2 × 3 px), pastille de difficulté, et l'espace qui l'en
-  // sépare (gap-1 = 4 px).
-  const available = metrics.width - metrics.badge - 14;
-  if (available <= 0) return null;
+export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): SeatLabel {
+  // Rembourrage (2 × 4 px) et bordures (2 × 2 px).
+  const inner = metrics.width - 12;
+  const fits = (text: string, size: number, room: number) =>
+    text.length * size * AVG_CHAR_RATIO <= room;
 
-  const fits = (text: string) => text.length * metrics.font * AVG_CHAR_RATIO <= available;
+  if (metrics.twoLines) {
+    // Seule la première ligne partage sa largeur avec la pastille.
+    const firstLine = inner - metrics.badge - 4;
+    if (fits(student.firstName, metrics.font, firstLine)) {
+      return {
+        primary: student.firstName,
+        secondary: fits(student.lastName, metrics.fontSmall, inner) ? student.lastName : null,
+      };
+    }
+  }
 
-  return (
-    [
-      `${student.firstName} ${student.lastName}`,
-      student.firstName,
-      studentInitials(student),
-    ].find(fits) ?? null
-  );
+  const single = inner - metrics.badge - 4;
+  const primary =
+    [student.firstName, studentInitials(student)].find((text) =>
+      fits(text, metrics.font, single),
+    ) ?? null;
+
+  return { primary, secondary: null };
 }
 
 // ------------------------------------------------------------------ étiquette
@@ -123,6 +161,12 @@ export function StudentLabel({
 
 // ------------------------------------------------------------------- bac
 
+/**
+ * Une ligne du bac, volontairement DENSE : la colonne est étroite et l'on veut
+ * voir une classe entière sans la faire défiler. D'où une seule ligne de texte,
+ * le nom de famille d'abord — c'est par lui qu'on cherche quelqu'un — et les
+ * besoins particuliers réduits à deux lettres.
+ */
 export function TrayStudent({ student }: { student: StudentView }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: studentDraggableId(student.id),
@@ -134,17 +178,24 @@ export function TrayStudent({ student }: { student: StudentView }) {
       type="button"
       {...listeners}
       {...attributes}
+      title={`${student.lastName} ${student.firstName}${student.comment ? ` — ${student.comment}` : ""}`}
       className={cn(
-        "flex w-full cursor-grab items-center justify-between gap-2 rounded-control border border-border bg-surface px-2 py-1.5 text-left text-sm",
+        "flex w-full cursor-grab items-center gap-1.5 rounded-control border border-border bg-surface px-1.5 py-1 text-left text-xs",
         "transition-colors hover:border-primary hover:bg-primary-soft/40 active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
     >
-      <StudentLabel student={student} full />
-      <span className="flex shrink-0 gap-1 text-[10px] text-muted">
-        {student.needsFront && <span title="Doit être au premier rang">1er</span>}
-        {student.leftHanded && <span title="Gaucher">G</span>}
+      <DifficultyBadge difficulty={student.difficulty} size="sm" />
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-medium">{student.lastName}</span> {student.firstName}
       </span>
+      {(student.needsFront || student.leftHanded) && (
+        <span className="shrink-0 text-[9px] text-muted">
+          {student.needsFront && <span title="Doit être au premier rang">1er</span>}
+          {student.needsFront && student.leftHanded && " "}
+          {student.leftHanded && <span title="Gaucher">G</span>}
+        </span>
+      )}
     </button>
   );
 }
@@ -156,24 +207,19 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-card border p-3 shadow-soft transition-colors",
+        "material rounded-card border p-2.5 shadow-soft transition-colors",
         isOver ? "border-primary bg-primary-soft" : "border-border bg-surface",
       )}
     >
-      <h2 className="mb-2 text-sm font-medium">
-        Élèves à placer <span className="text-muted">({count})</span>
+      <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">
+        À placer <span className="tabular-nums">({count})</span>
       </h2>
       {count === 0 ? (
-        <p className="py-3 text-center text-sm text-muted">
-          Tous les élèves sont placés. Déposez ici pour retirer quelqu&apos;un du plan de classe.
+        <p className="py-2 text-center text-[11px] text-muted">
+          Tous placés. Déposez ici pour retirer quelqu&apos;un.
         </p>
       ) : (
-        // Le bac est sous le plan et non plus dans une colonne étroite : les
-        // élèves s'y répartissent sur plusieurs colonnes plutôt que de former
-        // une liste qu'il faudrait faire défiler.
-        <div className="grid max-h-56 grid-cols-1 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2">
-          {children}
-        </div>
+        <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-0.5">{children}</div>
       )}
     </div>
   );
@@ -274,7 +320,7 @@ function SeatedStudent({
     .filter(Boolean)
     .join(" — ");
 
-  const label = fitStudentLabel(student, metrics);
+  const { primary, secondary } = fitStudentLabel(student, metrics);
 
   /**
    * Le verrouillage se lit à un CERCLAGE ROUGE PERMANENT.
@@ -303,7 +349,7 @@ function SeatedStudent({
         outlineOffset: pinned ? 1 : undefined,
       }}
       className={cn(
-        "relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
+        "material relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
         conflicted
           ? "border-dashed border-danger bg-danger-soft"
           : selected
@@ -321,14 +367,32 @@ function SeatedStudent({
         {...attributes}
         onClick={onSelect}
         title={title}
-        style={{ fontSize: metrics.font, paddingInline: label ? 3 : 0 }}
+        style={{ paddingInline: primary ? 4 : 0 }}
         className={cn(
-          "flex h-full w-full cursor-grab items-center gap-1 overflow-hidden text-left leading-tight active:cursor-grabbing",
-          !label && "justify-center",
+          "flex h-full w-full cursor-grab flex-col justify-center overflow-hidden text-left leading-tight active:cursor-grabbing",
+          !primary && "items-center justify-center",
         )}
       >
-        <DifficultyBadge difficulty={student.difficulty} size={metrics.badge} />
-        {label && <span className="truncate">{label}</span>}
+        {/* Ligne 1 : pastille de difficulté et prénom. */}
+        <span className="flex w-full min-w-0 items-center gap-1">
+          <DifficultyBadge difficulty={student.difficulty} size={metrics.badge} />
+          {primary && (
+            <span className="truncate font-medium" style={{ fontSize: metrics.font }}>
+              {primary}
+            </span>
+          )}
+        </span>
+
+        {/* Ligne 2 : nom de famille, sur toute la largeur. */}
+        {secondary && (
+          <span
+            className="w-full truncate uppercase tracking-wide text-muted"
+            style={{ fontSize: metrics.fontSmall }}
+          >
+            {secondary}
+          </span>
+        )}
+
         <span className="sr-only">
           {studentFullName(student)}
           {pinned ? " — place verrouillée" : ""}

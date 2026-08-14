@@ -47,9 +47,18 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
   OBSTACLE: "Obstacle",
 };
 
-/** Dimensions par défaut du mobilier, en centimètres. */
+/**
+ * Dimensions par défaut du mobilier, en centimètres.
+ *
+ * La table fait 160 cm et non les 130 d'origine : l'écartement des places en
+ * découle directement (largeur ÷ nombre de places), et c'est lui qui plafonne
+ * la taille des étiquettes du plan de classe. À 130 cm, deux places d'une même
+ * table n'étaient distantes que de 65 cm et les noms devenaient illisibles.
+ * Les salles déjà dessinées gardent leurs tables : les élargir dans l'éditeur
+ * de salle est ce qui leur rendra de la place.
+ */
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
-  TABLE: { widthCm: 130, heightCm: 50 },
+  TABLE: { widthCm: 160, heightCm: 55 },
   TEACHER_DESK: { widthCm: 140, heightCm: 70 },
   BOARD: { widthCm: 300, heightCm: 12 },
   DOOR: { widthCm: 90, heightCm: 12 },
@@ -113,13 +122,17 @@ export const ROOM_MIN_CM = 300;
 export const ROOM_MAX_CM = 3000;
 
 /**
- * Emprise d'une étiquette d'élève sur le plan, en centimètres.
+ * Emprise MAXIMALE d'une étiquette d'élève sur le plan, en centimètres.
  *
- * C'est la clé du non-chevauchement : les cartes étaient auparavant dimensionnées
- * en pixels fixes (96 × 44), donc bien plus larges que l'écartement réel de deux
- * places d'une même table (~65 cm) dès que la salle était grande. En les
- * exprimant dans l'unité du domaine, une carte reste toujours à l'échelle du
- * plan et deux voisines ne peuvent plus se recouvrir.
+ * L'emprise réelle est plus petite si les places de la salle sont serrées :
+ * `seatFootprintCm()` (voir `placement/geometry.ts`) la déduit de l'écartement
+ * effectivement mesuré entre places. C'est la clé du non-chevauchement — les
+ * cartes étaient auparavant dimensionnées en pixels fixes, donc bien plus
+ * larges que l'écartement réel dès que la salle était grande.
+ *
+ * Ces plafonds sont généreux à dessein : c'est une étiquette sur DEUX LIGNES,
+ * prénom puis nom, et elle doit rester lisible. Une salle aux tables trop
+ * étroites bridera d'elle-même.
  */
-export const SEAT_CARD_WIDTH_CM = 58;
-export const SEAT_CARD_HEIGHT_CM = 34;
+export const SEAT_CARD_MAX_WIDTH_CM = 86;
+export const SEAT_CARD_MAX_HEIGHT_CM = 52;

@@ -38,7 +38,7 @@ export function AppNav({ userName }: { userName: string }) {
   }
 
   return (
-    <header className="print-hidden sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
+    <header className="material print-hidden sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
         <Link
           href="/tableau-de-bord"

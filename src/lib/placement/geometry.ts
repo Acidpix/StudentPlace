@@ -98,6 +98,65 @@ export function generateSeatPositions(
 }
 
 /**
+ * Emprise que peut prendre l'étiquette d'un élève sans jamais en recouvrir une
+ * autre, déduite de l'écartement RÉEL des places de la salle.
+ *
+ * Un plafond fixe ne peut pas convenir : deux places d'une table de 130 cm sont
+ * à 65 cm l'une de l'autre, celles d'une table de 180 cm à 90 cm. Mesurer
+ * plutôt que supposer permet aux étiquettes d'être aussi grandes — donc aussi
+ * lisibles — que la salle le permet, et pas davantage.
+ *
+ * Trois distances sont regardées :
+ *  - le plus petit écart HORIZONTAL entre deux places d'un même rang,
+ *  - le plus petit écart VERTICAL entre deux places d'une même colonne,
+ *  - la plus petite distance tous azimuts, qui rattrape les dispositions en
+ *    quinconce où ni l'un ni l'autre des deux premiers cas ne se présente.
+ *
+ * En l'absence de repère — une place unique, par exemple — on rend les
+ * plafonds tels quels.
+ */
+export function seatFootprintCm(
+  seats: Point[],
+  maxWidthCm: number,
+  maxHeightCm: number,
+): { widthCm: number; heightCm: number } {
+  /** Au-delà, deux places ne sont plus considérées sur la même ligne/colonne. */
+  const ALIGNMENT_TOLERANCE_CM = 45;
+
+  let minRowGap = Number.POSITIVE_INFINITY;
+  let minColumnGap = Number.POSITIVE_INFINITY;
+  let minDistance = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < seats.length; i++) {
+    for (let j = i + 1; j < seats.length; j++) {
+      const dx = Math.abs(seats[i].x - seats[j].x);
+      const dy = Math.abs(seats[i].y - seats[j].y);
+
+      if (dx > 0 && dy <= ALIGNMENT_TOLERANCE_CM) minRowGap = Math.min(minRowGap, dx);
+      if (dy > 0 && dx <= ALIGNMENT_TOLERANCE_CM) minColumnGap = Math.min(minColumnGap, dy);
+
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0) minDistance = Math.min(minDistance, distance);
+    }
+  }
+
+  // 6 % de jeu horizontal pour que deux étiquettes voisines ne se touchent pas
+  // tout à fait ; 25 % de jeu vertical, plus généreux car un rang de plus loin
+  // se lit mal quand les cartes s'empilent bord à bord.
+  const width = Math.min(
+    maxWidthCm,
+    Number.isFinite(minRowGap) ? minRowGap * 0.94 : maxWidthCm,
+    Number.isFinite(minDistance) ? minDistance * 0.94 : maxWidthCm,
+  );
+  const height = Math.min(
+    maxHeightCm,
+    Number.isFinite(minColumnGap) ? minColumnGap * 0.75 : maxHeightCm,
+  );
+
+  return { widthCm: width, heightCm: height };
+}
+
+/**
  * Classe les places de la plus proche à la plus éloignée du tableau.
  *
  * Le tableau est par convention en haut de la salle : le rang « avant » se

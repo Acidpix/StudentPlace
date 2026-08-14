@@ -31,8 +31,8 @@ import { DifficultyBadge, DifficultyLegend } from "@/components/ui/difficulty-ba
 import { FieldError, Input, Label } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   DeskViewIcon,
   FitIcon,
   LockIcon,
@@ -43,7 +43,9 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "@/components/ui/icons";
+import { SEAT_CARD_MAX_HEIGHT_CM, SEAT_CARD_MAX_WIDTH_CM } from "@/lib/domain";
 import { conflictingSeatIds, findProximityConflicts } from "@/lib/placement/conflicts";
+import { seatFootprintCm } from "@/lib/placement/geometry";
 import { runSolver } from "@/lib/placement/run-solver";
 import { seedFromId } from "@/lib/placement/seed";
 import type { Violation } from "@/lib/placement/types";
@@ -216,7 +218,15 @@ export function PlanEditor({
     widthPx,
     pxPerCm,
   } = usePlanScale(room.widthCm, room.heightCm, zoom, planHeight);
-  const metrics = useMemo(() => seatMetrics(pxPerCm), [pxPerCm]);
+
+  // L'emprise d'une étiquette dépend de l'écartement réel des places de CETTE
+  // salle : des tables larges autorisent des noms complets, des tables serrées
+  // imposent des étiquettes plus petites. Mesuré une fois par agencement.
+  const footprint = useMemo(
+    () => seatFootprintCm(seats, SEAT_CARD_MAX_WIDTH_CM, SEAT_CARD_MAX_HEIGHT_CM),
+    [seats],
+  );
+  const metrics = useMemo(() => seatMetrics(footprint, pxPerCm), [footprint, pxPerCm]);
 
   const incompatibles = useMemo(
     () =>
@@ -533,12 +543,20 @@ export function PlanEditor({
           </div>
         )}
 
-        {/* Le plan occupe toute la largeur, les outils s'empilent EN DESSOUS :
-            le plan de classe est le sujet de la page, rien ne doit lui prendre
-            de largeur. */}
-        <div className="space-y-4">
+        {/* Le plan et, à sa droite, la seule colonne dont on se sert en
+            composant : les élèves à placer et celui qu'on vient de cliquer.
+            Les réglages et l'export, qu'on ouvre une fois par séance, passent
+            sous le plan — ils n'ont pas à lui prendre de la largeur en
+            permanence. */}
+        <div
+          className={
+            panelOpen
+              ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]"
+              : "grid gap-4 lg:grid-cols-1"
+          }
+        >
           {/* ----------------------------------------------------- plan */}
-          <div className="min-w-0 rounded-card border border-border bg-surface p-2 shadow-soft">
+          <div className="material min-w-0 rounded-card border border-border bg-surface p-2 shadow-soft">
             <PlanToolbar
               mirrored={mirrored}
               onToggleMirror={() => {
@@ -699,26 +717,21 @@ export function PlanEditor({
             </div>
           </div>
 
-          {/* -------------------------------------- outils, sous le plan */}
-          {panelOpen ? (
-            <section className="print-hidden grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <TrayZone count={unplaced.length}>
-                {unplaced.map((student) => (
-                  <TrayStudent key={student.id} student={student} />
-                ))}
-              </TrayZone>
-
+          {/* -------------------------------- colonne de composition */}
+          {panelOpen && (
+            <aside className="print-hidden space-y-3">
               {selection && (
-                <div className="rounded-card border border-primary/40 bg-primary-soft/40 p-3 shadow-soft">
-                  <h2 className="text-sm font-medium">Élève sélectionné</h2>
-                  <p className="mt-2 flex items-center gap-2 text-sm">
-                    <DifficultyBadge difficulty={selection.student.difficulty} />
+                <div className="material rounded-card border border-primary/40 bg-primary-soft/40 p-2.5 shadow-soft">
+                  <p className="flex items-center gap-1.5 text-sm">
+                    <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
                     <span className="truncate font-medium">
                       {studentFullName(selection.student)}
                     </span>
                   </p>
                   {selection.student.comment && (
-                    <p className="mt-1.5 text-xs text-muted">{selection.student.comment}</p>
+                    <p className="mt-1 line-clamp-2 text-[11px] text-muted">
+                      {selection.student.comment}
+                    </p>
                   )}
                   {/* Seule commande de verrouillage à la place : l'étiquette du
                       plan ne porte plus de cadenas, elle se contente d'être
@@ -726,56 +739,55 @@ export function PlanEditor({
                   <Button
                     size="sm"
                     variant={selection.pinned ? "secondary" : "primary"}
-                    className="mt-3 w-full"
+                    className="mt-2 w-full"
                     onClick={() => mutate(togglePin(assignments, selection.seatId))}
                   >
                     {selection.pinned ? <UnlockIcon /> : <LockIcon />}
-                    {selection.pinned ? "Déverrouiller la place" : "Verrouiller sur cette place"}
+                    {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
                   </Button>
                 </div>
               )}
 
-              <div className="flex flex-col rounded-card border border-border bg-surface p-3 shadow-soft">
-                <Label htmlFor="proximity">Seuil de proximité (cm)</Label>
-                <Input
-                  id="proximity"
-                  type="number"
-                  min={0}
-                  max={1000}
-                  step={10}
-                  value={proximityCm}
-                  onChange={(event) => {
-                    setProximityCm(Math.max(0, Number(event.target.value)));
-                    setDirty(true);
-                  }}
-                />
-                <p className="mt-1.5 text-xs text-muted">
-                  En dessous de cette distance, deux élèves incompatibles déclenchent une alerte.
-                </p>
-
-                {/* `mt-auto` cale le bouton en bas de la carte, pour qu'il
-                    s'aligne avec ceux des cartes voisines quelle que soit la
-                    hauteur du contenu. */}
-                <div className="mt-auto pt-4">
-                  <Button variant="secondary" size="sm" className="w-full" onClick={handleClear}>
-                    Vider le plan de classe
-                  </Button>
-                </div>
-              </div>
-
-              <ExportPdfPanel planId={plan.id} mirrored={mirrored} />
-            </section>
-          ) : (
-            <button
-              type="button"
-              onClick={togglePanel}
-              className="print-hidden flex w-full items-center justify-center gap-2 rounded-card border border-dashed border-border py-2 text-sm text-muted hover:border-primary hover:text-foreground"
-            >
-              <ChevronDownIcon width={14} height={14} />
-              Afficher les outils
-              {unplaced.length > 0 && ` — ${unplaced.length} élève${unplaced.length > 1 ? "s" : ""} à placer`}
-            </button>
+              <TrayZone count={unplaced.length}>
+                {unplaced.map((student) => (
+                  <TrayStudent key={student.id} student={student} />
+                ))}
+              </TrayZone>
+            </aside>
           )}
+        </div>
+
+        {/* --------------------------- réglages, sous le plan de classe */}
+        <div className="print-hidden grid gap-4 md:grid-cols-2">
+          <div className="material flex flex-col rounded-card border border-border bg-surface p-3 shadow-soft">
+            <Label htmlFor="proximity">Seuil de proximité (cm)</Label>
+            <Input
+              id="proximity"
+              type="number"
+              min={0}
+              max={1000}
+              step={10}
+              value={proximityCm}
+              onChange={(event) => {
+                setProximityCm(Math.max(0, Number(event.target.value)));
+                setDirty(true);
+              }}
+            />
+            <p className="mt-1.5 text-xs text-muted">
+              En dessous de cette distance, deux élèves incompatibles déclenchent une alerte.
+            </p>
+
+            {/* `mt-auto` cale le bouton en bas de la carte, pour qu'il s'aligne
+                avec celui de la carte voisine quelle que soit la hauteur du
+                contenu. */}
+            <div className="mt-auto pt-4">
+              <Button variant="secondary" size="sm" className="w-full" onClick={handleClear}>
+                Vider le plan de classe
+              </Button>
+            </div>
+          </div>
+
+          <ExportPdfPanel planId={plan.id} mirrored={mirrored} />
         </div>
       </div>
 
@@ -981,8 +993,8 @@ function PlanToolbar({
       </div>
 
       <Button size="sm" variant="ghost" className="ml-auto" onClick={onTogglePanel}>
-        {panelOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        {panelOpen ? "Masquer les outils" : "Afficher les outils"}
+        {panelOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        {panelOpen ? "Masquer le panneau" : "Afficher le panneau"}
       </Button>
     </div>
   );

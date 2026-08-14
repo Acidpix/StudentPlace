@@ -27,7 +27,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
   const sensitive = includeComments || includeDifficulty;
 
   return (
-    <div className="rounded-card border border-border bg-surface p-3 shadow-soft">
+    <div className="material rounded-card border border-border bg-surface p-3 shadow-soft">
       <h2 className="mb-2 text-sm font-medium">Export PDF</h2>
 
       <div className="space-y-1.5 text-sm">

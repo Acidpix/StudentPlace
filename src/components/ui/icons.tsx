@@ -166,15 +166,15 @@ export const SearchIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const ChevronDownIcon = (p: IconProps) => (
+export const ChevronLeftIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="m6 9 6 6 6-6" />
+    <path d="m15 18-6-6 6-6" />
   </Icon>
 );
 
-export const ChevronUpIcon = (p: IconProps) => (
+export const ChevronRightIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="m18 15-6-6-6 6" />
+    <path d="m9 18 6-6-6-6" />
   </Icon>
 );
 

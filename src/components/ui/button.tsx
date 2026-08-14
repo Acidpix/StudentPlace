@@ -10,14 +10,20 @@ type Size = "sm" | "md" | "lg";
  * opacité réduite laisse transparaître le fond de page et salit la couleur,
  * ce qui se voyait particulièrement sur le dégradé.
  */
+/**
+ * `sheen` pose un voile clair en haut et sombre en bas : le bouton cesse d'être
+ * un aplat sans qu'il faille définir deux teintes par variante.
+ * `material` fait de même, en plus discret, pour le bouton secondaire.
+ */
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground shadow-soft hover:brightness-110 active:brightness-95",
+    "sheen bg-primary text-primary-foreground shadow-soft hover:brightness-110 active:brightness-95",
   secondary:
-    "bg-surface text-foreground border border-border shadow-soft hover:bg-surface-muted hover:border-primary/40",
+    "material bg-surface text-foreground border border-border shadow-soft hover:bg-surface-muted hover:border-primary/40",
   ghost: "text-muted hover:bg-surface-muted hover:text-foreground",
-  accent: "bg-accent text-accent-foreground shadow-soft hover:brightness-110 active:brightness-95",
-  danger: "bg-danger text-white shadow-soft hover:brightness-110 active:brightness-95",
+  accent:
+    "sheen bg-accent text-accent-foreground shadow-soft hover:brightness-110 active:brightness-95",
+  danger: "sheen bg-danger text-white shadow-soft hover:brightness-110 active:brightness-95",
 };
 
 const SIZES: Record<Size, string> = {

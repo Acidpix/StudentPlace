@@ -6,15 +6,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Palette « Craie & ardoise ».
+   Palette « Studio » : quasi-noir et blanc cassé, un accent violet pour
+   l'action, un vert pour la confirmation.
 
-   Thème clair  : papier crème, encre vert-ardoise.
-   Thème sombre : le tableau lui-même, vert-noir, et la craie par-dessus.
-
-   Le VERT D'ARDOISE porte l'action principale, le TERRACOTTA les accents — et
-   non l'inverse. Le terracotta frôle le rouge, or le rouge a ici un sens précis
-   et exclusif : une place verrouillée et une incompatibilité non respectée. Il
-   ne doit se confondre avec aucun bouton.
+   Le rouge n'est JAMAIS décoratif : il signale une place verrouillée ou une
+   incompatibilité non respectée. Aucune couleur d'action ne doit s'en
+   approcher — c'est la raison pour laquelle l'accent est violet et non chaud.
 
    Toutes les couleurs passent par des variables : aucun composant ne code une
    teinte en dur, et changer de thème ne touche que ce fichier.
@@ -23,37 +20,49 @@
 :root {
   color-scheme: light;
 
-  --background: #faf7f0;
-  --surface: #fffefb;
-  --surface-muted: #f1ece0;
-  --border: #e3dbc9;
-  --foreground: #1b2b26;
-  --muted: #64756c;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-muted: #eef0f4;
+  --border: #e2e5ea;
+  --foreground: #0b0c0f;
+  --muted: #5b6472;
 
-  --primary: #0f6f5c;
+  --primary: #6d28d9;
   --primary-foreground: #ffffff;
-  --primary-soft: #e2f1ec;
+  --primary-soft: #f3efff;
 
-  --accent: #c2410c;
+  --accent: #059669;
   --accent-foreground: #ffffff;
-  --accent-soft: #fbeadd;
+  --accent-soft: #ecfdf5;
 
-  --danger: #b42318;
-  --danger-soft: #fdf0ee;
-  --danger-border: #eda69b;
-  --success: #0f6f5c;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-border: #fca5a5;
+  --success: #059669;
 
-  /* Ombres étagées, teintées chaud : une ombre neutre paraît sale sur du
-     papier crème. Trois niveaux seulement : posé, soulevé, flottant. */
-  --elev-1: 0 1px 2px rgb(60 45 25 / 0.06), 0 1px 3px rgb(60 45 25 / 0.04);
-  --elev-2: 0 2px 4px rgb(60 45 25 / 0.06), 0 6px 16px rgb(60 45 25 / 0.08);
-  --elev-3: 0 8px 24px rgb(60 45 25 / 0.11), 0 20px 48px rgb(60 45 25 / 0.1);
+  /* Ombres étagées, avec un LISERÉ INTÉRIEUR clair sur la tranche haute : c'est
+     lui qui donne du relief aux cartes, une ombre seule les laisse plates.
+     Trois niveaux : posé, soulevé, flottant. */
+  --elev-1:
+    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 2px rgb(11 12 15 / 0.05),
+    0 1px 3px rgb(11 12 15 / 0.04);
+  --elev-2:
+    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 2px 4px rgb(11 12 15 / 0.05),
+    0 6px 16px rgb(11 12 15 / 0.08);
+  --elev-3:
+    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 8px 24px rgb(11 12 15 / 0.1),
+    0 20px 48px rgb(11 12 15 / 0.1);
 
-  /* Teintes du dégradé de fond, très diluées. */
-  --mesh-a: rgb(15 111 92 / 0.07);
-  --mesh-b: rgb(194 65 12 / 0.05);
+  /* Dégradé vertical des surfaces : quelques pour cent suffisent à ce qu'une
+     carte cesse d'être un aplat. */
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(15 23 42 / 0.022));
 
-  /* Grain de la surface : papier en thème clair, poussière de craie en sombre. */
+  /* Taches du dégradé de fond. */
+  --mesh-a: rgb(109 40 217 / 0.1);
+  --mesh-b: rgb(5 150 105 / 0.08);
+  --mesh-c: rgb(109 40 217 / 0.05);
+
+  /* Grain de surface : fibre du papier en clair, bruit d'écran en sombre. */
   --grain-opacity: 0.035;
 
   /* Encre des pastilles de difficulté : volontairement très sombre, pour
@@ -64,32 +73,41 @@
 .dark {
   color-scheme: dark;
 
-  --background: #10201b;
-  --surface: #172c25;
-  --surface-muted: #1f3830;
-  --border: #2d4b41;
-  --foreground: #e8f0ea;
-  --muted: #9bb2a6;
+  --background: #0b0c0f;
+  --surface: #16181d;
+  --surface-muted: #1e2128;
+  --border: #2a2e37;
+  --foreground: #f2f3f5;
+  --muted: #98a1b0;
 
-  --primary: #5fd0b0;
-  --primary-foreground: #06231c;
-  --primary-soft: #1c3b33;
+  --primary: #a78bfa;
+  --primary-foreground: #160f28;
+  --primary-soft: #221a3a;
 
-  --accent: #fb923c;
-  --accent-foreground: #2a1405;
-  --accent-soft: #33251a;
+  --accent: #34d399;
+  --accent-foreground: #052e21;
+  --accent-soft: #0f2b22;
 
   --danger: #f87171;
-  --danger-soft: #35201e;
-  --danger-border: #7f2d24;
-  --success: #5fd0b0;
+  --danger-soft: #2a1517;
+  --danger-border: #7f1d1d;
+  --success: #34d399;
 
-  --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
-  --elev-2: 0 2px 6px rgb(0 0 0 / 0.45), 0 8px 20px rgb(0 0 0 / 0.35);
-  --elev-3: 0 10px 30px rgb(0 0 0 / 0.55), 0 24px 60px rgb(0 0 0 / 0.45);
+  /* En thème sombre le liseré intérieur est à peine blanc : plus marqué, il
+     ferait ressortir un contour laiteux autour de chaque carte. */
+  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-2:
+    inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 6px rgb(0 0 0 / 0.45),
+    0 8px 20px rgb(0 0 0 / 0.35);
+  --elev-3:
+    inset 0 1px 0 rgb(255 255 255 / 0.07), 0 10px 30px rgb(0 0 0 / 0.55),
+    0 24px 60px rgb(0 0 0 / 0.45);
 
-  --mesh-a: rgb(95 208 176 / 0.09);
-  --mesh-b: rgb(251 146 60 / 0.06);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: rgb(167 139 250 / 0.13);
+  --mesh-b: rgb(52 211 153 / 0.09);
+  --mesh-c: rgb(167 139 250 / 0.07);
 
   --grain-opacity: 0.05;
 
@@ -139,7 +157,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Dégradé de fond : deux taches très diluées, fixes au défilement. Purement
+/* Dégradé de fond : trois taches diluées, fixes au défilement. Purement
    décoratif, donc transparent aux évènements de pointeur et absent à
    l'impression. */
 body::before {
@@ -149,14 +167,14 @@ body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(60rem 40rem at 12% -10%, var(--mesh-a), transparent 70%),
-    radial-gradient(50rem 35rem at 100% 0%, var(--mesh-b), transparent 65%);
+    radial-gradient(55rem 38rem at 8% -8%, var(--mesh-a), transparent 68%),
+    radial-gradient(48rem 34rem at 100% 2%, var(--mesh-b), transparent 62%),
+    radial-gradient(45rem 45rem at 55% 115%, var(--mesh-c), transparent 60%);
 }
 
-/* Grain : fibre du papier en thème clair, poussière de craie sur le tableau en
-   thème sombre. Un bruit fractal SVG en ligne — aucun fichier à charger, donc
-   rien qui échoue sur un serveur sans accès sortant, comme pour les polices.
-   L'opacité reste sous 5 % : c'est une texture, pas un motif. */
+/* Grain : un bruit fractal SVG EN LIGNE, aucun fichier à charger. Même raison
+   que pour les polices système — rien ne doit dépendre d'un accès sortant au
+   moment du build. L'opacité reste sous 5 % : c'est une texture, pas un motif. */
 body::after {
   content: "";
   position: fixed;
@@ -165,6 +183,19 @@ body::after {
   pointer-events: none;
   opacity: var(--grain-opacity);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Matière des surfaces.
+   `background-image` par-dessus la couleur de fond posée par `bg-surface` :
+   les deux se cumulent, donc la classe s'ajoute sans rien remplacer. */
+.material {
+  background-image: var(--surface-grad);
+}
+
+/* Voile clair sur les boutons pleins : la même teinte prend du volume sans
+   qu'on ait à définir deux couleurs par variante. */
+.sheen {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(0 0 0 / 0.06));
 }
 
 /* Anneau de focus homogène et toujours visible au clavier. */
@@ -178,37 +209,6 @@ body::after {
 .no-select {
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* Infobulle du rail de navigation : un pseudo-élément suffit, cela évite une
-   dépendance et tout état React pour douze libellés figés. */
-.rail-tip {
-  position: relative;
-}
-
-.rail-tip::after {
-  content: attr(data-tip);
-  position: absolute;
-  left: calc(100% + 0.5rem);
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 50;
-  white-space: nowrap;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: var(--elev-2);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  color: var(--foreground);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease;
-}
-
-.rail-tip:hover::after,
-.rail-tip:focus-visible::after {
-  opacity: 1;
 }
 
 /* Rendu d'impression : on masque la navigation pour que Ctrl+P donne
@@ -226,6 +226,11 @@ body::after {
   body::before,
   body::after {
     display: none;
+  }
+
+  .material,
+  .sheen {
+    background-image: none;
   }
 }
 

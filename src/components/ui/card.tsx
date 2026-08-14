@@ -10,7 +10,12 @@ import { cn } from "@/lib/cn";
  * des `<a>`. Un composant qui impose un `<div>` obligerait à imbriquer inutile‑
  * ment ; une chaîne de classes se compose partout avec `cn()`.
  */
-export const CARD = "rounded-card border border-border bg-surface shadow-soft";
+/**
+ * `material` ajoute le dégradé vertical défini dans globals.css : il se pose
+ * en `background-image` par-dessus la couleur de `bg-surface`, donc les deux se
+ * cumulent au lieu de se remplacer.
+ */
+export const CARD = "material rounded-card border border-border bg-surface shadow-soft";
 
 /** Réaction au survol des cartes cliquables. À combiner avec `CARD`. */
 export const CARD_INTERACTIVE =
