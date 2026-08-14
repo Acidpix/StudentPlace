@@ -11,7 +11,7 @@ export default async function SignUpPage() {
   if (await getCurrentUser()) redirect("/tableau-de-bord");
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
+    <div className="rounded-card border border-border bg-surface p-6">
       <h2 className="text-lg font-semibold">Créer un compte</h2>
       <p className="mt-1 mb-5 text-sm text-muted">
         Votre espace est strictement personnel : vos classes ne sont visibles que par vous.

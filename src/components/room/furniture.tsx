@@ -97,6 +97,13 @@ export function Furniture({
   // Une étiquette n'est lisible que si le meuble est assez grand pour elle.
   const showLabel = label !== null && object.widthCm >= 60 && object.heightCm >= 24;
 
+  // Au-delà d'un quart de tour, le libellé se retrouverait à l'envers : on le
+  // repasse de 180° pour qu'il reste lisible sans quitter l'axe du meuble.
+  // C'est ce qui rend supportable la vue depuis le bureau, qui ajoute 180° à
+  // toutes les rotations de la salle.
+  const angle = ((object.rotation % 360) + 360) % 360;
+  const uprightLabel = angle > 90 && angle < 270;
+
   return (
     <g transform={`rotate(${object.rotation}, ${center.x}, ${center.y})`}>
       <rect
@@ -116,6 +123,7 @@ export function Furniture({
         <text
           x={center.x}
           y={center.y}
+          transform={uprightLabel ? `rotate(180, ${center.x}, ${center.y})` : undefined}
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={Math.min(20, object.heightCm * 0.5)}

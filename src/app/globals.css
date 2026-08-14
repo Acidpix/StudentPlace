@@ -5,22 +5,44 @@
    manuelle prime. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+   Palette « Studio » : quasi-noir et blanc cassé, un accent violet électrique
+   pour l'action, un vert pour la confirmation et les indicateurs positifs.
+   Toutes les couleurs passent par des variables : aucun composant ne code une
+   teinte en dur, et le thème sombre se contente de les redéfinir.
+--------------------------------------------------------------------------- */
+
 :root {
   color-scheme: light;
 
-  --background: #f5f6f8;
+  --background: #f6f7f9;
   --surface: #ffffff;
-  --surface-muted: #eef1f5;
-  --border: #dde3ea;
-  --foreground: #101828;
-  --muted: #5c6b7f;
-  --primary: #4f46e5;
+  --surface-muted: #eef0f4;
+  --border: #e2e5ea;
+  --foreground: #0b0c0f;
+  --muted: #5b6472;
+
+  --primary: #6d28d9;
   --primary-foreground: #ffffff;
-  --primary-soft: #eef2ff;
-  --danger: #d92d20;
-  --danger-soft: #fef3f2;
-  --danger-border: #fda29b;
-  --success: #067647;
+  --primary-soft: #f3efff;
+
+  --accent: #059669;
+  --accent-foreground: #ffffff;
+  --accent-soft: #ecfdf5;
+
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-border: #fca5a5;
+  --success: #059669;
+
+  /* Ombres étagées. Trois niveaux seulement : posé, soulevé, flottant. */
+  --elev-1: 0 1px 2px rgb(11 12 15 / 0.05), 0 1px 3px rgb(11 12 15 / 0.04);
+  --elev-2: 0 2px 4px rgb(11 12 15 / 0.05), 0 6px 16px rgb(11 12 15 / 0.07);
+  --elev-3: 0 8px 24px rgb(11 12 15 / 0.1), 0 20px 48px rgb(11 12 15 / 0.1);
+
+  /* Teintes du dégradé de fond, très diluées. */
+  --mesh-a: rgb(109 40 217 / 0.07);
+  --mesh-b: rgb(5 150 105 / 0.06);
 
   /* Encre des pastilles de difficulté : volontairement très sombre, pour
      conserver un contraste suffisant sur les cinq teintes de la palette. */
@@ -30,19 +52,32 @@
 .dark {
   color-scheme: dark;
 
-  --background: #0a0e16;
-  --surface: #141a26;
-  --surface-muted: #1c2434;
-  --border: #2a3446;
-  --foreground: #e5ebf3;
-  --muted: #9aa8bd;
-  --primary: #8b93f8;
-  --primary-foreground: #10132a;
-  --primary-soft: #1e2440;
-  --danger: #f97066;
-  --danger-soft: #2a1614;
-  --danger-border: #7a271a;
-  --success: #47cd89;
+  --background: #0b0c0f;
+  --surface: #16181d;
+  --surface-muted: #1e2128;
+  --border: #2a2e37;
+  --foreground: #f2f3f5;
+  --muted: #98a1b0;
+
+  --primary: #a78bfa;
+  --primary-foreground: #160f28;
+  --primary-soft: #221a3a;
+
+  --accent: #34d399;
+  --accent-foreground: #052e21;
+  --accent-soft: #0f2b22;
+
+  --danger: #f87171;
+  --danger-soft: #2a1517;
+  --danger-border: #7f1d1d;
+  --success: #34d399;
+
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-2: 0 2px 6px rgb(0 0 0 / 0.45), 0 8px 20px rgb(0 0 0 / 0.35);
+  --elev-3: 0 10px 30px rgb(0 0 0 / 0.55), 0 24px 60px rgb(0 0 0 / 0.45);
+
+  --mesh-a: rgb(167 139 250 / 0.1);
+  --mesh-b: rgb(52 211 153 / 0.07);
 
   /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
      donc sombre, inchangée. */
@@ -59,10 +94,20 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-border: var(--danger-border);
   --color-success: var(--success);
+
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+
+  --shadow-soft: var(--elev-1);
+  --shadow-lift: var(--elev-2);
+  --shadow-float: var(--elev-3);
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -80,6 +125,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Dégradé de fond : deux taches très diluées, fixes au défilement. Purement
+   décoratif, donc transparent aux évènements de pointeur et absent à
+   l'impression. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 40rem at 12% -10%, var(--mesh-a), transparent 70%),
+    radial-gradient(50rem 35rem at 100% 0%, var(--mesh-b), transparent 65%);
+}
+
 /* Anneau de focus homogène et toujours visible au clavier. */
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -93,8 +152,39 @@ body {
   -webkit-user-select: none;
 }
 
+/* Infobulle du rail de navigation : un pseudo-élément suffit, cela évite une
+   dépendance et tout état React pour douze libellés figés. */
+.rail-tip {
+  position: relative;
+}
+
+.rail-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--foreground);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.rail-tip:hover::after,
+.rail-tip:focus-visible::after {
+  opacity: 1;
+}
+
 /* Rendu d'impression : on masque la navigation pour que Ctrl+P donne
-   directement le plan, en complément de l'export PDF. */
+   directement le plan de classe, en complément de l'export PDF. */
 @media print {
   .print-hidden {
     display: none !important;
@@ -103,6 +193,10 @@ body {
   body {
     background: #ffffff;
     color: #000000;
+  }
+
+  body::before {
+    display: none;
   }
 }
 

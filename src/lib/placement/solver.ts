@@ -32,6 +32,10 @@ import {
  * assumé : un calcul incrémental serait plus rapide mais bien plus facile à
  * fausser, et sur une salle réelle (≤ 40 places) le calcul complet reste de
  * l'ordre de la dizaine de millisecondes.
+ *
+ * Deux entrées facultatives gouvernent la stabilité du résultat :
+ * `seed` (voir seed.ts) rend le calcul reproductible, et le couple
+ * `previous` / `weights.stability` demande de rester proche d'un plan existant.
  */
 
 /** Générateur pseudo-aléatoire déterministe : même graine, même plan. */
@@ -116,6 +120,24 @@ export function solveSeating(input: SolverInput): SolverResult {
   const nStudents = students.length;
   const studentIndexById = new Map<string, number>();
   students.forEach((student, index) => studentIndexById.set(student.id, index));
+
+  // Plan de départ : place d'origine de chaque élève, -1 s'il n'en avait pas.
+  // Sert à l'amorçage de la recherche ET au terme d'inertie du coût.
+  //
+  // `previous` et `weights.stability` vont de pair : sans poids, l'inertie est
+  // désactivée d'un bloc et le plan de départ n'influence rien — ni le coût, ni
+  // l'état initial. Une seule condition gouverne les deux, faute de quoi
+  // transmettre `previous` changerait discrètement le résultat.
+  const previousSeat = new Int32Array(nStudents).fill(-1);
+  let anyPrevious = false;
+  for (const [studentId, seatId] of Object.entries(input.previous ?? {})) {
+    const studentIndex = studentIndexById.get(studentId);
+    const seatIndex = seatIndexById.get(seatId);
+    if (studentIndex === undefined || seatIndex === undefined) continue;
+    previousSeat[studentIndex] = seatIndex;
+    anyPrevious = true;
+  }
+  const useInertia = anyPrevious && weights.stability > 0;
 
   // ---------------------------------------------------- données précalculées
   const dist = new Float64Array(nSeats * nSeats);
@@ -247,6 +269,17 @@ export function solveSeating(input: SolverInput): SolverResult {
       if (dist[ia * nSeats + ib] > adjacencyCm) cost += weights.affinity;
     }
 
+    // Inertie : chaque élève déplacé par rapport au plan de départ coûte un
+    // forfait. Le solveur ne bouge donc quelqu'un que si le gain dépasse ce
+    // forfait, ce qui transforme « Améliorer » en retouche plutôt qu'en
+    // redistribution complète.
+    if (useInertia) {
+      for (let s = 0; s < nStudents; s++) {
+        const origin = previousSeat[s];
+        if (origin >= 0 && seatOfStudent[s] !== origin) cost += weights.stability;
+      }
+    }
+
     return cost;
   }
 
@@ -273,9 +306,28 @@ export function solveSeating(input: SolverInput): SolverResult {
 
     const available = new Set(freeSeatIndices);
 
+    let freeIndices = seatedFreeStudents.map((s) => studentIndexById.get(s.id)!);
+
+    // Reprise du plan de départ : chaque élève retrouve sa place si elle est
+    // encore disponible, les autres passent par la construction gloutonne.
+    // Réservé au premier redémarrage — les suivants doivent explorer ailleurs,
+    // sans quoi les quatre redémarrages exploreraient le même voisinage.
+    if (!shuffle && useInertia) {
+      const unseated: number[] = [];
+      for (const studentIndex of freeIndices) {
+        const seatIndex = previousSeat[studentIndex];
+        if (seatIndex >= 0 && available.has(seatIndex)) {
+          available.delete(seatIndex);
+          place(studentIndex, seatIndex);
+        } else {
+          unseated.push(studentIndex);
+        }
+      }
+      freeIndices = unseated;
+    }
+
     // Les élèves à placer devant sont servis en premier : leur contrainte est
     // dure et les places du premier rang sont rares.
-    const freeIndices = seatedFreeStudents.map((s) => studentIndexById.get(s.id)!);
     const frontFirst = freeIndices.filter((s) => needsFront[s]);
     const others = freeIndices.filter((s) => !needsFront[s]);
 

@@ -47,7 +47,7 @@ export function NewRoomForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-xl border border-border bg-surface p-4">
+    <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-card border border-border bg-surface p-4">
       <div className="space-y-3">
         <div>
           <Label htmlFor="room-name">Nom de la salle</Label>

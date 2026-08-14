@@ -10,7 +10,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/tableau-de-bord"
-        className="mt-6 inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+        className="mt-6 inline-flex h-10 items-center rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground shadow-soft hover:brightness-110"
       >
         Retour au tableau de bord
       </Link>

@@ -42,6 +42,14 @@ export interface SolverWeights {
   affinity: number;
   /** Placer les gauchers en bout de table. */
   leftHanded: number;
+  /**
+   * Coût d'un élève déplacé par rapport au plan fourni dans `previous`.
+   *
+   * Zéro par défaut : le solveur cherche alors la meilleure disposition sans
+   * égard pour la précédente. C'est « Améliorer » qui active cette inertie,
+   * pour retoucher un plan déjà composé au lieu de tout rebrasser.
+   */
+  stability: number;
 }
 
 export const DEFAULT_WEIGHTS: SolverWeights = {
@@ -52,6 +60,7 @@ export const DEFAULT_WEIGHTS: SolverWeights = {
   isolationNeighbours: 60,
   affinity: 100,
   leftHanded: 20,
+  stability: 0,
 };
 
 export interface SolverInput {
@@ -61,6 +70,14 @@ export interface SolverInput {
   affinities: SolverPair[];
   /** Affectations verrouillées, sous la forme studentId -> seatId. */
   pinned: Record<string, string>;
+  /**
+   * Placement de départ à préserver autant que possible, studentId -> seatId.
+   *
+   * STRICTEMENT sans effet tant que `weights.stability` vaut zéro — ni sur le
+   * coût, ni sur l'état initial de la recherche. Les deux vont de pair :
+   * `previous` dit d'où l'on part, `stability` ce que coûte s'en écarter.
+   */
+  previous?: Record<string, string>;
   /** Position du bureau du professeur ; absent, la salle n'a pas de bureau. */
   teacherDesk: { x: number; y: number } | null;
   /** Seuil d'alerte de proximité entre incompatibles, en centimètres. */

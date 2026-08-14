@@ -164,7 +164,12 @@ export function PlanDocument({
   const canvasWidth = room.widthCm * scale;
   const canvasHeight = room.heightCm * scale;
 
+  // Vue depuis le bureau : rotation à 180° de la salle, exactement comme à
+  // l'écran. Les deux axes s'inversent — le tableau se retrouve en bas de la
+  // feuille et la gauche du papier redevient la gauche du professeur. Les noms,
+  // eux, ne sont jamais pivotés : ils resteraient illisibles.
   const flipX = (x: number, width = 0) => (options.mirrored ? room.widthCm - x - width : x);
+  const flipY = (y: number, height = 0) => (options.mirrored ? room.heightCm - y - height : y);
 
   const seatedCount = seats.filter((seat) => assignments.has(seat.id)).length;
   const printedOn = new Date().toLocaleDateString("fr-FR", {
@@ -188,7 +193,7 @@ export function PlanDocument({
             <Text style={styles.subtitle}>
               {data.planName} · {seatedCount} eleve{seatedCount > 1 ? "s" : ""} place
               {seatedCount > 1 ? "s" : ""} ·{" "}
-              {options.mirrored ? "vue depuis le fond de la salle" : "vue depuis le bureau"}
+              {options.mirrored ? "vue depuis le bureau" : "vue du dessus, tableau en haut"}
             </Text>
           </View>
           <Text style={styles.subtitle}>{printedOn}</Text>
@@ -209,7 +214,7 @@ export function PlanDocument({
                   styles.furniture,
                   {
                     left: flipX(box.x, box.width) * scale,
-                    top: box.y * scale,
+                    top: flipY(box.y, box.height) * scale,
                     width,
                     height,
                     backgroundColor: colors.background,
@@ -243,7 +248,7 @@ export function PlanDocument({
                   student ? {} : styles.seatEmpty,
                   {
                     left: flipX(seat.x) * scale - SEAT_WIDTH / 2,
-                    top: seat.y * scale - SEAT_HEIGHT / 2,
+                    top: flipY(seat.y) * scale - SEAT_HEIGHT / 2,
                     width: SEAT_WIDTH,
                     height: SEAT_HEIGHT,
                   },

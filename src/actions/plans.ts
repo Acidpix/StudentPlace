@@ -37,7 +37,7 @@ export async function updatePlanSettings(id: string, input: unknown): Promise<Ac
   if (!parsed.success) return fail(firstIssue(parsed.error));
 
   const plan = await findOwnedPlan(id, user.id);
-  if (!plan) return fail("Plan introuvable.");
+  if (!plan) return fail("Plan de classe introuvable.");
 
   await prisma.seatingPlan.update({
     where: { id },
@@ -56,7 +56,7 @@ export async function deletePlan(id: string): Promise<ActionResult> {
   const user = await requireUser();
 
   const plan = await findOwnedPlan(id, user.id);
-  if (!plan) return fail("Plan introuvable.");
+  if (!plan) return fail("Plan de classe introuvable.");
 
   await prisma.seatingPlan.delete({ where: { id } });
 
@@ -79,7 +79,7 @@ export async function saveAssignments(input: unknown): Promise<ActionResult> {
   const { planId, assignments } = parsed.data;
 
   const plan = await findOwnedPlan(planId, user.id);
-  if (!plan) return fail("Plan introuvable.");
+  if (!plan) return fail("Plan de classe introuvable.");
 
   // Une place doit appartenir à la salle du plan, un élève à sa classe.
   // Sans ce contrôle, un identifiant forgé permettrait d'asseoir l'élève d'un
@@ -128,7 +128,7 @@ export async function duplicatePlan(id: string): Promise<ActionResult<{ id: stri
     where: { id, userId: user.id },
     include: { assignments: true },
   });
-  if (!source) return fail("Plan introuvable.");
+  if (!source) return fail("Plan de classe introuvable.");
 
   const copy = await prisma.$transaction(async (tx) => {
     const plan = await tx.seatingPlan.create({

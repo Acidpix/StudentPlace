@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   assignToSeat,
   keepOnlyPinned,
+  movedCount,
   pinnedMap,
+  placementMap,
   seatOfStudent,
+  setAllPinned,
   toSeatAssignments,
   togglePin,
   unassignStudent,
@@ -117,5 +120,36 @@ describe("état d'un plan", () => {
     const result = toSeatAssignments([{ seatId: "s1", studentId: "a", pinned: true }]);
 
     expect(result.get("s1")).toEqual({ studentId: "a", pinned: true });
+  });
+
+  it("verrouille toutes les places occupées d'un coup", () => {
+    const before = build([["s1", "a"], ["s2", "b", true]]);
+    const result = setAllPinned(before, true);
+
+    expect([...result.values()].every((occupant) => occupant.pinned)).toBe(true);
+    // Les élèves ne bougent pas, seul le verrou change.
+    expect(result.get("s1")?.studentId).toBe("a");
+    // La Map d'origine reste intacte.
+    expect(before.get("s1")?.pinned).toBe(false);
+  });
+
+  it("déverrouille toutes les places d'un coup", () => {
+    const result = setAllPinned(build([["s1", "a", true], ["s2", "b", true]]), false);
+
+    expect([...result.values()].some((occupant) => occupant.pinned)).toBe(false);
+  });
+
+  it("exporte le placement complet pour l'inertie du solveur", () => {
+    expect(placementMap(build([["s1", "a", true], ["s2", "b"]]))).toEqual({ a: "s1", b: "s2" });
+  });
+
+  it("compte les élèves qui ont changé de place", () => {
+    const before = build([["s1", "a"], ["s2", "b"], ["s3", "c"]]);
+
+    expect(movedCount(before, before)).toBe(0);
+    // a et b échangent : deux déplacements.
+    expect(movedCount(before, build([["s1", "b"], ["s2", "a"], ["s3", "c"]]))).toBe(2);
+    // Un élève renvoyé au bac compte aussi comme déplacé.
+    expect(movedCount(before, build([["s1", "a"], ["s2", "b"]]))).toBe(1);
   });
 });

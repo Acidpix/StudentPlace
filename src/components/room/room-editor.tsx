@@ -9,6 +9,7 @@ import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import { ArrowLeftIcon, RedoIcon, RotateIcon, TrashIcon, UndoIcon } from "@/components/ui/icons";
+import { InlineRename } from "@/components/ui/inline-rename";
 import {
   GRID_CM,
   OBJECT_DEFAULT_SIZE,
@@ -275,6 +276,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
     setSelectedKey(null);
   }, [commit, layout, selectedKey]);
 
+  /** Nom et dimensions de la salle : mêmes chemins d'annulation que le mobilier. */
   function updateRoom(patch: Partial<Pick<Layout, "name" | "widthCm" | "heightCm">>) {
     commit({ ...layout, ...patch });
   }
@@ -378,7 +380,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
   // ----------------------------------------------------------------- rendu
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl space-y-4">
       <div>
         <Link href="/salles" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
           <ArrowLeftIcon />
@@ -387,16 +389,40 @@ export function RoomEditor({ room }: { room: RoomView }) {
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          {/* Le renommage passe par l'état local et part avec « Enregistrer » :
+              la salle n'a qu'un seul chemin de sauvegarde, saveRoomLayout, qui
+              écrit le nom et l'agencement d'un bloc. */}
+          <InlineRename
+            value={layout.name}
+            label="cette salle"
+            onRename={async (name) => {
+              updateRoom({ name });
+              return null;
+            }}
+          />
+          <p className="mt-1 text-sm text-muted">
+            {seatCount} place{seatCount > 1 ? "s" : ""} · {layout.widthCm} × {layout.heightCm} cm
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={history.undo} disabled={!history.canUndo} aria-label="Annuler">
+            <UndoIcon />
+          </Button>
+          <Button variant="secondary" size="sm" onClick={history.redo} disabled={!history.canRedo} aria-label="Rétablir">
+            <RedoIcon />
+          </Button>
+          <Button onClick={handleSave} loading={pending} disabled={!dirty}>
+            {pending ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}
+          </Button>
+        </div>
+      </div>
+
+      <FieldError message={error} />
+
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <Label htmlFor="room-name">Nom</Label>
-            <Input
-              id="room-name"
-              value={layout.name}
-              onChange={(event) => updateRoom({ name: event.target.value })}
-              className="w-44"
-            />
-          </div>
           <div>
             <Label htmlFor="room-w">Largeur (cm)</Label>
             <Input
@@ -429,39 +455,22 @@ export function RoomEditor({ room }: { room: RoomView }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={history.undo} disabled={!history.canUndo} aria-label="Annuler">
-            <UndoIcon />
-          </Button>
-          <Button variant="secondary" size="sm" onClick={history.redo} disabled={!history.canRedo} aria-label="Rétablir">
-            <RedoIcon />
-          </Button>
-          <Button onClick={handleSave} disabled={pending || !dirty}>
-            {pending ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}
-          </Button>
+        <div className="flex flex-wrap gap-2">
+          {PALETTE.map((item) => (
+            <Button
+              key={item.label}
+              variant="secondary"
+              size="sm"
+              onClick={() => addObject(item.kind, item.seatCount)}
+            >
+              + {item.label}
+            </Button>
+          ))}
         </div>
       </div>
 
-      <FieldError message={error} />
-
-      <div className="flex flex-wrap gap-2">
-        {PALETTE.map((item) => (
-          <Button
-            key={item.label}
-            variant="secondary"
-            size="sm"
-            onClick={() => addObject(item.kind, item.seatCount)}
-          >
-            + {item.label}
-          </Button>
-        ))}
-        <span className="ml-auto self-center text-sm text-muted">
-          {seatCount} place{seatCount > 1 ? "s" : ""}
-        </span>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
-        <div className="overflow-hidden rounded-xl border border-border bg-surface p-2">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}
@@ -502,7 +511,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
           </svg>
         </div>
 
-        <aside className="rounded-xl border border-border bg-surface p-4">
+        <aside className="rounded-card border border-border bg-surface p-4 shadow-soft">
           {selected ? (
             <SelectedPanel
               object={selected}

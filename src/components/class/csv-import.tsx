@@ -67,7 +67,7 @@ export function CsvImport({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-surface p-4">
+    <section className="rounded-card border border-border bg-surface p-4">
       <h2 className="font-medium">Importer une liste d&apos;élèves</h2>
       <p className="mt-1 text-sm text-muted">
         Collez les colonnes depuis un tableur, ou choisissez un fichier CSV. Ordre attendu :
@@ -107,7 +107,7 @@ export function CsvImport({
         {replaceExisting && (
           <p className="mt-2 rounded-lg border border-danger-border bg-danger-soft p-2 text-sm text-danger">
             Les élèves actuels seront supprimés, avec leurs incompatibilités et leurs places
-            dans tous les plans de cette classe.
+            dans tous les plans de classe qui les utilisent.
           </p>
         )}
 

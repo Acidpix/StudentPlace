@@ -242,4 +242,69 @@ describe("solveSeating", () => {
     // Une affinité satisfaite signifie partager une table (65 cm).
     expect(distanceBetween(result, seats, "e0", "e1")).toBeLessThanOrEqual(90);
   });
+
+  // ------------------------------------------------------------- inertie
+  //
+  // `previous` + `weights.stability` sous-tendent le bouton « Améliorer » :
+  // retoucher un plan de classe déjà composé plutôt que tout redistribuer.
+
+  it("conserve le plan de départ quand l'inertie est activée", () => {
+    const seats = buildSeats();
+    const students = buildStudents(8);
+
+    // Une permutation quelconque, qu'aucune contrainte ne justifie de défaire :
+    // tous les élèves ont la même difficulté et il n'y a ni incompatibilité ni
+    // affinité, donc toutes les dispositions se valent.
+    const previous: Record<string, string> = {};
+    students.forEach((student, index) => {
+      previous[student.id] = seats[(index + 3) % seats.length].id;
+    });
+
+    const result = solveSeating(
+      baseInput({ seats, students, previous, weights: { stability: 250 } }),
+    );
+
+    const kept = result.assignments.filter(
+      (assignment) => previous[assignment.studentId] === assignment.seatId,
+    );
+    expect(kept).toHaveLength(8);
+  });
+
+  it("laisse l'inertie céder devant une incompatibilité", () => {
+    const seats = buildSeats();
+    const students = buildStudents(8);
+
+    // e0 et e1 partagent une table dans le plan de départ : l'incompatibilité
+    // (12 000) doit l'emporter sur le forfait de déplacement (250).
+    const previous: Record<string, string> = {};
+    students.forEach((student, index) => {
+      previous[student.id] = seats[index].id;
+    });
+
+    const result = solveSeating(
+      baseInput({
+        seats,
+        students,
+        previous,
+        weights: { stability: 250 },
+        incompatibles: [{ a: "e0", b: "e1" }],
+      }),
+    );
+
+    expect(distanceBetween(result, seats, "e0", "e1")).toBeGreaterThanOrEqual(120);
+  });
+
+  it("ignore le plan de départ tant que l'inertie vaut zéro", () => {
+    const seats = buildSeats();
+    const students = buildStudents(8);
+    const previous = Object.fromEntries(
+      students.map((student, index) => [student.id, seats[(index + 3) % seats.length].id]),
+    );
+
+    // Même graine, même entrée : `previous` seul ne doit rien changer.
+    const withPrevious = solveSeating(baseInput({ seats, students, previous }));
+    const without = solveSeating(baseInput({ seats, students }));
+
+    expect(withPrevious.assignments).toEqual(without.assignments);
+  });
 });

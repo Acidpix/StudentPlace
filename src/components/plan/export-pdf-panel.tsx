@@ -27,7 +27,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
   const sensitive = includeComments || includeDifficulty;
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-3">
+    <div className="rounded-card border border-border bg-surface p-3 shadow-soft">
       <h2 className="mb-2 text-sm font-medium">Export PDF</h2>
 
       <div className="space-y-1.5 text-sm">
@@ -58,7 +58,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
       </div>
 
       {sensitive && (
-        <p className="mt-2 rounded-lg border border-danger-border bg-danger-soft p-2 text-xs text-danger">
+        <p className="mt-2 rounded-control border border-danger-border bg-danger-soft p-2 text-xs text-danger">
           Ce PDF contiendra des appréciations sur des élèves. Ne le laissez pas circuler.
         </p>
       )}
@@ -67,15 +67,16 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
         href={`/api/plans/${planId}/pdf?${params.toString()}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground hover:opacity-90"
+        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-medium text-primary-foreground shadow-soft hover:brightness-110"
       >
         <DownloadIcon />
         Télécharger le PDF
       </a>
 
       <p className="mt-2 text-xs text-muted">
-        Le plan est exporté tel qu&apos;il est affiché, {mirrored ? "vue depuis le fond" : "vue depuis le bureau"}.
-        Enregistrez vos modifications avant d&apos;exporter.
+        Le plan de classe est exporté tel qu&apos;il est affiché,{" "}
+        {mirrored ? "vue depuis le bureau" : "vue du dessus"}. Enregistrez vos modifications avant
+        d&apos;exporter.
       </p>
     </div>
   );

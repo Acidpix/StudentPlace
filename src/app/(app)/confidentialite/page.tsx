@@ -50,8 +50,8 @@ export default function PrivacyPage() {
           Attention : au sens du RGPD, le responsable de traitement est votre établissement, ou
           vous-même. Il vous revient de n&apos;y consigner que des observations
           <strong> pertinentes, mesurées et utiles au placement</strong>, de ne pas conserver ces
-          données au-delà de l&apos;année scolaire, et de ne pas diffuser un plan imprimé
-          contenant des appréciations.
+          données au-delà de l&apos;année scolaire, et de ne pas diffuser un plan de classe
+          imprimé contenant des appréciations.
         </p>
       </Section>
 
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-surface p-4">
+    <section className="rounded-card border border-border bg-surface p-4">
       <h2 className="mb-2 font-medium">{title}</h2>
       <div className="text-sm text-muted">{children}</div>
     </section>

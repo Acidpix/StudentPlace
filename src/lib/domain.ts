@@ -111,3 +111,15 @@ export const ADJACENCY_CM = 90;
 /** Bornes de taille d'une salle, en centimètres. */
 export const ROOM_MIN_CM = 300;
 export const ROOM_MAX_CM = 3000;
+
+/**
+ * Emprise d'une étiquette d'élève sur le plan, en centimètres.
+ *
+ * C'est la clé du non-chevauchement : les cartes étaient auparavant dimensionnées
+ * en pixels fixes (96 × 44), donc bien plus larges que l'écartement réel de deux
+ * places d'une même table (~65 cm) dès que la salle était grande. En les
+ * exprimant dans l'unité du domaine, une carte reste toujours à l'échelle du
+ * plan et deux voisines ne peuvent plus se recouvrir.
+ */
+export const SEAT_CARD_WIDTH_CM = 58;
+export const SEAT_CARD_HEIGHT_CM = 34;

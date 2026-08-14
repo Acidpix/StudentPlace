@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ClassHeader } from "@/components/class/class-header";
 import { CsvImport } from "@/components/class/csv-import";
 import { DeleteClassButton } from "@/components/class/delete-class-button";
 import { RelationManager } from "@/components/class/relation-manager";
 import { StudentManager } from "@/components/class/student-manager";
 import { NewPlanDialog } from "@/components/plan/new-plan-dialog";
-import { ArrowLeftIcon } from "@/components/ui/icons";
+import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ArrowLeftIcon, EmptyPlanArt } from "@/components/ui/icons";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
 import { toDifficulty, type RelationType } from "@/lib/domain";
@@ -58,7 +61,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-7xl space-y-8">
       <div>
         <Link href="/classes" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
           <ArrowLeftIcon />
@@ -66,13 +69,12 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         </Link>
 
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{classGroup.name}</h1>
-            <p className="mt-1 text-sm text-muted">
-              {classGroup.schoolYear ? `${classGroup.schoolYear} · ` : ""}
-              {students.length} élève{students.length > 1 ? "s" : ""}
-            </p>
-          </div>
+          <ClassHeader
+            classGroupId={classGroup.id}
+            name={classGroup.name}
+            schoolYear={classGroup.schoolYear}
+            studentCount={students.length}
+          />
 
           <div className="flex flex-wrap gap-2">
             {rooms.length > 0 && (
@@ -87,35 +89,44 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      <StudentManager classGroupId={classGroup.id} students={students} />
+      {/* Élèves à gauche, relations et import à droite : sur un écran large, le
+          professeur voit d'un coup la liste et les incompatibilités qu'il est
+          en train de saisir. */}
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <StudentManager classGroupId={classGroup.id} students={students} />
 
-      <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
-
-      <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
+        <div className="space-y-8">
+          <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
+          <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
+        </div>
+      </div>
 
       <section>
-        <h2 className="mb-3 font-medium">Plans de cette classe</h2>
+        <h2 className="mb-3 font-medium">Plans de classe</h2>
         {classGroup.seatingPlans.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
-            {rooms.length === 0 ? (
-              <>
-                Créez d&apos;abord une{" "}
-                <Link href="/salles" className="text-primary hover:underline">
-                  salle
-                </Link>{" "}
-                pour pouvoir composer un plan.
-              </>
-            ) : (
-              "Aucun plan pour cette classe."
-            )}
-          </p>
+          <EmptyState
+            Illustration={EmptyPlanArt}
+            title="Aucun plan de classe"
+            description={
+              rooms.length === 0
+                ? "Créez d'abord une salle pour pouvoir composer un plan de classe."
+                : "Composez-en un pour placer les élèves dans une de vos salles."
+            }
+            action={
+              rooms.length === 0 ? (
+                <Link href="/salles" className="text-sm text-primary hover:underline">
+                  Aller aux salles →
+                </Link>
+              ) : null
+            }
+          />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {classGroup.seatingPlans.map((plan) => (
               <li key={plan.id}>
                 <Link
                   href={`/plans/${plan.id}`}
-                  className="block rounded-xl border border-border bg-surface p-4 hover:border-primary"
+                  className={`block p-4 ${CARD} ${CARD_INTERACTIVE}`}
                 >
                   <p className="font-medium">{plan.name}</p>
                   <p className="mt-1 text-sm text-muted">{plan.room.name}</p>

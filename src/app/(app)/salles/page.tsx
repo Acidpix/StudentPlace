@@ -3,6 +3,9 @@ import Link from "next/link";
 
 import { NewRoomForm } from "@/components/room/new-room-form";
 import { RoomCardActions } from "@/components/room/room-card-actions";
+import { CARD } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyRoomArt } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -18,7 +21,7 @@ export default async function RoomsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Mes salles</h1>
@@ -31,21 +34,36 @@ export default async function RoomsPage() {
       </div>
 
       {rooms.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-          Aucune salle. Créez-en une pour y disposer vos tables.
-        </p>
+        <EmptyState
+          Illustration={EmptyRoomArt}
+          title="Aucune salle"
+          description="Créez-en une pour y disposer vos tables, le bureau et le tableau."
+        />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {rooms.map((room) => (
-            <li key={room.id} className="rounded-xl border border-border bg-surface p-4">
+            <li
+              key={room.id}
+              className={`p-4 ${CARD} transition-[border-color,box-shadow] duration-150 hover:border-primary/50 hover:shadow-lift`}
+            >
               <Link href={`/salles/${room.id}`} className="block hover:text-primary">
                 <p className="font-medium">{room.name}</p>
                 <p className="mt-1 text-sm text-muted">
                   {room.widthCm / 100} × {room.heightCm / 100} m
                 </p>
-                <p className="mt-2 text-xs text-muted">
-                  {room._count.seats} place{room._count.seats > 1 ? "s" : ""} ·{" "}
-                  {room._count.seatingPlans} plan{room._count.seatingPlans > 1 ? "s" : ""}
+                <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                  <span>
+                    <span className="text-base font-semibold tabular-nums text-foreground">
+                      {room._count.seats}
+                    </span>{" "}
+                    place{room._count.seats > 1 ? "s" : ""}
+                  </span>
+                  <span>
+                    <span className="text-base font-semibold tabular-nums text-foreground">
+                      {room._count.seatingPlans}
+                    </span>{" "}
+                    plan{room._count.seatingPlans > 1 ? "s" : ""} de classe
+                  </span>
                 </p>
               </Link>
 

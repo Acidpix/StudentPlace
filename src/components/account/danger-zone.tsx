@@ -33,11 +33,11 @@ export function DangerZone() {
   }
 
   return (
-    <section className="rounded-xl border border-danger-border bg-danger-soft p-4">
+    <section className="rounded-card border border-danger-border bg-danger-soft p-4">
       <h2 className="font-medium text-danger">Supprimer mon compte</h2>
       <p className="mt-2 text-sm text-danger">
         Efface définitivement votre compte et l&apos;intégralité de vos données : classes, élèves,
-        commentaires, salles et plans. Cette action est irréversible — pensez à exporter vos
+        commentaires, salles et plans de classe. Cette action est irréversible — pensez à exporter vos
         données avant.
       </p>
 

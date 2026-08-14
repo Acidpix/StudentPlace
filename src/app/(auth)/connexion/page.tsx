@@ -11,7 +11,7 @@ export default async function SignInPage() {
   if (await getCurrentUser()) redirect("/tableau-de-bord");
 
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
+    <div className="rounded-card border border-border bg-surface p-6">
       <h2 className="text-lg font-semibold">Connexion</h2>
       <p className="mt-1 mb-5 text-sm text-muted">Accédez à votre espace personnel.</p>
 

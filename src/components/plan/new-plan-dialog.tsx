@@ -53,7 +53,7 @@ export function NewPlanDialog({
     return (
       <Button onClick={() => setOpen(true)}>
         <PlusIcon />
-        Nouveau plan
+        Nouveau plan de classe
       </Button>
     );
   }
@@ -61,13 +61,13 @@ export function NewPlanDialog({
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-md rounded-xl border border-border bg-surface p-4"
+      className="w-full max-w-md rounded-card border border-border bg-surface p-4 shadow-lift"
     >
       <h2 className="mb-3 font-medium">Nouveau plan de classe</h2>
 
       <div className="space-y-3">
         <div>
-          <Label htmlFor="plan-name">Nom du plan</Label>
+          <Label htmlFor="plan-name">Nom du plan de classe</Label>
           <Input
             id="plan-name"
             name="name"
@@ -103,8 +103,8 @@ export function NewPlanDialog({
       <FieldError message={error} />
 
       <div className="mt-4 flex gap-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Création…" : "Créer le plan"}
+        <Button type="submit" loading={pending}>
+          {pending ? "Création…" : "Créer le plan de classe"}
         </Button>
         <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
           Annuler

@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   });
 
   if (!plan) {
-    return new Response("Plan introuvable.", { status: 404 });
+    return new Response("Plan de classe introuvable.", { status: 404 });
   }
 
   const query = request.nextUrl.searchParams;

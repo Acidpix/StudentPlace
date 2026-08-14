@@ -5,7 +5,8 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { LockIcon, UnlockIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
-import { studentShortName, type SeatView, type StudentView } from "@/lib/view-models";
+import { SEAT_CARD_HEIGHT_CM, SEAT_CARD_WIDTH_CM } from "@/lib/domain";
+import { studentFullName, studentShortName, type SeatView, type StudentView } from "@/lib/view-models";
 
 /**
  * Briques de l'éditeur de placement.
@@ -13,6 +14,13 @@ import { studentShortName, type SeatView, type StudentView } from "@/lib/view-mo
  * Les places sont des éléments HTML positionnés en pourcentage au-dessus du
  * plan SVG, et non des formes SVG : dnd-kit mesure des rectangles du DOM, et
  * une div se stylise bien plus librement qu'un <circle>.
+ *
+ * Leur TAILLE, elle, est exprimée en centimètres de salle convertis en pixels
+ * (`pxPerCm`, mesuré par usePlanScale). C'est ce qui garantit qu'une étiquette
+ * n'en recouvre jamais une autre : son emprise est plus petite que l'écartement
+ * réel de deux places. La contrepartie est qu'une grande salle affichée en
+ * petit donne de petites étiquettes — d'où les trois densités ci-dessous et le
+ * zoom de l'éditeur.
  */
 
 export const TRAY_DROPPABLE_ID = "tray";
@@ -25,6 +33,47 @@ export function parseDraggableId(id: string): string | null {
 
 export function parseSeatDroppableId(id: string): string | null {
   return id.startsWith("seat:") ? id.slice("seat:".length) : null;
+}
+
+// ------------------------------------------------------------------ échelle
+
+type Density = "full" | "compact" | "dot";
+
+export interface SeatMetrics {
+  width: number;
+  height: number;
+  font: number;
+  badge: number;
+  density: Density;
+  radius: number;
+}
+
+/**
+ * Traduit l'échelle du plan en dimensions d'étiquette.
+ *
+ * Sous 44 px de large, plus aucun texte n'est lisible : on n'affiche alors que
+ * la pastille de difficulté, qui reste porteuse de sens et tient dans la place.
+ * Le nom complet demeure accessible par l'infobulle et par le panneau latéral.
+ */
+export function seatMetrics(pxPerCm: number): SeatMetrics {
+  const width = SEAT_CARD_WIDTH_CM * pxPerCm;
+  const height = SEAT_CARD_HEIGHT_CM * pxPerCm;
+
+  const density: Density = width >= 74 ? "full" : width >= 44 ? "compact" : "dot";
+
+  return {
+    width,
+    height,
+    font: Math.max(6, Math.min(13, height * 0.34)),
+    badge: Math.max(9, Math.min(20, height * 0.46)),
+    density,
+    radius: Math.max(4, Math.min(10, height * 0.2)),
+  };
+}
+
+/** Initiales de repli lorsque l'étiquette est trop étroite pour un prénom. */
+function studentInitials(student: StudentView): string {
+  return `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
 }
 
 // ------------------------------------------------------------------ étiquette
@@ -60,8 +109,8 @@ export function TrayStudent({ student }: { student: StudentView }) {
       {...listeners}
       {...attributes}
       className={cn(
-        "flex w-full cursor-grab items-center justify-between gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 text-left text-sm",
-        "hover:border-primary active:cursor-grabbing",
+        "flex w-full cursor-grab items-center justify-between gap-2 rounded-control border border-border bg-surface px-2 py-1.5 text-left text-sm",
+        "transition-colors hover:border-primary hover:bg-primary-soft/40 active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
     >
@@ -81,7 +130,7 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-xl border p-3 transition-colors",
+        "rounded-card border p-3 shadow-soft transition-colors",
         isOver ? "border-primary bg-primary-soft" : "border-border bg-surface",
       )}
     >
@@ -90,10 +139,10 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
       </h2>
       {count === 0 ? (
         <p className="py-3 text-center text-sm text-muted">
-          Tous les élèves sont placés. Déposez ici pour retirer quelqu&apos;un du plan.
+          Tous les élèves sont placés. Déposez ici pour retirer quelqu&apos;un du plan de classe.
         </p>
       ) : (
-        <div className="max-h-[55vh] space-y-1.5 overflow-y-auto pr-1">{children}</div>
+        <div className="max-h-[45vh] space-y-1.5 overflow-y-auto pr-1">{children}</div>
       )}
     </div>
   );
@@ -109,6 +158,7 @@ export function SeatSpot({
   selected,
   leftPercent,
   topPercent,
+  metrics,
   onTogglePin,
   onSelect,
 }: {
@@ -119,6 +169,7 @@ export function SeatSpot({
   selected: boolean;
   leftPercent: number;
   topPercent: number;
+  metrics: SeatMetrics;
   onTogglePin: () => void;
   onSelect: () => void;
 }) {
@@ -127,7 +178,12 @@ export function SeatSpot({
   return (
     <div
       ref={setDropRef}
-      style={{ left: `${leftPercent}%`, top: `${topPercent}%` }}
+      style={{
+        left: `${leftPercent}%`,
+        top: `${topPercent}%`,
+        width: metrics.width,
+        height: metrics.height,
+      }}
       className="absolute -translate-x-1/2 -translate-y-1/2"
     >
       {student ? (
@@ -137,21 +193,24 @@ export function SeatSpot({
           conflicted={conflicted}
           selected={selected}
           highlighted={isOver}
+          metrics={metrics}
           onTogglePin={onTogglePin}
           onSelect={onSelect}
         />
       ) : (
         <div
+          style={{ borderRadius: metrics.radius, fontSize: metrics.font }}
           className={cn(
-            "flex h-11 w-24 items-center justify-center rounded-lg border-2 border-dashed text-[11px]",
+            "flex h-full w-full items-center justify-center overflow-hidden border-2 border-dashed",
             seat.disabled
               ? "border-border text-muted opacity-50"
               : isOver
                 ? "border-primary bg-primary-soft text-primary"
                 : "border-border text-muted",
           )}
+          title={seat.disabled ? "Place condamnée" : "Place libre"}
         >
-          {seat.disabled ? "Condamnée" : "Libre"}
+          {metrics.density === "dot" ? "" : seat.disabled ? "Condamnée" : "Libre"}
         </div>
       )}
     </div>
@@ -164,6 +223,7 @@ function SeatedStudent({
   conflicted,
   selected,
   highlighted,
+  metrics,
   onTogglePin,
   onSelect,
 }: {
@@ -172,6 +232,7 @@ function SeatedStudent({
   conflicted: boolean;
   selected: boolean;
   highlighted: boolean;
+  metrics: SeatMetrics;
   onTogglePin: () => void;
   onSelect: () => void;
 }) {
@@ -179,17 +240,35 @@ function SeatedStudent({
     id: studentDraggableId(student.id),
   });
 
+  const title = [
+    studentFullName(student),
+    pinned ? "place verrouillée" : null,
+    student.comment || null,
+  ]
+    .filter(Boolean)
+    .join(" — ");
+
+  // Le cadenas mangerait toute la surface d'une étiquette réduite à la
+  // pastille : il disparaît alors, et c'est le liseré qui signale l'état.
+  // Le panneau latéral garde une commande explicite dans tous les cas.
+  const showLock = metrics.density !== "dot";
+  const lockSize = Math.max(9, Math.min(14, metrics.height * 0.34));
+
   return (
     <div
+      style={{ borderRadius: metrics.radius }}
       className={cn(
-        "relative flex h-11 w-24 flex-col justify-center rounded-lg border-2 px-1.5 shadow-sm",
+        "relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
         conflicted
           ? "border-danger bg-danger-soft"
           : selected
             ? "border-primary bg-primary-soft"
             : highlighted
               ? "border-primary bg-surface"
-              : "border-border bg-surface",
+              : pinned
+                ? "border-primary/60 bg-primary-soft/40"
+                : "border-border bg-surface",
+        pinned && !conflicted && "ring-2 ring-primary/30",
         isDragging && "opacity-40",
       )}
     >
@@ -199,28 +278,48 @@ function SeatedStudent({
         {...listeners}
         {...attributes}
         onClick={onSelect}
-        title={`${student.lastName} ${student.firstName}${student.comment ? ` — ${student.comment}` : ""}`}
-        className="flex cursor-grab items-center gap-1 text-left text-[11px] leading-tight active:cursor-grabbing"
-      >
-        <StudentLabel student={student} />
-      </button>
-
-      <button
-        type="button"
-        onClick={onTogglePin}
-        aria-label={pinned ? "Déverrouiller cette place" : "Verrouiller cette place"}
-        title={
-          pinned
-            ? "Place verrouillée : le placement automatique ne la modifiera pas"
-            : "Verrouiller cette place"
-        }
+        title={title}
+        style={{ fontSize: metrics.font, paddingInline: metrics.density === "dot" ? 0 : 3 }}
         className={cn(
-          "absolute -right-1.5 -top-1.5 rounded-full border border-border bg-surface p-0.5",
-          pinned ? "text-primary" : "text-muted opacity-0 hover:opacity-100 focus:opacity-100",
+          "flex h-full w-full cursor-grab items-center gap-1 overflow-hidden text-left leading-tight active:cursor-grabbing",
+          metrics.density === "dot" && "justify-center",
         )}
       >
-        {pinned ? <LockIcon width={11} height={11} /> : <UnlockIcon width={11} height={11} />}
+        <DifficultyBadge difficulty={student.difficulty} size={metrics.badge} />
+        {metrics.density !== "dot" && (
+          <span className="truncate">
+            {metrics.density === "full" ? studentShortName(student) : studentInitials(student)}
+          </span>
+        )}
+        <span className="sr-only">{studentFullName(student)}</span>
       </button>
+
+      {showLock && (
+        <button
+          type="button"
+          onClick={onTogglePin}
+          aria-label={pinned ? "Déverrouiller cette place" : "Verrouiller cette place"}
+          aria-pressed={pinned}
+          title={
+            pinned
+              ? "Place verrouillée : le placement automatique ne la modifiera pas"
+              : "Verrouiller cette place"
+          }
+          style={{ padding: 1 }}
+          className={cn(
+            "absolute -right-1 -top-1 rounded-full border bg-surface transition-colors",
+            pinned
+              ? "border-primary text-primary"
+              : "border-border text-muted hover:border-primary hover:text-primary",
+          )}
+        >
+          {pinned ? (
+            <LockIcon width={lockSize} height={lockSize} />
+          ) : (
+            <UnlockIcon width={lockSize} height={lockSize} />
+          )}
+        </button>
+      )}
     </div>
   );
 }

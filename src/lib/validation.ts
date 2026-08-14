@@ -101,7 +101,7 @@ export const roomLayoutSchema = z.object({
 // ---------------------------------- Plans -----------------------------------
 
 export const planSchema = z.object({
-  name: z.string().trim().min(1, "Donnez un nom à ce plan.").max(60),
+  name: z.string().trim().min(1, "Donnez un nom à ce plan de classe.").max(60),
   classGroupId: z.string().min(1, "Choisissez une classe."),
   roomId: z.string().min(1, "Choisissez une salle."),
 });

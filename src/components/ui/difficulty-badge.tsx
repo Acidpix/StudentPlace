@@ -13,10 +13,15 @@ export function DifficultyBadge({
   className,
 }: {
   difficulty: Difficulty;
-  size?: "sm" | "md";
+  /**
+   * `"sm"` / `"md"` pour les listes ; un nombre de pixels pour le plan de
+   * classe, dont les étiquettes sont mises à l'échelle de la salle.
+   */
+  size?: "sm" | "md" | number;
   className?: string;
 }) {
-  const dimension = size === "sm" ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-[11px]";
+  const numeric = typeof size === "number";
+  const dimension = numeric ? "" : size === "sm" ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-[11px]";
 
   return (
     <span
@@ -28,6 +33,9 @@ export function DifficultyBadge({
       style={{
         backgroundColor: DIFFICULTY_COLORS[difficulty],
         color: "var(--pastille-ink)",
+        ...(numeric
+          ? { width: size, height: size, fontSize: Math.max(6, size * 0.66), lineHeight: 1 }
+          : null),
       }}
       title={`${difficulty}/5 — ${DIFFICULTY_LABELS[difficulty]}`}
     >

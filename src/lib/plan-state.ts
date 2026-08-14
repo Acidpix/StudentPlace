@@ -92,6 +92,21 @@ export function togglePin(assignments: SeatAssignments, seatId: string): SeatAss
   return next;
 }
 
+/**
+ * Verrouille ou déverrouille toutes les places occupées d'un coup.
+ *
+ * « Tout verrouiller » sert à figer un plan que l'on juge bon avant d'essayer
+ * une autre proposition sur les seuls élèves non placés.
+ */
+export function setAllPinned(assignments: SeatAssignments, pinned: boolean): SeatAssignments {
+  return new Map(
+    [...assignments].map(([seatId, occupant]): [string, SeatOccupant] => [
+      seatId,
+      { ...occupant, pinned },
+    ]),
+  );
+}
+
 /** Ne conserve que les verrouillages : base d'un nouveau placement automatique. */
 export function keepOnlyPinned(assignments: SeatAssignments): SeatAssignments {
   return new Map([...assignments].filter(([, occupant]) => occupant.pinned));
@@ -112,4 +127,29 @@ export function pinnedMap(assignments: SeatAssignments): Record<string, string> 
     if (occupant.pinned) pinned[occupant.studentId] = seatId;
   }
   return pinned;
+}
+
+/**
+ * Placement complet au format attendu par le solveur : studentId -> seatId.
+ *
+ * Alimente `SolverInput.previous` : le plan dont « Améliorer » doit s'écarter
+ * le moins possible, verrouillé ou non.
+ */
+export function placementMap(assignments: SeatAssignments): Record<string, string> {
+  const placement: Record<string, string> = {};
+  for (const [seatId, occupant] of assignments) {
+    placement[occupant.studentId] = seatId;
+  }
+  return placement;
+}
+
+/** Nombre d'élèves qui ont changé de place entre deux états. */
+export function movedCount(before: SeatAssignments, after: SeatAssignments): number {
+  const previous = placementMap(before);
+  const next = placementMap(after);
+  let moved = 0;
+  for (const [studentId, seatId] of Object.entries(previous)) {
+    if (next[studentId] !== seatId) moved++;
+  }
+  return moved;
 }

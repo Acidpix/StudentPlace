@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NewClassForm } from "@/components/class/new-class-form";
+import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyClassArt } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -17,7 +20,7 @@ export default async function ClassesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Mes classes</h1>
@@ -29,25 +32,36 @@ export default async function ClassesPage() {
       </div>
 
       {classGroups.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-          Aucune classe. Créez-en une pour commencer.
-        </p>
+        <EmptyState
+          Illustration={EmptyClassArt}
+          title="Aucune classe"
+          description="Créez-en une, ajoutez-y vos élèves, et vous pourrez composer un plan de classe."
+        />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {classGroups.map((classGroup) => (
             <li key={classGroup.id}>
               <Link
                 href={`/classes/${classGroup.id}`}
-                className="block rounded-xl border border-border bg-surface p-4 hover:border-primary"
+                className={`block p-4 ${CARD} ${CARD_INTERACTIVE}`}
               >
                 <p className="font-medium">{classGroup.name}</p>
                 {classGroup.schoolYear && (
                   <p className="text-sm text-muted">{classGroup.schoolYear}</p>
                 )}
-                <p className="mt-2 text-xs text-muted">
-                  {classGroup._count.students} élève{classGroup._count.students > 1 ? "s" : ""} ·{" "}
-                  {classGroup._count.seatingPlans} plan
-                  {classGroup._count.seatingPlans > 1 ? "s" : ""}
+                <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                  <span>
+                    <span className="text-base font-semibold tabular-nums text-foreground">
+                      {classGroup._count.students}
+                    </span>{" "}
+                    élève{classGroup._count.students > 1 ? "s" : ""}
+                  </span>
+                  <span>
+                    <span className="text-base font-semibold tabular-nums text-foreground">
+                      {classGroup._count.seatingPlans}
+                    </span>{" "}
+                    plan{classGroup._count.seatingPlans > 1 ? "s" : ""} de classe
+                  </span>
                 </p>
               </Link>
             </li>

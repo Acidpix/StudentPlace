@@ -66,7 +66,7 @@ export function RelationManager({
     return (
       <section>
         <h2 className="mb-3 font-medium">Incompatibilités et affinités</h2>
-        <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+        <p className="rounded-card border border-dashed border-border p-6 text-center text-sm text-muted">
           Ajoutez au moins deux élèves pour déclarer une relation.
         </p>
       </section>
@@ -81,7 +81,7 @@ export function RelationManager({
         contraire est signalé en rouge dans l&apos;éditeur.
       </p>
 
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-surface p-4">
+      <form onSubmit={handleSubmit} className="rounded-card border border-border bg-surface p-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="studentAId">Élève</Label>
@@ -163,7 +163,7 @@ function RelationList({
   tone: "danger" | "neutral";
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
+    <div className="rounded-card border border-border bg-surface p-4">
       <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
         {tone === "danger" && <WarningIcon className="text-danger" />}
         {title}
