@@ -501,56 +501,6 @@ export function PlanEditor({
             Cette colonne n'a plus de bouton d'affichage : elle apparaît quand
             elle a quelque chose à montrer — des élèves à placer — et rend sinon
             toute la largeur au plan. */}
-
-        {/* La fiche de l'élève cliqué est une BANDE au-dessus du plan, sur
-            toute la largeur, et non plus une carte de la colonne de droite :
-            elle n'y tenait que sur trois lignes étroites, alors qu'à
-            l'horizontale le nom, le commentaire et les deux commandes
-            s'alignent d'un seul tenant, juste sous les yeux au moment où l'on
-            vient de cliquer une place. */}
-        {selection && (
-          <div className="material print-hidden flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-primary/40 bg-primary-soft/40 px-3 py-2 shadow-soft">
-            <span className="flex min-w-0 items-center gap-1.5 text-sm">
-              <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
-              <span className="truncate font-medium">{studentFullName(selection.student)}</span>
-            </span>
-
-            {selection.student.comment && (
-              <span className="min-w-0 flex-1 truncate text-xs text-muted">
-                {selection.student.comment}
-              </span>
-            )}
-
-            <span className="ml-auto flex items-center gap-1.5">
-              {/* Seule commande de verrouillage à la place : l'étiquette du
-                  plan ne porte plus de cadenas, elle se contente d'être
-                  cerclée de rouge. */}
-              <Button
-                size="sm"
-                variant={selection.pinned ? "secondary" : "primary"}
-                onClick={() => mutate(togglePin(assignments, selection.seatId))}
-              >
-                {selection.pinned ? <UnlockIcon /> : <LockIcon />}
-                {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
-              </Button>
-              {/* Retirer du plan sans glisser-déposer : le bac disparaît quand
-                  tout le monde est placé, et c'est justement là qu'on a besoin
-                  de sortir quelqu'un. */}
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  mutate(unassignStudent(assignments, selection.student.id));
-                  setSelectedStudentId(null);
-                }}
-              >
-                <XIcon />
-                Retirer du plan
-              </Button>
-            </span>
-          </div>
-        )}
-
         <div
           className={
             panelVisible
@@ -573,6 +523,15 @@ export function PlanEditor({
               placedCount={assignments.size}
               onPinAll={() => mutate(setAllPinned(assignments, true))}
               onUnpinAll={() => mutate(setAllPinned(assignments, false))}
+              selection={selection}
+              onToggleSelectionPin={() =>
+                selection && mutate(togglePin(assignments, selection.seatId))
+              }
+              onRemoveSelection={() => {
+                if (!selection) return;
+                mutate(unassignStudent(assignments, selection.student.id));
+                setSelectedStudentId(null);
+              }}
             />
 
             {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
@@ -844,7 +803,14 @@ function InlinePlanName({
 }
 
 /**
- * Barre d'outils du plan : orientation, verrouillages, zoom.
+ * Barre d'outils du plan : orientation, verrouillages, zoom — et, quand un
+ * élève est sélectionné, sa fiche.
+ *
+ * La fiche vivait sous forme de bande séparée au-dessus du plan ; elle est
+ * intégrée à cette même barre, poussée à droite par `ml-auto`, pour que tout
+ * ce qui agit sur le plan reste à un seul endroit. Sur une largeur étroite,
+ * `flex-wrap` la fait simplement retomber sur sa propre ligne, toujours dans
+ * le même bloc.
  *
  * Plus de bouton de panneau : la colonne de droite apparaît et disparaît d'elle
  * même selon qu'elle a quelque chose à montrer.
@@ -859,6 +825,9 @@ function PlanToolbar({
   placedCount,
   onPinAll,
   onUnpinAll,
+  selection,
+  onToggleSelectionPin,
+  onRemoveSelection,
 }: {
   mirrored: boolean;
   onToggleMirror: () => void;
@@ -869,6 +838,9 @@ function PlanToolbar({
   placedCount: number;
   onPinAll: () => void;
   onUnpinAll: () => void;
+  selection: { student: StudentView; pinned: boolean } | null;
+  onToggleSelectionPin: () => void;
+  onRemoveSelection: () => void;
 }) {
   return (
     <div className="print-hidden mb-2 flex flex-wrap items-center gap-1.5 border-b border-border px-1 pb-2">
@@ -937,6 +909,46 @@ function PlanToolbar({
           Ajuster
         </Button>
       </div>
+
+      {/* Fiche de l'élève cliqué, poussée à droite : nom, difficulté,
+          commentaire, puis les deux commandes qui agissent sur sa place. */}
+      {selection && (
+        <span className="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-1.5">
+          <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+
+          <span className="flex min-w-0 items-center gap-1.5 text-sm">
+            <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
+            <span className="max-w-40 truncate font-medium">
+              {studentFullName(selection.student)}
+            </span>
+          </span>
+
+          {selection.student.comment && (
+            <span className="hidden max-w-56 truncate text-xs text-muted lg:inline">
+              {selection.student.comment}
+            </span>
+          )}
+
+          {/* Seule commande de verrouillage à la place : l'étiquette du plan
+              ne porte plus de cadenas, elle se contente d'être cerclée de
+              rouge. */}
+          <Button
+            size="sm"
+            variant={selection.pinned ? "secondary" : "primary"}
+            onClick={onToggleSelectionPin}
+          >
+            {selection.pinned ? <UnlockIcon /> : <LockIcon />}
+            {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
+          </Button>
+          {/* Retirer du plan sans glisser-déposer : le bac disparaît quand
+              tout le monde est placé, et c'est justement là qu'on a besoin de
+              sortir quelqu'un. */}
+          <Button size="sm" variant="secondary" onClick={onRemoveSelection}>
+            <XIcon />
+            Retirer du plan
+          </Button>
+        </span>
+      )}
     </div>
   );
 }
