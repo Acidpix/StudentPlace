@@ -5,8 +5,7 @@ import { NewPlanDialog } from "@/components/plan/new-plan-dialog";
 import { PlanThumbnail } from "@/components/plan/plan-thumbnail";
 import { CARD, CARD_INTERACTIVE, SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { EmptyPlanArt, GridIcon, LayoutIcon, UsersIcon } from "@/components/ui/icons";
-import { StatTile } from "@/components/ui/stat-tile";
+import { EmptyPlanArt } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
 import type { ObjectKind } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
@@ -16,7 +15,7 @@ export const metadata: Metadata = { title: "Tableau de bord" };
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  const [classGroups, rooms, plans, planCount] = await Promise.all([
+  const [classGroups, rooms, plans] = await Promise.all([
     prisma.classGroup.findMany({
       where: { userId: user.id },
       include: { _count: { select: { students: true } } },
@@ -48,14 +47,13 @@ export default async function DashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 9,
     }),
-    prisma.seatingPlan.count({ where: { userId: user.id } }),
   ]);
 
   // Compte vierge : ni classe ni salle, donc rien à faire sinon commencer.
   const isEmpty = classGroups.length === 0 && rooms.length === 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
@@ -65,29 +63,6 @@ export default async function DashboardPage() {
         {classGroups.length > 0 && rooms.length > 0 && (
           <NewPlanDialog classGroups={classGroups} rooms={rooms} />
         )}
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatTile
-          label={`classe${classGroups.length > 1 ? "s" : ""}`}
-          value={classGroups.length}
-          href="/classes"
-          tone="primary"
-          Icon={UsersIcon}
-        />
-        <StatTile
-          label={`salle${rooms.length > 1 ? "s" : ""}`}
-          value={rooms.length}
-          href="/salles"
-          tone="accent"
-          Icon={GridIcon}
-        />
-        <StatTile
-          label={`plan${planCount > 1 ? "s" : ""} de classe`}
-          value={planCount}
-          tone="neutral"
-          Icon={LayoutIcon}
-        />
       </div>
 
       {isEmpty && <GettingStarted />}

@@ -380,7 +380,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
   // ----------------------------------------------------------------- rendu
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-4">
+    <div className="space-y-4">
       <div>
         <Link href="/salles" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
           <ArrowLeftIcon />

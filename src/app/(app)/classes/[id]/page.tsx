@@ -61,7 +61,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   }));
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8">
+    <div className="space-y-8">
       <div>
         <Link href="/classes" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
           <ArrowLeftIcon />
@@ -89,17 +89,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      {/* Élèves à gauche, relations et import à droite : sur un écran large, le
-          professeur voit d'un coup la liste et les incompatibilités qu'il est
-          en train de saisir. */}
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <StudentManager classGroupId={classGroup.id} students={students} />
+      {/* Sections empilées : la grille d'élèves a besoin de toute la largeur
+          pour tenir sur trois colonnes, ce qui est justement le but. */}
+      <StudentManager classGroupId={classGroup.id} students={students} />
 
-        <div className="space-y-8">
-          <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
-          <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
-        </div>
-      </div>
+      <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
+
+      <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
 
       <section>
         <h2 className="mb-3 font-medium">Plans de classe</h2>

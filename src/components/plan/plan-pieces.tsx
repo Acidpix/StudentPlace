@@ -3,7 +3,6 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
-import { LockIcon, UnlockIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import { SEAT_CARD_HEIGHT_CM, SEAT_CARD_WIDTH_CM } from "@/lib/domain";
 import { studentFullName, studentShortName, type SeatView, type StudentView } from "@/lib/view-models";
@@ -159,7 +158,6 @@ export function SeatSpot({
   leftPercent,
   topPercent,
   metrics,
-  onTogglePin,
   onSelect,
 }: {
   seat: SeatView;
@@ -170,7 +168,6 @@ export function SeatSpot({
   leftPercent: number;
   topPercent: number;
   metrics: SeatMetrics;
-  onTogglePin: () => void;
   onSelect: () => void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: seatDroppableId(seat.id) });
@@ -194,7 +191,6 @@ export function SeatSpot({
           selected={selected}
           highlighted={isOver}
           metrics={metrics}
-          onTogglePin={onTogglePin}
           onSelect={onSelect}
         />
       ) : (
@@ -224,7 +220,6 @@ function SeatedStudent({
   selected,
   highlighted,
   metrics,
-  onTogglePin,
   onSelect,
 }: {
   student: StudentView;
@@ -233,7 +228,6 @@ function SeatedStudent({
   selected: boolean;
   highlighted: boolean;
   metrics: SeatMetrics;
-  onTogglePin: () => void;
   onSelect: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -248,27 +242,36 @@ function SeatedStudent({
     .filter(Boolean)
     .join(" — ");
 
-  // Le cadenas mangerait toute la surface d'une étiquette réduite à la
-  // pastille : il disparaît alors, et c'est le liseré qui signale l'état.
-  // Le panneau latéral garde une commande explicite dans tous les cas.
-  const showLock = metrics.density !== "dot";
-  const lockSize = Math.max(9, Math.min(14, metrics.height * 0.34));
+  /**
+   * Le verrouillage se lit à l'ENCADREMENT, pas à une pastille.
+   *
+   * Un cadenas en coin d'étiquette débordait à moitié et devenait illisible dès
+   * que la salle était grande — l'échelle des étiquettes suit celle du plan.
+   * Un contour rouge épais reste visible à toutes les tailles. Il se bascule
+   * depuis la fiche du panneau latéral, ou en bloc depuis la barre d'outils.
+   *
+   * Le rouge sert aussi aux incompatibilités : les deux se distinguent au
+   * TRAIT. Un conflit est POINTILLÉ sur fond teinté — comme le trait qui relie
+   * les deux élèves — là où un verrouillage est un cadre PLEIN et épais sur
+   * fond normal.
+   */
+  const outline = conflicted
+    ? "border-dashed border-danger bg-danger-soft"
+    : pinned
+      ? "border-solid border-danger bg-surface"
+      : selected
+        ? "border-solid border-primary bg-primary-soft"
+        : highlighted
+          ? "border-solid border-primary bg-surface"
+          : "border-solid border-border bg-surface";
 
   return (
     <div
-      style={{ borderRadius: metrics.radius }}
+      style={{ borderRadius: metrics.radius, borderWidth: pinned ? 3 : 2 }}
       className={cn(
-        "relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
-        conflicted
-          ? "border-danger bg-danger-soft"
-          : selected
-            ? "border-primary bg-primary-soft"
-            : highlighted
-              ? "border-primary bg-surface"
-              : pinned
-                ? "border-primary/60 bg-primary-soft/40"
-                : "border-border bg-surface",
-        pinned && !conflicted && "ring-2 ring-primary/30",
+        "relative flex h-full w-full items-center overflow-hidden shadow-soft transition-colors",
+        outline,
+        selected && pinned && "ring-2 ring-primary/40",
         isDragging && "opacity-40",
       )}
     >
@@ -291,35 +294,11 @@ function SeatedStudent({
             {metrics.density === "full" ? studentShortName(student) : studentInitials(student)}
           </span>
         )}
-        <span className="sr-only">{studentFullName(student)}</span>
+        <span className="sr-only">
+          {studentFullName(student)}
+          {pinned ? " — place verrouillée" : ""}
+        </span>
       </button>
-
-      {showLock && (
-        <button
-          type="button"
-          onClick={onTogglePin}
-          aria-label={pinned ? "Déverrouiller cette place" : "Verrouiller cette place"}
-          aria-pressed={pinned}
-          title={
-            pinned
-              ? "Place verrouillée : le placement automatique ne la modifiera pas"
-              : "Verrouiller cette place"
-          }
-          style={{ padding: 1 }}
-          className={cn(
-            "absolute -right-1 -top-1 rounded-full border bg-surface transition-colors",
-            pinned
-              ? "border-primary text-primary"
-              : "border-border text-muted hover:border-primary hover:text-primary",
-          )}
-        >
-          {pinned ? (
-            <LockIcon width={lockSize} height={lockSize} />
-          ) : (
-            <UnlockIcon width={lockSize} height={lockSize} />
-          )}
-        </button>
-      )}
     </div>
   );
 }

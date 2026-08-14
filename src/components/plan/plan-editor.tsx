@@ -152,7 +152,7 @@ export function PlanEditor({
     [students],
   );
 
-  const { ref: planRef, pxPerCm } = usePlanScale(room.widthCm);
+  const { ref: planRef, widthPx, pxPerCm } = usePlanScale(room.widthCm, room.heightCm, zoom);
   const metrics = useMemo(() => seatMetrics(pxPerCm), [pxPerCm]);
 
   const incompatibles = useMemo(
@@ -494,94 +494,103 @@ export function PlanEditor({
               onTogglePanel={togglePanel}
             />
 
-            <div className="max-h-[76vh] overflow-auto">
-              <div
-                ref={planRef}
-                className="relative mx-auto"
-                style={{
-                  width: `${zoom}%`,
-                  aspectRatio: `${room.widthCm} / ${room.heightCm}`,
-                }}
-              >
-                <svg
-                  viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
-                  preserveAspectRatio="none"
-                  className="absolute inset-0 h-full w-full"
-                  aria-hidden="true"
+            {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
+                défilement est son enfant. Mesurer celle-ci ferait osciller la
+                largeur dès qu'une barre apparaît. */}
+            <div ref={planRef}>
+              <div className="max-h-[72vh] overflow-auto">
+                <div
+                  className="relative mx-auto"
+                  style={{
+                    width: widthPx || "100%",
+                    aspectRatio: `${room.widthCm} / ${room.heightCm}`,
+                  }}
                 >
-                  <RoomGrid widthCm={room.widthCm} heightCm={room.heightCm} />
+                  <svg
+                    viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
+                    preserveAspectRatio="none"
+                    className="absolute inset-0 h-full w-full"
+                    aria-hidden="true"
+                  >
+                    <RoomGrid widthCm={room.widthCm} heightCm={room.heightCm} />
 
-                  {room.objects.map((object) => (
-                    <Furniture
-                      key={object.id}
-                      object={{
-                        ...object,
-                        x: flipX(object.x, object.widthCm),
-                        y: flipY(object.y, object.heightCm),
-                        // Rotation de la vue, donc rotation du meuble : +180°.
-                        rotation: mirrored ? (object.rotation + 180) % 360 : object.rotation,
-                      }}
-                    />
-                  ))}
-
-                  {/* Trait rouge entre deux élèves incompatibles trop proches. */}
-                  {conflicts.map((conflict) => {
-                    const a = seats.find((seat) => seat.id === conflict.seatAId);
-                    const b = seats.find((seat) => seat.id === conflict.seatBId);
-                    if (!a || !b) return null;
-                    return (
-                      <line
-                        key={`link-${conflict.seatAId}-${conflict.seatBId}`}
-                        x1={flipX(a.x)}
-                        y1={flipY(a.y)}
-                        x2={flipX(b.x)}
-                        y2={flipY(b.y)}
-                        stroke="var(--danger)"
-                        strokeWidth={5}
-                        strokeDasharray="14 8"
+                    {room.objects.map((object) => (
+                      <Furniture
+                        key={object.id}
+                        object={{
+                          ...object,
+                          x: flipX(object.x, object.widthCm),
+                          y: flipY(object.y, object.heightCm),
+                          // Rotation de la vue, donc rotation du meuble : +180°.
+                          rotation: mirrored ? (object.rotation + 180) % 360 : object.rotation,
+                        }}
                       />
-                    );
-                  })}
-                </svg>
+                    ))}
 
-                {pxPerCm > 0 &&
-                  seats.map((seat) => {
-                    const occupant = assignments.get(seat.id);
-                    const student = occupant ? (studentById.get(occupant.studentId) ?? null) : null;
+                    {/* Trait rouge entre deux élèves incompatibles trop proches. */}
+                    {conflicts.map((conflict) => {
+                      const a = seats.find((seat) => seat.id === conflict.seatAId);
+                      const b = seats.find((seat) => seat.id === conflict.seatBId);
+                      if (!a || !b) return null;
+                      return (
+                        <line
+                          key={`link-${conflict.seatAId}-${conflict.seatBId}`}
+                          x1={flipX(a.x)}
+                          y1={flipY(a.y)}
+                          x2={flipX(b.x)}
+                          y2={flipY(b.y)}
+                          stroke="var(--danger)"
+                          strokeWidth={5}
+                          strokeDasharray="14 8"
+                        />
+                      );
+                    })}
+                  </svg>
 
-                    return (
-                      <SeatSpot
-                        key={seat.id}
-                        seat={seat}
-                        student={student}
-                        pinned={occupant?.pinned ?? false}
-                        conflicted={conflictedSeats.has(seat.id)}
-                        selected={selectedStudentId === student?.id}
-                        leftPercent={(flipX(seat.x) / room.widthCm) * 100}
-                        topPercent={(flipY(seat.y) / room.heightCm) * 100}
-                        metrics={metrics}
-                        onTogglePin={() => mutate(togglePin(assignments, seat.id))}
-                        onSelect={() => setSelectedStudentId(student?.id ?? null)}
-                      />
-                    );
-                  })}
+                  {pxPerCm > 0 &&
+                    seats.map((seat) => {
+                      const occupant = assignments.get(seat.id);
+                      const student = occupant
+                        ? (studentById.get(occupant.studentId) ?? null)
+                        : null;
 
-                {seats.length === 0 && (
-                  <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted">
-                    Cette salle ne contient aucune place.{" "}
-                    <Link href={`/salles/${room.id}`} className="ml-1 text-primary hover:underline">
-                      Ajoutez-y des tables.
-                    </Link>
-                  </p>
-                )}
+                      return (
+                        <SeatSpot
+                          key={seat.id}
+                          seat={seat}
+                          student={student}
+                          pinned={occupant?.pinned ?? false}
+                          conflicted={conflictedSeats.has(seat.id)}
+                          selected={selectedStudentId === student?.id}
+                          leftPercent={(flipX(seat.x) / room.widthCm) * 100}
+                          topPercent={(flipY(seat.y) / room.heightCm) * 100}
+                          metrics={metrics}
+                          onSelect={() => setSelectedStudentId(student?.id ?? null)}
+                        />
+                      );
+                    })}
+
+                  {seats.length === 0 && (
+                    <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted">
+                      Cette salle ne contient aucune place.{" "}
+                      <Link href={`/salles/${room.id}`} className="ml-1 text-primary hover:underline">
+                        Ajoutez-y des tables.
+                      </Link>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="print-hidden mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
               <DifficultyLegend />
               <p className="flex items-center gap-1.5 text-xs text-muted">
-                <LockIcon width={12} height={12} />
-                Place verrouillée : le placement automatique ne la modifie pas.
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-3 w-3 rounded-full border-2 border-solid border-danger"
+                />
+                Cadre rouge plein : place verrouillée, le placement automatique ne la modifie pas.
+                Pointillé rouge : incompatibilité non respectée.
               </p>
               <p className="text-xs text-muted">
                 {mirrored
@@ -606,6 +615,9 @@ export function PlanEditor({
                   {selection.student.comment && (
                     <p className="mt-1.5 text-xs text-muted">{selection.student.comment}</p>
                   )}
+                  {/* Seule commande de verrouillage à la place : l'étiquette du
+                      plan ne porte plus de cadenas, elle se contente d'être
+                      cerclée de rouge. */}
                   <Button
                     size="sm"
                     variant={selection.pinned ? "secondary" : "primary"}

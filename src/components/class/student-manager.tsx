@@ -111,7 +111,7 @@ export function StudentManager({
           Aucun élève ne correspond à « {query} ».
         </p>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((student) =>
             editingId === student.id ? (
               // Le formulaire garde ses deux colonnes : il prend toute la largeur.
