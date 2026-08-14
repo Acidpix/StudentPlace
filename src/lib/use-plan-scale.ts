@@ -2,19 +2,31 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** Part de la hauteur de fenêtre que le plan peut occuper à 100 %. */
-const VIEWPORT_SHARE = 0.68;
+/** Hauteur par défaut de la fenêtre de plan, en part de la hauteur d'écran. */
+export const DEFAULT_VIEWPORT_SHARE = 0.68;
+
+/** Bornes de la poignée de redimensionnement, en pixels. */
+export const PLAN_MIN_HEIGHT = 240;
+export const PLAN_MAX_HEIGHT_SHARE = 0.92;
+
+/** Hauteur par défaut de la fenêtre de plan pour l'écran courant. */
+export function defaultPlanHeight(): number {
+  return Math.round(window.innerHeight * DEFAULT_VIEWPORT_SHARE);
+}
 
 /**
  * Dimensionne le plan de classe et mesure son échelle.
  *
- * Le plan est ajusté pour tenir ENTIÈREMENT dans la fenêtre à 100 % : sa
- * largeur est le minimum entre la place disponible et ce que la hauteur permet,
- * à proportions conservées. Sans cette double contrainte, une salle large
- * s'étalait sur toute la page et sa hauteur débordait de l'écran — il fallait
- * faire défiler pour voir le fond de la salle, ce qui rendait le plan
+ * Le plan est ajusté pour tenir ENTIÈREMENT dans sa fenêtre à 100 % : sa
+ * largeur est le minimum entre la place disponible et ce que `heightBudget`
+ * permet, à proportions conservées. Sans cette double contrainte, une salle
+ * large s'étalait sur toute la page et sa hauteur débordait de l'écran — il
+ * fallait faire défiler pour voir le fond de la salle, ce qui rendait le plan
  * inexploitable. Au-delà de 100 %, le zoom déborde volontairement et l'on
  * défile pour parcourir le détail.
+ *
+ * `heightBudget` vient de la poignée de redimensionnement de l'éditeur ; à
+ * zéro, on retombe sur la hauteur par défaut.
  *
  * Renvoie aussi `pxPerCm` : combien de pixels vaut un centimètre de salle. Les
  * étiquettes d'élèves s'en servent pour se dimensionner en unités du domaine
@@ -23,7 +35,12 @@ const VIEWPORT_SHARE = 0.68;
  * La mesure porte sur un conteneur qui NE DÉFILE PAS : mesurer la zone de
  * défilement elle-même ferait osciller la valeur à l'apparition d'une barre.
  */
-export function usePlanScale(roomWidthCm: number, roomHeightCm: number, zoom: number) {
+export function usePlanScale(
+  roomWidthCm: number,
+  roomHeightCm: number,
+  zoom: number,
+  heightBudget: number,
+) {
   const ref = useRef<HTMLDivElement>(null);
   const [widthPx, setWidthPx] = useState(0);
 
@@ -33,8 +50,8 @@ export function usePlanScale(roomWidthCm: number, roomHeightCm: number, zoom: nu
 
     const measure = () => {
       const available = element.clientWidth;
-      const heightBudget = window.innerHeight * VIEWPORT_SHARE;
-      const fitted = Math.min(available, (heightBudget * roomWidthCm) / roomHeightCm);
+      const height = heightBudget > 0 ? heightBudget : defaultPlanHeight();
+      const fitted = Math.min(available, (height * roomWidthCm) / roomHeightCm);
       setWidthPx(Math.max(0, (fitted * zoom) / 100));
     };
 
@@ -48,7 +65,7 @@ export function usePlanScale(roomWidthCm: number, roomHeightCm: number, zoom: nu
       observer.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [roomWidthCm, roomHeightCm, zoom]);
+  }, [roomWidthCm, roomHeightCm, zoom, heightBudget]);
 
   return { ref, widthPx, pxPerCm: roomWidthCm > 0 ? widthPx / roomWidthCm : 0 };
 }

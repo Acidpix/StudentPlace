@@ -28,27 +28,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: MARGIN,
     fontSize: 10,
     fontFamily: "Helvetica",
-    color: "#101828",
+    color: "#1b2b26",
   },
   title: { fontSize: 16, fontFamily: "Helvetica-Bold" },
-  subtitle: { fontSize: 10, color: "#5c6b7f", marginTop: 3 },
+  subtitle: { fontSize: 10, color: "#64756c", marginTop: 3 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  canvas: { position: "relative", borderWidth: 1, borderColor: "#c9d2dd", marginTop: 10 },
+  canvas: { position: "relative", borderWidth: 1, borderColor: "#ddd3bf", marginTop: 10 },
   furniture: { position: "absolute", borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  furnitureLabel: { fontSize: 7, color: "#5c6b7f" },
+  furnitureLabel: { fontSize: 7, color: "#64756c" },
   seat: {
     position: "absolute",
     borderWidth: 1,
-    borderColor: "#98a5b6",
+    borderColor: "#9aa79e",
     borderRadius: 3,
     backgroundColor: "#ffffff",
     paddingHorizontal: 3,
     paddingVertical: 2,
     justifyContent: "center",
   },
-  seatEmpty: { borderStyle: "dashed", borderColor: "#c9d2dd", backgroundColor: "#f7f9fb" },
+  seatEmpty: { borderStyle: "dashed", borderColor: "#ddd3bf", backgroundColor: "#faf7f0" },
   seatName: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
-  seatComment: { fontSize: 5.5, color: "#5c6b7f", marginTop: 1 },
+  seatComment: { fontSize: 5.5, color: "#64756c", marginTop: 1 },
   seatRow: { flexDirection: "row", alignItems: "center" },
   pastille: {
     width: 8,
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     left: MARGIN,
     right: MARGIN,
     fontSize: 7,
-    color: "#8a97a8",
+    color: "#8d9a92",
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -73,21 +73,26 @@ const styles = StyleSheet.create({
   rosterRow: {
     flexDirection: "row",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#dde3ea",
+    borderBottomColor: "#e3dbc9",
     paddingVertical: 3.5,
   },
   rosterName: { width: "34%", fontSize: 9 },
-  rosterSeat: { width: "18%", fontSize: 9, color: "#5c6b7f" },
-  rosterComment: { flex: 1, fontSize: 8, color: "#5c6b7f" },
+  rosterSeat: { width: "18%", fontSize: 9, color: "#64756c" },
+  rosterComment: { flex: 1, fontSize: 8, color: "#64756c" },
 });
 
+/**
+ * Le PDF ne peut pas lire les variables CSS du thème : ses couleurs sont
+ * fixées ici, sur la variante CLAIRE de la palette. C'est le bon choix — un
+ * plan de classe s'imprime sur du papier blanc, jamais sur un tableau noir.
+ */
 const FURNITURE_COLORS: Record<ObjectKind, { background: string; border: string }> = {
-  TABLE: { background: "#f0f3f7", border: "#c9d2dd" },
-  TEACHER_DESK: { background: "#e6e9fb", border: "#6b73d8" },
-  BOARD: { background: "#3f46c4", border: "#3f46c4" },
-  DOOR: { background: "#ffffff", border: "#98a5b6" },
-  WINDOW: { background: "#ffffff", border: "#98a5b6" },
-  OBSTACLE: { background: "#eef1f5", border: "#98a5b6" },
+  TABLE: { background: "#f4efe4", border: "#ddd3bf" },
+  TEACHER_DESK: { background: "#e2f1ec", border: "#0f6f5c" },
+  BOARD: { background: "#0f6f5c", border: "#0f6f5c" },
+  DOOR: { background: "#ffffff", border: "#8d9a92" },
+  WINDOW: { background: "#ffffff", border: "#8d9a92" },
+  OBSTACLE: { background: "#f1ece0", border: "#8d9a92" },
 };
 
 const FURNITURE_LABELS: Partial<Record<ObjectKind, string>> = {

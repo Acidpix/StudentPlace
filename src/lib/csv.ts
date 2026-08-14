@@ -1,5 +1,6 @@
 /**
- * Lecture d'une liste d'élèves collée depuis un tableur.
+ * Lecture d'une liste d'élèves collée depuis un tableur OU saisie en texte
+ * simple.
  *
  * On ne peut pas exiger d'un professeur qu'il produise un CSV canonique : le
  * séparateur est détecté automatiquement (point-virgule, tabulation, virgule),
@@ -8,6 +9,12 @@
  *
  * Colonnes attendues, dans l'ordre :
  *   Nom ; Prénom ; Difficulté (1-5, facultative) ; Commentaire (facultatif)
+ *
+ * Une ligne SANS séparateur est acceptée telle quelle — « Martin Camille », un
+ * élève par ligne. Nom et prénom sont alors séparés d'après `nameOrder`, sauf
+ * si la casse tranche d'elle-même : une liste d'établissement écrit le patronyme
+ * en capitales (« MARTIN Camille »), et cette indication prime sur l'ordre
+ * déclaré. Les deux formes cohabitent dans un même collage, ligne par ligne.
  */
 
 export interface ParsedStudentRow {
@@ -20,6 +27,20 @@ export interface ParsedStudentRow {
 export interface ParseResult {
   students: ParsedStudentRow[];
   errors: string[];
+}
+
+/** Ordre des mots d'une ligne de texte simple, quand la casse ne tranche pas. */
+export const NAME_ORDERS = ["lastFirst", "firstLast"] as const;
+export type NameOrder = (typeof NAME_ORDERS)[number];
+
+export const NAME_ORDER_LABELS: Record<NameOrder, string> = {
+  lastFirst: "Nom puis prénom",
+  firstLast: "Prénom puis nom",
+};
+
+export interface ParseOptions {
+  /** Défaut : `lastFirst`, l'ordre des colonnes du tableur et de l'affichage. */
+  nameOrder?: NameOrder;
 }
 
 function detectDelimiter(sample: string): string {

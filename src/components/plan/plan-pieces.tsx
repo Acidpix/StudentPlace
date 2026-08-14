@@ -36,43 +36,70 @@ export function parseSeatDroppableId(id: string): string | null {
 
 // ------------------------------------------------------------------ échelle
 
-type Density = "full" | "compact" | "dot";
-
 export interface SeatMetrics {
   width: number;
   height: number;
   font: number;
   badge: number;
-  density: Density;
   radius: number;
+  /** Trop étroite pour le moindre mot : « Libre » et consorts sont masqués. */
+  tiny: boolean;
 }
 
-/**
- * Traduit l'échelle du plan en dimensions d'étiquette.
- *
- * Sous 44 px de large, plus aucun texte n'est lisible : on n'affiche alors que
- * la pastille de difficulté, qui reste porteuse de sens et tient dans la place.
- * Le nom complet demeure accessible par l'infobulle et par le panneau latéral.
- */
+/** Traduit l'échelle du plan en dimensions d'étiquette. */
 export function seatMetrics(pxPerCm: number): SeatMetrics {
   const width = SEAT_CARD_WIDTH_CM * pxPerCm;
   const height = SEAT_CARD_HEIGHT_CM * pxPerCm;
-
-  const density: Density = width >= 74 ? "full" : width >= 44 ? "compact" : "dot";
 
   return {
     width,
     height,
     font: Math.max(6, Math.min(13, height * 0.34)),
     badge: Math.max(9, Math.min(20, height * 0.46)),
-    density,
     radius: Math.max(4, Math.min(10, height * 0.2)),
+    tiny: width < 44,
   };
 }
 
 /** Initiales de repli lorsque l'étiquette est trop étroite pour un prénom. */
 function studentInitials(student: StudentView): string {
   return `${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase();
+}
+
+/**
+ * Largeur moyenne d'un caractère, en fraction de la taille de police.
+ *
+ * Approximation assumée : mesurer chaque nom au `canvas` donnerait la valeur
+ * exacte mais coûterait une mesure par élève à chaque redimensionnement. 0,55
+ * majore légèrement une sans-serif en casse mixte, donc l'étiquette choisie est
+ * au pire un cran trop courte — jamais tronquée.
+ */
+const AVG_CHAR_RATIO = 0.55;
+
+/**
+ * Choisit la forme du nom la plus complète qui tienne dans l'étiquette.
+ *
+ * « Prénom Nom », sinon le prénom seul, sinon les initiales, sinon rien — la
+ * pastille de difficulté reste alors la seule information, et le nom complet
+ * demeure dans l'infobulle et dans le panneau latéral. Le calcul est fait par
+ * élève : « Léa Roy » tient là où « Maximilien Descheveaux » ne tient pas.
+ */
+export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): string | null {
+  // Ce que la largeur de carte laisse au texte : bordures (2 × 2 px),
+  // rembourrage (2 × 3 px), pastille de difficulté, et l'espace qui l'en
+  // sépare (gap-1 = 4 px).
+  const available = metrics.width - metrics.badge - 14;
+  if (available <= 0) return null;
+
+  const fits = (text: string) => text.length * metrics.font * AVG_CHAR_RATIO <= available;
+
+  return (
+    [
+      `${student.firstName} ${student.lastName}`,
+      student.firstName,
+      studentInitials(student),
+    ].find(fits) ?? null
+  );
 }
 
 // ------------------------------------------------------------------ étiquette
@@ -141,7 +168,12 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
           Tous les élèves sont placés. Déposez ici pour retirer quelqu&apos;un du plan de classe.
         </p>
       ) : (
-        <div className="max-h-[45vh] space-y-1.5 overflow-y-auto pr-1">{children}</div>
+        // Le bac est sous le plan et non plus dans une colonne étroite : les
+        // élèves s'y répartissent sur plusieurs colonnes plutôt que de former
+        // une liste qu'il faudrait faire défiler.
+        <div className="grid max-h-56 grid-cols-1 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2">
+          {children}
+        </div>
       )}
     </div>
   );
@@ -206,7 +238,7 @@ export function SeatSpot({
           )}
           title={seat.disabled ? "Place condamnée" : "Place libre"}
         >
-          {metrics.density === "dot" ? "" : seat.disabled ? "Condamnée" : "Libre"}
+          {metrics.tiny ? "" : seat.disabled ? "Condamnée" : "Libre"}
         </div>
       )}
     </div>
@@ -242,36 +274,43 @@ function SeatedStudent({
     .filter(Boolean)
     .join(" — ");
 
+  const label = fitStudentLabel(student, metrics);
+
   /**
-   * Le verrouillage se lit à l'ENCADREMENT, pas à une pastille.
+   * Le verrouillage se lit à un CERCLAGE ROUGE PERMANENT.
    *
    * Un cadenas en coin d'étiquette débordait à moitié et devenait illisible dès
    * que la salle était grande — l'échelle des étiquettes suit celle du plan.
-   * Un contour rouge épais reste visible à toutes les tailles. Il se bascule
-   * depuis la fiche du panneau latéral, ou en bloc depuis la barre d'outils.
+   *
+   * Le cerclage est posé en `outline` et non en `border` : la bordure porte
+   * déjà l'état courant — sélection, survol de dépose, conflit — et le rouge
+   * disparaîtrait dès qu'on toucherait l'élève. L'`outline` se dessine en
+   * dehors du cadre et ne dépend d'aucun de ces états, donc il ne s'éteint
+   * jamais. `overflow-hidden` ne le rogne pas : le débordement ne s'applique
+   * qu'aux descendants.
    *
    * Le rouge sert aussi aux incompatibilités : les deux se distinguent au
-   * TRAIT. Un conflit est POINTILLÉ sur fond teinté — comme le trait qui relie
-   * les deux élèves — là où un verrouillage est un cadre PLEIN et épais sur
-   * fond normal.
+   * TRAIT. Un conflit est POINTILLÉ sur fond teinté — comme la ligne qui relie
+   * les deux élèves — là où un verrouillage est un cercle PLEIN.
    */
-  const outline = conflicted
-    ? "border-dashed border-danger bg-danger-soft"
-    : pinned
-      ? "border-solid border-danger bg-surface"
-      : selected
-        ? "border-solid border-primary bg-primary-soft"
-        : highlighted
-          ? "border-solid border-primary bg-surface"
-          : "border-solid border-border bg-surface";
+  const pinRing = Math.max(2, Math.min(3, metrics.height * 0.09));
 
   return (
     <div
-      style={{ borderRadius: metrics.radius, borderWidth: pinned ? 3 : 2 }}
+      style={{
+        borderRadius: metrics.radius,
+        outline: pinned ? `${pinRing}px solid var(--danger)` : undefined,
+        outlineOffset: pinned ? 1 : undefined,
+      }}
       className={cn(
-        "relative flex h-full w-full items-center overflow-hidden shadow-soft transition-colors",
-        outline,
-        selected && pinned && "ring-2 ring-primary/40",
+        "relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
+        conflicted
+          ? "border-dashed border-danger bg-danger-soft"
+          : selected
+            ? "border-solid border-primary bg-primary-soft"
+            : highlighted
+              ? "border-solid border-primary bg-surface"
+              : "border-solid border-border bg-surface",
         isDragging && "opacity-40",
       )}
     >
@@ -282,18 +321,14 @@ function SeatedStudent({
         {...attributes}
         onClick={onSelect}
         title={title}
-        style={{ fontSize: metrics.font, paddingInline: metrics.density === "dot" ? 0 : 3 }}
+        style={{ fontSize: metrics.font, paddingInline: label ? 3 : 0 }}
         className={cn(
           "flex h-full w-full cursor-grab items-center gap-1 overflow-hidden text-left leading-tight active:cursor-grabbing",
-          metrics.density === "dot" && "justify-center",
+          !label && "justify-center",
         )}
       >
         <DifficultyBadge difficulty={student.difficulty} size={metrics.badge} />
-        {metrics.density !== "dot" && (
-          <span className="truncate">
-            {metrics.density === "full" ? studentShortName(student) : studentInitials(student)}
-          </span>
-        )}
+        {label && <span className="truncate">{label}</span>}
         <span className="sr-only">
           {studentFullName(student)}
           {pinned ? " — place verrouillée" : ""}

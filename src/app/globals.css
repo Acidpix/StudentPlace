@@ -6,43 +6,55 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Palette « Studio » : quasi-noir et blanc cassé, un accent violet électrique
-   pour l'action, un vert pour la confirmation et les indicateurs positifs.
+   Palette « Craie & ardoise ».
+
+   Thème clair  : papier crème, encre vert-ardoise.
+   Thème sombre : le tableau lui-même, vert-noir, et la craie par-dessus.
+
+   Le VERT D'ARDOISE porte l'action principale, le TERRACOTTA les accents — et
+   non l'inverse. Le terracotta frôle le rouge, or le rouge a ici un sens précis
+   et exclusif : une place verrouillée et une incompatibilité non respectée. Il
+   ne doit se confondre avec aucun bouton.
+
    Toutes les couleurs passent par des variables : aucun composant ne code une
-   teinte en dur, et le thème sombre se contente de les redéfinir.
+   teinte en dur, et changer de thème ne touche que ce fichier.
 --------------------------------------------------------------------------- */
 
 :root {
   color-scheme: light;
 
-  --background: #f6f7f9;
-  --surface: #ffffff;
-  --surface-muted: #eef0f4;
-  --border: #e2e5ea;
-  --foreground: #0b0c0f;
-  --muted: #5b6472;
+  --background: #faf7f0;
+  --surface: #fffefb;
+  --surface-muted: #f1ece0;
+  --border: #e3dbc9;
+  --foreground: #1b2b26;
+  --muted: #64756c;
 
-  --primary: #6d28d9;
+  --primary: #0f6f5c;
   --primary-foreground: #ffffff;
-  --primary-soft: #f3efff;
+  --primary-soft: #e2f1ec;
 
-  --accent: #059669;
+  --accent: #c2410c;
   --accent-foreground: #ffffff;
-  --accent-soft: #ecfdf5;
+  --accent-soft: #fbeadd;
 
-  --danger: #dc2626;
-  --danger-soft: #fef2f2;
-  --danger-border: #fca5a5;
-  --success: #059669;
+  --danger: #b42318;
+  --danger-soft: #fdf0ee;
+  --danger-border: #eda69b;
+  --success: #0f6f5c;
 
-  /* Ombres étagées. Trois niveaux seulement : posé, soulevé, flottant. */
-  --elev-1: 0 1px 2px rgb(11 12 15 / 0.05), 0 1px 3px rgb(11 12 15 / 0.04);
-  --elev-2: 0 2px 4px rgb(11 12 15 / 0.05), 0 6px 16px rgb(11 12 15 / 0.07);
-  --elev-3: 0 8px 24px rgb(11 12 15 / 0.1), 0 20px 48px rgb(11 12 15 / 0.1);
+  /* Ombres étagées, teintées chaud : une ombre neutre paraît sale sur du
+     papier crème. Trois niveaux seulement : posé, soulevé, flottant. */
+  --elev-1: 0 1px 2px rgb(60 45 25 / 0.06), 0 1px 3px rgb(60 45 25 / 0.04);
+  --elev-2: 0 2px 4px rgb(60 45 25 / 0.06), 0 6px 16px rgb(60 45 25 / 0.08);
+  --elev-3: 0 8px 24px rgb(60 45 25 / 0.11), 0 20px 48px rgb(60 45 25 / 0.1);
 
   /* Teintes du dégradé de fond, très diluées. */
-  --mesh-a: rgb(109 40 217 / 0.07);
-  --mesh-b: rgb(5 150 105 / 0.06);
+  --mesh-a: rgb(15 111 92 / 0.07);
+  --mesh-b: rgb(194 65 12 / 0.05);
+
+  /* Grain de la surface : papier en thème clair, poussière de craie en sombre. */
+  --grain-opacity: 0.035;
 
   /* Encre des pastilles de difficulté : volontairement très sombre, pour
      conserver un contraste suffisant sur les cinq teintes de la palette. */
@@ -52,32 +64,34 @@
 .dark {
   color-scheme: dark;
 
-  --background: #0b0c0f;
-  --surface: #16181d;
-  --surface-muted: #1e2128;
-  --border: #2a2e37;
-  --foreground: #f2f3f5;
-  --muted: #98a1b0;
+  --background: #10201b;
+  --surface: #172c25;
+  --surface-muted: #1f3830;
+  --border: #2d4b41;
+  --foreground: #e8f0ea;
+  --muted: #9bb2a6;
 
-  --primary: #a78bfa;
-  --primary-foreground: #160f28;
-  --primary-soft: #221a3a;
+  --primary: #5fd0b0;
+  --primary-foreground: #06231c;
+  --primary-soft: #1c3b33;
 
-  --accent: #34d399;
-  --accent-foreground: #052e21;
-  --accent-soft: #0f2b22;
+  --accent: #fb923c;
+  --accent-foreground: #2a1405;
+  --accent-soft: #33251a;
 
   --danger: #f87171;
-  --danger-soft: #2a1517;
-  --danger-border: #7f1d1d;
-  --success: #34d399;
+  --danger-soft: #35201e;
+  --danger-border: #7f2d24;
+  --success: #5fd0b0;
 
   --elev-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --elev-2: 0 2px 6px rgb(0 0 0 / 0.45), 0 8px 20px rgb(0 0 0 / 0.35);
   --elev-3: 0 10px 30px rgb(0 0 0 / 0.55), 0 24px 60px rgb(0 0 0 / 0.45);
 
-  --mesh-a: rgb(167 139 250 / 0.1);
-  --mesh-b: rgb(52 211 153 / 0.07);
+  --mesh-a: rgb(95 208 176 / 0.09);
+  --mesh-b: rgb(251 146 60 / 0.06);
+
+  --grain-opacity: 0.05;
 
   /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
      donc sombre, inchangée. */
@@ -132,11 +146,25 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   pointer-events: none;
   background:
     radial-gradient(60rem 40rem at 12% -10%, var(--mesh-a), transparent 70%),
     radial-gradient(50rem 35rem at 100% 0%, var(--mesh-b), transparent 65%);
+}
+
+/* Grain : fibre du papier en thème clair, poussière de craie sur le tableau en
+   thème sombre. Un bruit fractal SVG en ligne — aucun fichier à charger, donc
+   rien qui échoue sur un serveur sans accès sortant, comme pour les polices.
+   L'opacité reste sous 5 % : c'est une texture, pas un motif. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Anneau de focus homogène et toujours visible au clavier. */
@@ -195,7 +223,8 @@ body::before {
     color: #000000;
   }
 
-  body::before {
+  body::before,
+  body::after {
     display: none;
   }
 }
