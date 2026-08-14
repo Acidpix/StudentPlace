@@ -11,7 +11,7 @@ import {
 } from "@dnd-kit/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
 import { saveAssignments, updatePlanSettings } from "@/actions/plans";
 import { ExportPdfPanel } from "@/components/plan/export-pdf-panel";
@@ -31,8 +31,6 @@ import { DifficultyBadge, DifficultyLegend } from "@/components/ui/difficulty-ba
 import { FieldError, Input, Label } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   DeskViewIcon,
   FitIcon,
   LockIcon,
@@ -40,6 +38,7 @@ import {
   SparkIcon,
   UnlockIcon,
   WarningIcon,
+  XIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "@/components/ui/icons";
@@ -65,12 +64,7 @@ import {
   type SeatAssignments,
   type SeatOccupant,
 } from "@/lib/plan-state";
-import {
-  PLAN_MAX_HEIGHT_SHARE,
-  PLAN_MIN_HEIGHT,
-  defaultPlanHeight,
-  usePlanScale,
-} from "@/lib/use-plan-scale";
+import { defaultPlanHeight, usePlanScale } from "@/lib/use-plan-scale";
 import {
   studentFullName,
   type AssignmentView,
@@ -91,8 +85,6 @@ interface PlanMeta {
 /** Poids d'inertie d'« Améliorer » : retoucher, et non tout rebrasser. */
 const IMPROVE_STABILITY = 250;
 
-const PANEL_STORAGE_KEY = "studentplace:plan-panel";
-const HEIGHT_STORAGE_KEY = "studentplace:plan-height";
 const ZOOM_MIN = 60;
 const ZOOM_MAX = 250;
 const ZOOM_STEP = 10;
@@ -133,75 +125,27 @@ export function PlanEditor({
     moved: number | null;
   } | null>(null);
   const [zoom, setZoom] = useState(100);
-  const [panelOpen, setPanelOpen] = useState(true);
-  // 0 = pas encore connue ; la hauteur par défaut dépend de l'écran, qui
-  // n'existe pas au rendu serveur.
+  // 0 = pas encore connue ; la hauteur de la fenêtre de plan se déduit de
+  // l'écran, qui n'existe pas au rendu serveur.
   const [planHeight, setPlanHeight] = useState(0);
-  // Doublon en ref : les écouteurs de glisser sont posés une seule fois et
-  // liraient sinon la valeur figée de leur fermeture.
-  const planHeightRef = useRef(0);
   const [pending, startTransition] = useTransition();
 
-  // Lu après montage : le rendu serveur ne connaît pas localStorage, l'écrire
-  // dans l'état initial provoquerait une erreur d'hydratation.
-  useEffect(() => {
-    setPanelOpen(window.localStorage.getItem(PANEL_STORAGE_KEY) !== "0");
-
-    const stored = Number(window.localStorage.getItem(HEIGHT_STORAGE_KEY));
-    const height =
-      Number.isFinite(stored) && stored >= PLAN_MIN_HEIGHT ? stored : defaultPlanHeight();
-    planHeightRef.current = height;
-    setPlanHeight(height);
-  }, []);
-
-  const togglePanel = useCallback(() => {
-    setPanelOpen((open) => {
-      window.localStorage.setItem(PANEL_STORAGE_KEY, open ? "0" : "1");
-      return !open;
-    });
-  }, []);
-
   /**
-   * Poignée de redimensionnement de la fenêtre de plan.
-   *
-   * On écoute sur `window` plutôt que sur la poignée : le pointeur sort
-   * inévitablement de ces quelques pixels pendant le glisser, et l'on perdrait
-   * le suivi. La hauteur retenue est mémorisée d'un plan de classe à l'autre.
+   * La fenêtre de plan n'est plus redimensionnable à la main : sa hauteur suit
+   * l'écran et se recalcule au redimensionnement de la fenêtre. La poignée
+   * apportait un réglage de plus à comprendre pour un gain nul — passé un
+   * certain point c'est la LARGEUR qui contraint, et tirer plus bas
+   * n'agrandissait plus rien.
    */
-  const handleResizeStart = useCallback((event: React.PointerEvent) => {
-    event.preventDefault();
+  useEffect(() => {
+    const measure = () => setPlanHeight(defaultPlanHeight());
+    measure();
 
-    const startY = event.clientY;
-    const startHeight = planHeightRef.current;
-    const maxHeight = window.innerHeight * PLAN_MAX_HEIGHT_SHARE;
-
-    const onMove = (moveEvent: PointerEvent) => {
-      const next = Math.round(
-        Math.min(maxHeight, Math.max(PLAN_MIN_HEIGHT, startHeight + moveEvent.clientY - startY)),
-      );
-      planHeightRef.current = next;
-      setPlanHeight(next);
-    };
-
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.localStorage.setItem(HEIGHT_STORAGE_KEY, String(planHeightRef.current));
-      document.body.classList.remove("no-select");
-    };
-
-    document.body.classList.add("no-select");
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
 
-  const resetView = useCallback(() => {
-    setZoom(100);
-    const height = defaultPlanHeight();
-    planHeightRef.current = height;
-    setPlanHeight(height);
-    window.localStorage.removeItem(HEIGHT_STORAGE_KEY);
-  }, []);
+  const resetView = useCallback(() => setZoom(100), []);
 
   // Un léger seuil de déplacement évite qu'un simple clic sur une place ne
   // déclenche un glisser involontaire.
@@ -425,6 +369,11 @@ export function PlanEditor({
     return null;
   }
 
+  // La colonne de droite se gouverne seule : elle n'existe que si elle a
+  // quelque chose à montrer. Rien à placer et personne de sélectionné, le plan
+  // reprend toute la largeur — sans bouton à actionner.
+  const panelVisible = unplaced.length > 0 || selection !== null;
+
   // --------------------------------------------------------------- rendu
 
   // La vue depuis le bureau est une ROTATION À 180°, pas un simple miroir : le
@@ -547,10 +496,14 @@ export function PlanEditor({
             composant : les élèves à placer et celui qu'on vient de cliquer.
             Les réglages et l'export, qu'on ouvre une fois par séance, passent
             sous le plan — ils n'ont pas à lui prendre de la largeur en
-            permanence. */}
+            permanence.
+
+            Cette colonne n'a plus de bouton d'affichage : elle apparaît quand
+            elle a quelque chose à montrer — des élèves à placer ou un élève
+            sélectionné — et rend sinon toute la largeur au plan. */}
         <div
           className={
-            panelOpen
+            panelVisible
               ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]"
               : "grid gap-4 lg:grid-cols-1"
           }
@@ -570,8 +523,6 @@ export function PlanEditor({
               placedCount={assignments.size}
               onPinAll={() => mutate(setAllPinned(assignments, true))}
               onUnpinAll={() => mutate(setAllPinned(assignments, false))}
-              panelOpen={panelOpen}
-              onTogglePanel={togglePanel}
             />
 
             {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
@@ -589,6 +540,16 @@ export function PlanEditor({
                     aspectRatio: `${room.widthCm} / ${room.heightCm}`,
                   }}
                 >
+                  {/* Filigrane : l'image de marque agrandie à 300 %, centrée et
+                      très atténuée. Purement décorative — `aria-hidden`, sans
+                      événement de pointeur, et masquée à l'impression pour ne
+                      pas noyer le plan sur papier. */}
+                  <div
+                    aria-hidden="true"
+                    className="print-hidden pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-[0.07]"
+                    style={{ backgroundImage: "url('/c.png')", backgroundSize: "300%" }}
+                  />
+
                   <svg
                     viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
                     preserveAspectRatio="none"
@@ -665,42 +626,11 @@ export function PlanEditor({
               </div>
             </div>
 
-            {/* Poignée de redimensionnement : agrandir la fenêtre agrandit le
-                plan, jusqu'à ce que la largeur disponible devienne la
-                contrainte — le plan cesse alors de grandir et se centre. */}
-            <div
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label="Redimensionner la fenêtre du plan de classe"
-              tabIndex={0}
-              onPointerDown={handleResizeStart}
-              onKeyDown={(event) => {
-                const step = event.shiftKey ? 80 : 24;
-                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                  event.preventDefault();
-                  const delta = event.key === "ArrowDown" ? step : -step;
-                  const next = Math.round(
-                    Math.min(
-                      window.innerHeight * PLAN_MAX_HEIGHT_SHARE,
-                      Math.max(PLAN_MIN_HEIGHT, planHeightRef.current + delta),
-                    ),
-                  );
-                  planHeightRef.current = next;
-                  setPlanHeight(next);
-                  window.localStorage.setItem(HEIGHT_STORAGE_KEY, String(next));
-                }
-              }}
-              title="Faire glisser pour agrandir ou réduire le plan de classe"
-              className="print-hidden group mt-1 flex h-4 cursor-ns-resize items-center justify-center rounded-control hover:bg-surface-muted"
-            >
-              <span
-                aria-hidden="true"
-                className="h-1 w-16 rounded-full bg-border transition-colors group-hover:bg-primary"
-              />
-            </div>
-
             <div className="print-hidden mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
               <DifficultyLegend />
+              <p className="text-xs text-muted">
+                La difficulté se lit au cerclage intérieur de l&apos;étiquette.
+              </p>
               <p className="flex items-center gap-1.5 text-xs text-muted">
                 <span
                   aria-hidden="true"
@@ -718,8 +648,11 @@ export function PlanEditor({
           </div>
 
           {/* -------------------------------- colonne de composition */}
-          {panelOpen && (
+          {panelVisible && (
             <aside className="print-hidden space-y-3">
+              {/* La fiche de l'élève cliqué passe EN PREMIER : c'est elle qu'on
+                  vient chercher après un clic sur le plan, et le bac derrière
+                  elle peut être long. */}
               {selection && (
                 <div className="material rounded-card border border-primary/40 bg-primary-soft/40 p-2.5 shadow-soft">
                   <p className="flex items-center gap-1.5 text-sm">
@@ -745,14 +678,31 @@ export function PlanEditor({
                     {selection.pinned ? <UnlockIcon /> : <LockIcon />}
                     {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
                   </Button>
+                  {/* Retirer du plan sans glisser-déposer : le bac disparaît
+                      quand tout le monde est placé, et c'est justement là qu'on
+                      a besoin de sortir quelqu'un. */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="mt-1.5 w-full"
+                    onClick={() => {
+                      mutate(unassignStudent(assignments, selection.student.id));
+                      setSelectedStudentId(null);
+                    }}
+                  >
+                    <XIcon />
+                    Retirer du plan
+                  </Button>
                 </div>
               )}
 
-              <TrayZone count={unplaced.length}>
-                {unplaced.map((student) => (
-                  <TrayStudent key={student.id} student={student} />
-                ))}
-              </TrayZone>
+              {unplaced.length > 0 && (
+                <TrayZone count={unplaced.length}>
+                  {unplaced.map((student) => (
+                    <TrayStudent key={student.id} student={student} />
+                  ))}
+                </TrayZone>
+              )}
             </aside>
           )}
         </div>
@@ -898,7 +848,12 @@ function InlinePlanName({
   );
 }
 
-/** Barre d'outils du plan : orientation, verrouillages, zoom, panneau. */
+/**
+ * Barre d'outils du plan : orientation, verrouillages, zoom.
+ *
+ * Plus de bouton de panneau : la colonne de droite apparaît et disparaît d'elle
+ * même selon qu'elle a quelque chose à montrer.
+ */
 function PlanToolbar({
   mirrored,
   onToggleMirror,
@@ -909,8 +864,6 @@ function PlanToolbar({
   placedCount,
   onPinAll,
   onUnpinAll,
-  panelOpen,
-  onTogglePanel,
 }: {
   mirrored: boolean;
   onToggleMirror: () => void;
@@ -921,8 +874,6 @@ function PlanToolbar({
   placedCount: number;
   onPinAll: () => void;
   onUnpinAll: () => void;
-  panelOpen: boolean;
-  onTogglePanel: () => void;
 }) {
   return (
     <div className="print-hidden mb-2 flex flex-wrap items-center gap-1.5 border-b border-border px-1 pb-2">
@@ -985,17 +936,12 @@ function PlanToolbar({
           size="sm"
           variant="ghost"
           onClick={onReset}
-          title="Revenir au zoom et à la hauteur de fenêtre par défaut"
+          title="Revenir au zoom par défaut"
         >
           <FitIcon />
           Ajuster
         </Button>
       </div>
-
-      <Button size="sm" variant="ghost" className="ml-auto" onClick={onTogglePanel}>
-        {panelOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        {panelOpen ? "Masquer le panneau" : "Afficher le panneau"}
-      </Button>
     </div>
   );
 }

@@ -5,11 +5,7 @@ import { useEffect, useRef, useState } from "react";
 /** Hauteur par défaut de la fenêtre de plan, en part de la hauteur d'écran. */
 export const DEFAULT_VIEWPORT_SHARE = 0.68;
 
-/** Bornes de la poignée de redimensionnement, en pixels. */
-export const PLAN_MIN_HEIGHT = 240;
-export const PLAN_MAX_HEIGHT_SHARE = 0.92;
-
-/** Hauteur par défaut de la fenêtre de plan pour l'écran courant. */
+/** Hauteur de la fenêtre de plan pour l'écran courant. */
 export function defaultPlanHeight(): number {
   return Math.round(window.innerHeight * DEFAULT_VIEWPORT_SHARE);
 }
@@ -25,8 +21,9 @@ export function defaultPlanHeight(): number {
  * inexploitable. Au-delà de 100 %, le zoom déborde volontairement et l'on
  * défile pour parcourir le détail.
  *
- * `heightBudget` vient de la poignée de redimensionnement de l'éditeur ; à
- * zéro, on retombe sur la hauteur par défaut.
+ * `heightBudget` est la hauteur de la fenêtre de plan, déduite de l'écran ; à
+ * zéro — avant le montage, quand `window` n'existe pas encore — on retombe sur
+ * la hauteur par défaut.
  *
  * Renvoie aussi `pxPerCm` : combien de pixels vaut un centimètre de salle. Les
  * étiquettes d'élèves s'en servent pour se dimensionner en unités du domaine

@@ -4,6 +4,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { cn } from "@/lib/cn";
+import { DIFFICULTY_COLORS } from "@/lib/domain";
 import { studentFullName, studentShortName, type SeatView, type StudentView } from "@/lib/view-models";
 
 /**
@@ -42,7 +43,8 @@ export interface SeatMetrics {
   font: number;
   /** Taille du nom de famille, ligne secondaire. */
   fontSmall: number;
-  badge: number;
+  /** Épaisseur du cerclage intérieur qui porte la difficulté. */
+  ring: number;
   radius: number;
   /** Assez haute pour deux lignes : prénom au-dessus, nom en dessous. */
   twoLines: boolean;
@@ -58,6 +60,11 @@ export interface SeatMetrics {
  * pastille de difficulté et l'espace séparateur mangeaient un tiers de la
  * largeur, et il ne restait la place que pour « Prénom N. ». Empilées, les deux
  * lignes disposent chacune de presque toute la largeur.
+ *
+ * La difficulté ne se lit plus à une pastille posée dans l'étiquette mais à un
+ * CERCLAGE INTÉRIEUR de la carte : le nom récupère toute la largeur et se
+ * centre, et la couleur reste visible même sur une étiquette minuscule où la
+ * pastille devenait un point indéchiffrable.
  */
 export function seatMetrics(footprint: { widthCm: number; heightCm: number }, pxPerCm: number): SeatMetrics {
   const width = footprint.widthCm * pxPerCm;
@@ -76,7 +83,7 @@ export function seatMetrics(footprint: { widthCm: number; heightCm: number }, px
     height,
     font,
     fontSmall: Math.max(6, font * 0.85),
-    badge: Math.max(9, Math.min(18, height * (twoLines ? 0.3 : 0.5))),
+    ring: Math.max(2, Math.min(5, height * 0.08)),
     radius: Math.max(4, Math.min(10, height * 0.18)),
     twoLines,
     tiny: width < 44,
@@ -109,32 +116,30 @@ export interface SeatLabel {
  * Choisit ce qu'affiche l'étiquette, selon la place dont elle dispose.
  *
  * Par ordre de préférence : prénom sur une ligne et nom sur la suivante, puis
- * le prénom seul, puis les initiales, puis rien — la pastille de difficulté
+ * le prénom seul, puis les initiales, puis rien — le cerclage de difficulté
  * reste alors la seule information, et le nom complet demeure dans l'infobulle
  * et dans le panneau latéral. Le calcul est fait PAR ÉLÈVE : « Léa Roy » tient
  * là où « Maximilien Descheveaux » ne tient pas.
+ *
+ * Les deux lignes disposent maintenant de TOUTE la largeur : la pastille de
+ * difficulté ne mange plus la première.
  */
 export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): SeatLabel {
-  // Rembourrage (2 × 4 px) et bordures (2 × 2 px).
-  const inner = metrics.width - 12;
+  // Rembourrage (2 × 3 px), bordures (2 × 2 px) et cerclage intérieur.
+  const inner = metrics.width - 10 - metrics.ring * 2;
   const fits = (text: string, size: number, room: number) =>
     text.length * size * AVG_CHAR_RATIO <= room;
 
-  if (metrics.twoLines) {
-    // Seule la première ligne partage sa largeur avec la pastille.
-    const firstLine = inner - metrics.badge - 4;
-    if (fits(student.firstName, metrics.font, firstLine)) {
-      return {
-        primary: student.firstName,
-        secondary: fits(student.lastName, metrics.fontSmall, inner) ? student.lastName : null,
-      };
-    }
+  if (metrics.twoLines && fits(student.firstName, metrics.font, inner)) {
+    return {
+      primary: student.firstName,
+      secondary: fits(student.lastName, metrics.fontSmall, inner) ? student.lastName : null,
+    };
   }
 
-  const single = inner - metrics.badge - 4;
   const primary =
     [student.firstName, studentInitials(student)].find((text) =>
-      fits(text, metrics.font, single),
+      fits(text, metrics.font, inner),
     ) ?? null;
 
   return { primary, secondary: null };
@@ -200,6 +205,14 @@ export function TrayStudent({ student }: { student: StudentView }) {
   );
 }
 
+/**
+ * Le bac n'est rendu que s'il contient quelqu'un — l'éditeur s'en charge.
+ *
+ * Une carte « Tous placés » occupait la colonne en permanence pour ne rien
+ * dire. Retirer un élève du plan de classe ne passe donc plus forcément par un
+ * dépôt ici : le bouton de la fiche de sélection fait le même travail, et reste
+ * disponible quand le bac a disparu.
+ */
 export function TrayZone({ children, count }: { children: React.ReactNode; count: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_DROPPABLE_ID });
 
@@ -214,13 +227,7 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
       <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">
         À placer <span className="tabular-nums">({count})</span>
       </h2>
-      {count === 0 ? (
-        <p className="py-2 text-center text-[11px] text-muted">
-          Tous placés. Déposez ici pour retirer quelqu&apos;un.
-        </p>
-      ) : (
-        <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-0.5">{children}</div>
-      )}
+      <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-0.5">{children}</div>
     </div>
   );
 }
@@ -312,8 +319,11 @@ function SeatedStudent({
     id: studentDraggableId(student.id),
   });
 
+  // La difficulté n'est plus chiffrée sur l'étiquette : elle doit donc être
+  // dite ailleurs. La couleur du cerclage ne porte jamais l'information seule.
   const title = [
     studentFullName(student),
+    `difficulté ${student.difficulty}/5`,
     pinned ? "place verrouillée" : null,
     student.comment || null,
   ]
@@ -347,9 +357,14 @@ function SeatedStudent({
         borderRadius: metrics.radius,
         outline: pinned ? `${pinRing}px solid var(--danger)` : undefined,
         outlineOffset: pinned ? 1 : undefined,
+        // Le cerclage de difficulté est posé en ombre INTÉRIEURE : il se
+        // dessine à l'intérieur du cadre, donc il ne se dispute ni la bordure
+        // (sélection, survol, conflit) ni l'`outline` (verrouillage), et les
+        // trois restent lisibles ensemble.
+        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}, var(--elev-1)`,
       }}
       className={cn(
-        "material relative flex h-full w-full items-center overflow-hidden border-2 shadow-soft transition-colors",
+        "material relative flex h-full w-full items-center overflow-hidden border-2 transition-colors",
         conflicted
           ? "border-dashed border-danger bg-danger-soft"
           : selected
@@ -367,23 +382,17 @@ function SeatedStudent({
         {...attributes}
         onClick={onSelect}
         title={title}
-        style={{ paddingInline: primary ? 4 : 0 }}
-        className={cn(
-          "flex h-full w-full cursor-grab flex-col justify-center overflow-hidden text-left leading-tight active:cursor-grabbing",
-          !primary && "items-center justify-center",
-        )}
+        style={{ paddingInline: metrics.ring + 3 }}
+        className="flex h-full w-full cursor-grab flex-col items-center justify-center overflow-hidden text-center leading-tight active:cursor-grabbing"
       >
-        {/* Ligne 1 : pastille de difficulté et prénom. */}
-        <span className="flex w-full min-w-0 items-center gap-1">
-          <DifficultyBadge difficulty={student.difficulty} size={metrics.badge} />
-          {primary && (
-            <span className="truncate font-medium" style={{ fontSize: metrics.font }}>
-              {primary}
-            </span>
-          )}
-        </span>
+        {/* Ligne 1 : prénom, sur toute la largeur. */}
+        {primary && (
+          <span className="w-full truncate font-medium" style={{ fontSize: metrics.font }}>
+            {primary}
+          </span>
+        )}
 
-        {/* Ligne 2 : nom de famille, sur toute la largeur. */}
+        {/* Ligne 2 : nom de famille. */}
         {secondary && (
           <span
             className="w-full truncate uppercase tracking-wide text-muted"
@@ -394,7 +403,7 @@ function SeatedStudent({
         )}
 
         <span className="sr-only">
-          {studentFullName(student)}
+          {studentFullName(student)} — difficulté {student.difficulty} sur 5
           {pinned ? " — place verrouillée" : ""}
         </span>
       </button>
