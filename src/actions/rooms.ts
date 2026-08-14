@@ -91,17 +91,16 @@ export async function saveRoomLayout(input: unknown): Promise<ActionResult<Saved
 
     await tx.room.update({ where: { id: roomId }, data: { name, widthCm, heightCm } });
 
-    await tx.roomObject.deleteMany(
-      keptObjectIds.length > 0
-        ? { where: { roomId, id: { notIn: keptObjectIds } } }
-        : { where: { roomId } },
-    );
+    // Le choix se fait DANS le `where`, pas sur l'argument entier : Prisma type
+    // ces méthodes par un générique déduit de l'objet passé, et une alternative
+    // au niveau de l'argument fige ce générique sur la première branche.
+    await tx.roomObject.deleteMany({
+      where: keptObjectIds.length > 0 ? { roomId, id: { notIn: keptObjectIds } } : { roomId },
+    });
 
-    await tx.seat.deleteMany(
-      keptSeatIds.length > 0
-        ? { where: { roomId, id: { notIn: keptSeatIds } } }
-        : { where: { roomId } },
-    );
+    await tx.seat.deleteMany({
+      where: keptSeatIds.length > 0 ? { roomId, id: { notIn: keptSeatIds } } : { roomId },
+    });
 
     for (const object of objects) {
       const objectExists = Boolean(object.id) && knownObjectIds.has(object.id!);

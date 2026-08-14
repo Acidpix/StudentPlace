@@ -86,10 +86,11 @@ async function main() {
     data: { userId: user.id, name: CLASS_NAME, schoolYear: "2026-2027" },
   });
 
-  const students = [];
-  for (const [lastName, firstName, difficulty, comment] of STUDENTS) {
-    students.push(
-      await prisma.student.create({
+  // Un `map` plutôt qu'une boucle qui empile dans un tableau vide : TypeScript
+  // en déduit le type des élèves créés, que `byName` exploite juste en dessous.
+  const students = await Promise.all(
+    STUDENTS.map(([lastName, firstName, difficulty, comment]) =>
+      prisma.student.create({
         data: {
           classGroupId: classGroup.id,
           lastName,
@@ -100,8 +101,8 @@ async function main() {
           leftHanded: comment.includes("Gaucher"),
         },
       }),
-    );
-  }
+    ),
+  );
 
   const byName = (firstName: string) => students.find((s) => s.firstName === firstName)!;
 

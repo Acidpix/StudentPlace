@@ -18,9 +18,9 @@ const nextConfig: NextConfig = {
     "@react-pdf/renderer",
   ],
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Pas de clé `eslint` : Next 16 a retiré `next lint`, et la clé est désormais
+  // rejetée comme option inconnue. Le projet n'embarque aucune configuration
+  // ESLint, donc rien à neutraliser pendant le build.
 };
 
 export default nextConfig;
