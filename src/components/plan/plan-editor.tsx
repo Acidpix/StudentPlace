@@ -369,10 +369,10 @@ export function PlanEditor({
     return null;
   }
 
-  // La colonne de droite se gouverne seule : elle n'existe que si elle a
-  // quelque chose à montrer. Rien à placer et personne de sélectionné, le plan
-  // reprend toute la largeur — sans bouton à actionner.
-  const panelVisible = unplaced.length > 0 || selection !== null;
+  // La colonne de droite se gouverne seule : elle ne porte plus que le bac, et
+  // n'existe donc que s'il reste quelqu'un à placer. Le plan reprend sinon
+  // toute la largeur — sans bouton à actionner.
+  const panelVisible = unplaced.length > 0;
 
   // --------------------------------------------------------------- rendu
 
@@ -499,8 +499,58 @@ export function PlanEditor({
             permanence.
 
             Cette colonne n'a plus de bouton d'affichage : elle apparaît quand
-            elle a quelque chose à montrer — des élèves à placer ou un élève
-            sélectionné — et rend sinon toute la largeur au plan. */}
+            elle a quelque chose à montrer — des élèves à placer — et rend sinon
+            toute la largeur au plan. */}
+
+        {/* La fiche de l'élève cliqué est une BANDE au-dessus du plan, sur
+            toute la largeur, et non plus une carte de la colonne de droite :
+            elle n'y tenait que sur trois lignes étroites, alors qu'à
+            l'horizontale le nom, le commentaire et les deux commandes
+            s'alignent d'un seul tenant, juste sous les yeux au moment où l'on
+            vient de cliquer une place. */}
+        {selection && (
+          <div className="material print-hidden flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-primary/40 bg-primary-soft/40 px-3 py-2 shadow-soft">
+            <span className="flex min-w-0 items-center gap-1.5 text-sm">
+              <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
+              <span className="truncate font-medium">{studentFullName(selection.student)}</span>
+            </span>
+
+            {selection.student.comment && (
+              <span className="min-w-0 flex-1 truncate text-xs text-muted">
+                {selection.student.comment}
+              </span>
+            )}
+
+            <span className="ml-auto flex items-center gap-1.5">
+              {/* Seule commande de verrouillage à la place : l'étiquette du
+                  plan ne porte plus de cadenas, elle se contente d'être
+                  cerclée de rouge. */}
+              <Button
+                size="sm"
+                variant={selection.pinned ? "secondary" : "primary"}
+                onClick={() => mutate(togglePin(assignments, selection.seatId))}
+              >
+                {selection.pinned ? <UnlockIcon /> : <LockIcon />}
+                {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
+              </Button>
+              {/* Retirer du plan sans glisser-déposer : le bac disparaît quand
+                  tout le monde est placé, et c'est justement là qu'on a besoin
+                  de sortir quelqu'un. */}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  mutate(unassignStudent(assignments, selection.student.id));
+                  setSelectedStudentId(null);
+                }}
+              >
+                <XIcon />
+                Retirer du plan
+              </Button>
+            </span>
+          </div>
+        )}
+
         <div
           className={
             panelVisible
@@ -540,16 +590,6 @@ export function PlanEditor({
                     aspectRatio: `${room.widthCm} / ${room.heightCm}`,
                   }}
                 >
-                  {/* Filigrane : l'image de marque agrandie à 300 %, centrée et
-                      très atténuée. Purement décorative — `aria-hidden`, sans
-                      événement de pointeur, et masquée à l'impression pour ne
-                      pas noyer le plan sur papier. */}
-                  <div
-                    aria-hidden="true"
-                    className="print-hidden pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-[0.07]"
-                    style={{ backgroundImage: "url('/c.png')", backgroundSize: "300%" }}
-                  />
-
                   <svg
                     viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
                     preserveAspectRatio="none"
@@ -590,6 +630,18 @@ export function PlanEditor({
                       );
                     })}
                   </svg>
+
+                  {/* Filigrane : l'image de marque agrandie à 300 %, centrée.
+                      Il est posé APRÈS le `<svg>` et non avant : `RoomGrid`
+                      peint un rectangle opaque `--surface` sur toute la salle,
+                      qui le recouvrait entièrement. Décoratif — `aria-hidden`,
+                      sans événement de pointeur, sous les étiquettes qui
+                      suivent, et masqué à l'impression. */}
+                  <div
+                    aria-hidden="true"
+                    className="print-hidden pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-15"
+                    style={{ backgroundImage: "url('/c.png')", backgroundSize: "300%" }}
+                  />
 
                   {pxPerCm > 0 &&
                     seats.map((seat) => {
@@ -649,60 +701,12 @@ export function PlanEditor({
 
           {/* -------------------------------- colonne de composition */}
           {panelVisible && (
-            <aside className="print-hidden space-y-3">
-              {/* La fiche de l'élève cliqué passe EN PREMIER : c'est elle qu'on
-                  vient chercher après un clic sur le plan, et le bac derrière
-                  elle peut être long. */}
-              {selection && (
-                <div className="material rounded-card border border-primary/40 bg-primary-soft/40 p-2.5 shadow-soft">
-                  <p className="flex items-center gap-1.5 text-sm">
-                    <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
-                    <span className="truncate font-medium">
-                      {studentFullName(selection.student)}
-                    </span>
-                  </p>
-                  {selection.student.comment && (
-                    <p className="mt-1 line-clamp-2 text-[11px] text-muted">
-                      {selection.student.comment}
-                    </p>
-                  )}
-                  {/* Seule commande de verrouillage à la place : l'étiquette du
-                      plan ne porte plus de cadenas, elle se contente d'être
-                      cerclée de rouge. */}
-                  <Button
-                    size="sm"
-                    variant={selection.pinned ? "secondary" : "primary"}
-                    className="mt-2 w-full"
-                    onClick={() => mutate(togglePin(assignments, selection.seatId))}
-                  >
-                    {selection.pinned ? <UnlockIcon /> : <LockIcon />}
-                    {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
-                  </Button>
-                  {/* Retirer du plan sans glisser-déposer : le bac disparaît
-                      quand tout le monde est placé, et c'est justement là qu'on
-                      a besoin de sortir quelqu'un. */}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="mt-1.5 w-full"
-                    onClick={() => {
-                      mutate(unassignStudent(assignments, selection.student.id));
-                      setSelectedStudentId(null);
-                    }}
-                  >
-                    <XIcon />
-                    Retirer du plan
-                  </Button>
-                </div>
-              )}
-
-              {unplaced.length > 0 && (
-                <TrayZone count={unplaced.length}>
-                  {unplaced.map((student) => (
-                    <TrayStudent key={student.id} student={student} />
-                  ))}
-                </TrayZone>
-              )}
+            <aside className="print-hidden">
+              <TrayZone count={unplaced.length}>
+                {unplaced.map((student) => (
+                  <TrayStudent key={student.id} student={student} />
+                ))}
+              </TrayZone>
             </aside>
           )}
         </div>
