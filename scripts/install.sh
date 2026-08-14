@@ -102,7 +102,15 @@ chmod 600 "${ENV_FILE}"
 
 info "Installation des dépendances (quelques minutes)"
 cd "${APP_DIR}"
-npm ci --no-audit --no-fund
+# `npm ci` exige un package-lock.json ; il n'est pas encore versionné. Sans
+# repli, l'installation s'arrête sur EUSAGE. `npm install` résout alors les
+# versions lui-même et écrit le verrou pour les mises à jour suivantes.
+if [ -f "${APP_DIR}/package-lock.json" ]; then
+  npm ci --no-audit --no-fund
+else
+  warn "package-lock.json absent : résolution des versions par npm install."
+  npm install --no-audit --no-fund
+fi
 
 info "Préparation de la base de données"
 # `db push` applique le schéma directement, sans fichiers de migration :

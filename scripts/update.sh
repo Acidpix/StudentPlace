@@ -108,7 +108,14 @@ main() {
   cd "${APP_DIR}"
 
   info "Dépendances"
-  npm ci --no-audit --no-fund
+  # Même repli qu'à l'installation : `npm ci` échoue tant que le dépôt ne
+  # versionne pas de package-lock.json.
+  if [ -f "${APP_DIR}/package-lock.json" ]; then
+    npm ci --no-audit --no-fund
+  else
+    warn "package-lock.json absent : résolution des versions par npm install."
+    npm install --no-audit --no-fund
+  fi
 
   info "Schéma de base"
   npx prisma db push --skip-generate
