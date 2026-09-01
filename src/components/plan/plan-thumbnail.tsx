@@ -10,10 +10,11 @@ import type { ObjectKind } from "@/lib/domain";
  * noms.
  */
 
+/** Mêmes teintes que `Furniture`, en aplats : le tableau en vert, le bureau en violet. */
 const TONES: Partial<Record<ObjectKind, { fill: string; stroke: string }>> = {
   TABLE: { fill: "var(--surface-muted)", stroke: "var(--border)" },
   TEACHER_DESK: { fill: "var(--primary-soft)", stroke: "var(--primary)" },
-  BOARD: { fill: "var(--primary)", stroke: "var(--primary)" },
+  BOARD: { fill: "var(--accent)", stroke: "var(--accent)" },
 };
 
 const FALLBACK = { fill: "transparent", stroke: "var(--border)" };

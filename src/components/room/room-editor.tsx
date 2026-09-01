@@ -6,9 +6,17 @@ import { useCallback, useEffect, useRef, useState, useTransition, type PointerEv
 
 import { saveRoomLayout } from "@/actions/rooms";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
+import { LayoutPresetsPanel } from "@/components/room/layout-presets-panel";
 import { Button } from "@/components/ui/button";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
-import { ArrowLeftIcon, RedoIcon, RotateIcon, TrashIcon, UndoIcon } from "@/components/ui/icons";
+import {
+  ArrowLeftIcon,
+  LayoutIcon,
+  RedoIcon,
+  RotateIcon,
+  TrashIcon,
+  UndoIcon,
+} from "@/components/ui/icons";
 import { InlineRename } from "@/components/ui/inline-rename";
 import {
   GRID_CM,
@@ -16,9 +24,12 @@ import {
   OBJECT_LABELS,
   ROOM_MAX_CM,
   ROOM_MIN_CM,
+  TABLE_WIDTH_BY_SEATS,
+  tableWidthForSeats,
   type ObjectKind,
 } from "@/lib/domain";
 import { clamp, generateSeatPositions, snapToGrid } from "@/lib/placement/geometry";
+import { generatePresetLayout, type LayoutPresetId } from "@/lib/placement/layout-presets";
 import { useHistory } from "@/lib/use-history";
 import type { RoomView } from "@/lib/view-models";
 
@@ -94,6 +105,28 @@ function withSeats(object: EditorObject, count?: number): EditorObject {
   };
 }
 
+/**
+ * Ajuste la largeur d'une table quand son nombre de places change.
+ *
+ * On ne touche à rien si la largeur a été réglée à la main : seule une table
+ * restée à la largeur type de son nombre de places actuel suit le barème. Une
+ * largeur passée dans le correctif l'emporte toujours — c'est le champ
+ * « Largeur » de la fiche.
+ */
+function resizeForSeats(
+  object: EditorObject,
+  patch: Partial<EditorObject>,
+  seatCount?: number,
+): Partial<EditorObject> {
+  if (object.kind !== "TABLE") return patch;
+  if (seatCount === undefined || seatCount === object.seats.length) return patch;
+  if (patch.widthCm !== undefined) return patch;
+  if (object.widthCm !== tableWidthForSeats(object.seats.length)) return patch;
+
+  const widthCm = TABLE_WIDTH_BY_SEATS[seatCount];
+  return widthCm === undefined ? patch : { ...patch, widthCm };
+}
+
 function toLayout(room: RoomView): Layout {
   return {
     name: room.name,
@@ -141,6 +174,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
   const [preview, setPreview] = useState<Layout | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -226,7 +260,11 @@ export function RoomEditor({ room }: { room: RoomView }) {
   // --------------------------------------------------------------- actions
 
   function addObject(kind: ObjectKind, count: number) {
-    const size = OBJECT_DEFAULT_SIZE[kind];
+    const defaults = OBJECT_DEFAULT_SIZE[kind];
+    // Une table est large en proportion de son nombre de places : c'est cet
+    // écartement qui décide de la lisibilité des noms sur le plan de classe.
+    const size =
+      kind === "TABLE" ? { ...defaults, widthCm: tableWidthForSeats(count) } : defaults;
     const index = layout.objects.length;
 
     // Le tableau va au fond visuel de la salle (en haut), le bureau juste
@@ -257,13 +295,64 @@ export function RoomEditor({ room }: { room: RoomView }) {
     setSelectedKey(base.key);
   }
 
+  /**
+   * Applique une disposition type.
+   *
+   * Seules les TABLES sont remplacées. Le tableau, la porte, les fenêtres et
+   * les obstacles décrivent la salle elle-même, pas la façon de l'agencer : les
+   * effacer obligerait à les repositionner après chaque essai de disposition.
+   * Tableau et bureau ne sont posés que s'ils manquent.
+   *
+   * Les places, en revanche, sont bel et bien recréées : leurs identifiants
+   * disparaissent, donc les élèves déjà placés dans les plans qui utilisent
+   * cette salle aussi. C'est assumé — c'est un redessin volontaire de la salle,
+   * annoncé dans le panneau — mais cela reste réversible par Ctrl+Z tant que
+   * l'agencement n'est pas enregistré.
+   */
+  function applyPreset(preset: LayoutPresetId, seatTarget: number) {
+    const generated = generatePresetLayout(
+      preset,
+      { widthCm: layout.widthCm, heightCm: layout.heightCm },
+      seatTarget,
+    );
+
+    const kept = layout.objects.filter((object) => object.kind !== "TABLE");
+    const alreadyThere = new Set(kept.map((object) => object.kind));
+
+    const added = [
+      ...generated.fixtures.filter((fixture) => !alreadyThere.has(fixture.kind)),
+      ...generated.tables,
+    ].map((object) =>
+      withSeats(
+        {
+          key: localKey("obj"),
+          kind: object.kind,
+          x: object.x,
+          y: object.y,
+          widthCm: object.widthCm,
+          heightCm: object.heightCm,
+          rotation: object.rotation,
+          label: object.label,
+          seats: [],
+        },
+        object.seatCount,
+      ),
+    );
+
+    commit({ ...layout, objects: [...kept, ...added] });
+    setSelectedKey(null);
+    setPresetsOpen(false);
+  }
+
   const updateSelected = useCallback(
     (patch: Partial<EditorObject>, seatCountOverride?: number) => {
       if (!selectedKey) return;
       commit({
         ...layout,
         objects: layout.objects.map((object) =>
-          object.key === selectedKey ? withSeats({ ...object, ...patch }, seatCountOverride) : object,
+          object.key === selectedKey
+            ? withSeats({ ...object, ...resizeForSeats(object, patch, seatCountOverride) }, seatCountOverride)
+            : object,
         ),
       });
     },
@@ -456,6 +545,18 @@ export function RoomEditor({ room }: { room: RoomView }) {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {/* Dessiner une salle table par table est le geste le plus long de
+              l'application : la disposition type vient donc AVANT la palette. */}
+          <Button
+            variant={presetsOpen ? "primary" : "secondary"}
+            size="sm"
+            onClick={() => setPresetsOpen((open) => !open)}
+            aria-expanded={presetsOpen}
+          >
+            <LayoutIcon />
+            Dispositions types
+          </Button>
+
           {PALETTE.map((item) => (
             <Button
               key={item.label}
@@ -469,8 +570,22 @@ export function RoomEditor({ room }: { room: RoomView }) {
         </div>
       </div>
 
+      {presetsOpen && (
+        <LayoutPresetsPanel
+          roomWidthCm={layout.widthCm}
+          roomHeightCm={layout.heightCm}
+          tableCount={layout.objects.filter((object) => object.kind === "TABLE").length}
+          onApply={applyPreset}
+          onClose={() => setPresetsOpen(false)}
+        />
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
+        {/* Le cadre est le plan de travail : papier de la page et trame de
+            points. La salle, elle, a son propre sol un cran plus clair
+            (`--room-floor`, posé par `RoomGrid`), ce qui la détache du cadre
+            même quand elle ne le remplit pas entièrement. */}
+        <div className="halftone overflow-hidden rounded-card border border-border bg-background p-2 shadow-soft">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}

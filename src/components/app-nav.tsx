@@ -40,13 +40,16 @@ export function AppNav({ userName }: { userName: string }) {
   return (
     <header className="material print-hidden sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
+        {/* Pastille RONDE et non plus carrée : c'est la marque du modèle, et un
+            disque se distingue au premier coup d'œil des pavés rectangulaires
+            qui remplissent le reste de l'écran — cartes, boutons, places. */}
         <Link
           href="/tableau-de-bord"
-          className="flex items-center gap-2 font-semibold tracking-tight"
+          className="flex items-center gap-2 font-bold tracking-tight"
         >
           <span
             aria-hidden="true"
-            className="flex h-7 w-7 items-center justify-center rounded-control bg-gradient-to-br from-primary to-accent text-[11px] font-bold text-primary-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-[10px] font-bold text-primary-foreground shadow-soft"
           >
             SP
           </span>
@@ -76,6 +79,9 @@ export function AppNav({ userName }: { userName: string }) {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Le nom de l'utilisateur reste en casse normale : `.eyebrow` met en
+              capitales, ce qui convient à un intitulé de panneau ou à un
+              compteur, pas au nom d'une personne. */}
           <span className="hidden text-sm text-muted sm:inline">{userName}</span>
           <ThemeToggle />
           <button

@@ -56,6 +56,10 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
  * table n'étaient distantes que de 65 cm et les noms devenaient illisibles.
  * Les salles déjà dessinées gardent leurs tables : les élargir dans l'éditeur
  * de salle est ce qui leur rendra de la place.
+ *
+ * La largeur d'une table dépend en réalité de son nombre de places : voir
+ * `TABLE_WIDTH_BY_SEATS`. La valeur ci-dessous est celle de la table à deux
+ * places, le cas courant, et sert de repli.
  */
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
   TABLE: { widthCm: 160, heightCm: 55 },
@@ -65,6 +69,26 @@ export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm
   WINDOW: { widthCm: 200, heightCm: 12 },
   OBSTACLE: { widthCm: 80, heightCm: 80 },
 };
+
+/**
+ * Largeur d'une table selon son nombre de places, en centimètres.
+ *
+ * L'écartement des places vaut largeur ÷ nombre de places : on garde donc un
+ * pas d'environ 80 cm par élève, ce qui laisse aux étiquettes du plan de quoi
+ * afficher un prénom et un nom sans se recouvrir. La table à une place est
+ * volontairement plus large que 80 cm — c'est une table d'écolier, pas une
+ * demi-table.
+ */
+export const TABLE_WIDTH_BY_SEATS: Record<number, number> = {
+  1: 110,
+  2: 160,
+  3: 240,
+};
+
+/** Largeur d'une table à `count` places ; repli sur la table à deux places. */
+export function tableWidthForSeats(count: number): number {
+  return TABLE_WIDTH_BY_SEATS[count] ?? OBJECT_DEFAULT_SIZE.TABLE.widthCm;
+}
 
 // -------------------------------- Difficulté --------------------------------
 

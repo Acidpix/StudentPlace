@@ -6,12 +6,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   Palette « Studio » : quasi-noir et blanc cassé, un accent violet pour
-   l'action, un vert pour la confirmation.
+   Palette « Atelier » — pop art atténué.
+
+   Papier chaud et encre brune plutôt que gris bleutés ; le relief se lit à une
+   OMBRE PORTÉE NETTE, décalée et sans flou (`--stamp`), et non plus à un halo
+   diffus. C'est le trait dominant du langage visuel : contours fins, aplats
+   crème, couleur en petites touches.
 
    Le rouge n'est JAMAIS décoratif : il signale une place verrouillée ou une
    incompatibilité non respectée. Aucune couleur d'action ne doit s'en
-   approcher — c'est la raison pour laquelle l'accent est violet et non chaud.
+   approcher — c'est la raison pour laquelle l'accent est violet et non chaud,
+   et c'est ce qui a écarté le corail du modèle d'origine.
+
+   Le vert de confirmation est celui du PDF (`plan-document.tsx`) : l'export
+   était déjà sur une crème chaude, l'écran le rejoint au lieu de le contredire.
 
    Toutes les couleurs passent par des variables : aucun composant ne code une
    teinte en dur, et changer de thème ne touche que ce fichier.
@@ -20,50 +28,71 @@
 :root {
   color-scheme: light;
 
-  --background: #f6f7f9;
-  --surface: #ffffff;
-  --surface-muted: #eef0f4;
-  --border: #e2e5ea;
-  --foreground: #0b0c0f;
-  --muted: #5b6472;
+  --background: #efeae0;
+  --surface: #fdfbf7;
+  --surface-muted: #e9e3d6;
+  --border: #ddd3bf;
+  --foreground: #22201f;
+  --muted: #6d675e;
 
   --primary: #6d28d9;
   --primary-foreground: #ffffff;
-  --primary-soft: #f3efff;
+  --primary-soft: #efe9fd;
 
-  --accent: #059669;
+  --accent: #0f6f5c;
   --accent-foreground: #ffffff;
-  --accent-soft: #ecfdf5;
+  --accent-soft: #e2f1ec;
 
+  /* Le rouge reste FRANCHEMENT rouge. Le réchauffer vers l'orangé le ferait
+     entrer en concurrence avec le niveau 4 de l'échelle de difficulté
+     (`#fb923c`), et un verrouillage ne doit jamais se confondre avec une
+     pastille d'élève. Seuls le fond et la bordure suivent le papier. */
   --danger: #dc2626;
-  --danger-soft: #fef2f2;
-  --danger-border: #fca5a5;
-  --success: #059669;
+  --danger-soft: #fdeeea;
+  --danger-border: #f0ad9d;
+  --success: #0f6f5c;
 
-  /* Ombres étagées, avec un LISERÉ INTÉRIEUR clair sur la tranche haute : c'est
-     lui qui donne du relief aux cartes, une ombre seule les laisse plates.
+  /* Encre de l'ombre portée nette. Une seule variable pilote les trois
+     niveaux : changer d'intensité ne demande pas de les réécrire. */
+  --stamp: rgb(34 32 31 / 0.13);
+
+  /* Ombres étagées. Chacune combine trois choses :
+     — le LISERÉ INTÉRIEUR clair sur la tranche haute, qui empêche la carte
+       d'être un aplat ;
+     — l'OMBRE NETTE décalée, sans flou, qui donne le trait « imprimé » ;
+     — à partir du niveau 2, un halo très dilué qui décolle la carte du papier.
      Trois niveaux : posé, soulevé, flottant. */
-  --elev-1:
-    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 2px rgb(11 12 15 / 0.05),
-    0 1px 3px rgb(11 12 15 / 0.04);
+  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.6), 2px 2px 0 var(--stamp);
   --elev-2:
-    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 2px 4px rgb(11 12 15 / 0.05),
-    0 6px 16px rgb(11 12 15 / 0.08);
+    inset 0 1px 0 rgb(255 255 255 / 0.6), 4px 4px 0 var(--stamp),
+    0 10px 24px rgb(34 32 31 / 0.07);
   --elev-3:
-    inset 0 1px 0 rgb(255 255 255 / 0.7), 0 8px 24px rgb(11 12 15 / 0.1),
-    0 20px 48px rgb(11 12 15 / 0.1);
+    inset 0 1px 0 rgb(255 255 255 / 0.6), 7px 7px 0 var(--stamp),
+    0 18px 40px rgb(34 32 31 / 0.1);
 
   /* Dégradé vertical des surfaces : quelques pour cent suffisent à ce qu'une
      carte cesse d'être un aplat. */
-  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(15 23 42 / 0.022));
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 32 31 / 0.025));
 
-  /* Taches du dégradé de fond. */
-  --mesh-a: rgb(109 40 217 / 0.1);
-  --mesh-b: rgb(5 150 105 / 0.08);
-  --mesh-c: rgb(109 40 217 / 0.05);
+  /* Taches du dégradé de fond. La troisième est ocre : c'est elle qui réchauffe
+     le papier là où l'ancienne palette remettait du violet. */
+  --mesh-a: rgb(109 40 217 / 0.07);
+  --mesh-b: rgb(15 111 92 / 0.07);
+  --mesh-c: rgb(190 138 60 / 0.09);
 
   /* Grain de surface : fibre du papier en clair, bruit d'écran en sombre. */
-  --grain-opacity: 0.035;
+  --grain-opacity: 0.04;
+
+  /* Trame de points : le sol de l'atelier, sous le plan de salle. */
+  --halftone: rgb(34 32 31 / 0.11);
+
+  /* Hachures du tableau. Claires sur l'aplat vert en thème clair, sombres en
+     thème sombre — c'est le contraste avec le fond du meuble qui compte. */
+  --hatch: rgb(255 255 255 / 0.5);
+
+  /* Sol de la salle : un cran plus clair que le papier de la page, pour que le
+     rectangle de la salle se détache du plan de travail. */
+  --room-floor: #fbf8f2;
 
   /* Encre des pastilles de difficulté : volontairement très sombre, pour
      conserver un contraste suffisant sur les cinq teintes de la palette. */
@@ -73,43 +102,53 @@
 .dark {
   color-scheme: dark;
 
-  --background: #0b0c0f;
-  --surface: #16181d;
-  --surface-muted: #1e2128;
-  --border: #2a2e37;
-  --foreground: #f2f3f5;
-  --muted: #98a1b0;
+  /* Le modèle d'origine n'existe qu'en clair. Le thème sombre en reprend la
+     TEMPÉRATURE — des neutres bruns, pas bleutés — plutôt que ses valeurs. */
+  --background: #12110f;
+  --surface: #1c1a17;
+  --surface-muted: #26231f;
+  --border: #37322b;
+  --foreground: #f3f0e9;
+  --muted: #a1998a;
 
   --primary: #a78bfa;
-  --primary-foreground: #160f28;
-  --primary-soft: #221a3a;
+  --primary-foreground: #1a1030;
+  --primary-soft: #251d3c;
 
   --accent: #34d399;
   --accent-foreground: #052e21;
-  --accent-soft: #0f2b22;
+  --accent-soft: #102b23;
 
   --danger: #f87171;
-  --danger-soft: #2a1517;
-  --danger-border: #7f1d1d;
+  --danger-soft: #2c1815;
+  --danger-border: #7f2d1d;
   --success: #34d399;
+
+  /* Sur fond sombre l'ombre nette doit être franchement noire : à la même
+     opacité que le thème clair, elle disparaîtrait dans le fond. */
+  --stamp: rgb(0 0 0 / 0.55);
 
   /* En thème sombre le liseré intérieur est à peine blanc : plus marqué, il
      ferait ressortir un contour laiteux autour de chaque carte. */
-  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.4);
+  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.05), 2px 2px 0 var(--stamp);
   --elev-2:
-    inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 6px rgb(0 0 0 / 0.45),
-    0 8px 20px rgb(0 0 0 / 0.35);
+    inset 0 1px 0 rgb(255 255 255 / 0.06), 4px 4px 0 var(--stamp),
+    0 10px 24px rgb(0 0 0 / 0.4);
   --elev-3:
-    inset 0 1px 0 rgb(255 255 255 / 0.07), 0 10px 30px rgb(0 0 0 / 0.55),
-    0 24px 60px rgb(0 0 0 / 0.45);
+    inset 0 1px 0 rgb(255 255 255 / 0.07), 7px 7px 0 var(--stamp),
+    0 18px 44px rgb(0 0 0 / 0.5);
 
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
 
-  --mesh-a: rgb(167 139 250 / 0.13);
-  --mesh-b: rgb(52 211 153 / 0.09);
-  --mesh-c: rgb(167 139 250 / 0.07);
+  --mesh-a: rgb(167 139 250 / 0.12);
+  --mesh-b: rgb(52 211 153 / 0.08);
+  --mesh-c: rgb(190 138 60 / 0.08);
 
   --grain-opacity: 0.05;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #1a1815;
 
   /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
      donc sombre, inchangée. */
@@ -134,7 +173,10 @@
   --color-danger-border: var(--danger-border);
   --color-success: var(--success);
 
-  --radius-card: 1rem;
+  /* Rayons resserrés d'un cran : le modèle dessine des cartes à 14 px et des
+     contrôles à 9-10 px. Au-delà, l'ombre nette décalée cesse de se lire comme
+     un décalage et devient une écharpe. */
+  --radius-card: 0.875rem;
   --radius-control: 0.625rem;
 
   --shadow-soft: var(--elev-1);
@@ -144,6 +186,14 @@
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", sans-serif;
+
+  /* Le modèle réserve une CHASSE FIXE aux libellés de section et aux chiffres
+     de contexte — c'est ce qui donne sa rigueur au reste. On la prend dans les
+     polices du système : le projet ne télécharge aucune fonte, ni au build ni
+     à l'exécution (voir `--font-sans`). */
+  --font-mono:
+    ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
 }
 
 * {
@@ -215,6 +265,29 @@ body::after {
   background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(0 0 0 / 0.06));
 }
 
+/* Trame de points — le « sol d'atelier » du modèle.
+   Posée en CSS et non en motif SVG partout où la surface n'est pas un plan de
+   salle : le pas reste alors en pixels, donc constant quelle que soit la
+   taille de la salle. Le plan de salle, lui, a sa propre trame en centimètres
+   (`RoomGrid`, furniture.tsx), qui doit suivre le zoom. */
+.halftone {
+  background-image: radial-gradient(var(--halftone) 1.1px, transparent 1.2px);
+  background-size: 11px 11px;
+}
+
+/* Libellé de section : capitales à chasse fixe, très espacées.
+   Le modèle s'en sert pour tout ce qui n'est pas du contenu — intitulés de
+   panneau, compteurs, horodatages. C'est ce qui laisse les noms d'élèves seuls
+   en casse normale, donc immédiatement repérables. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* Anneau de focus homogène et toujours visible au clavier. */
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -247,8 +320,17 @@ body::after {
   }
 
   .material,
-  .sheen {
+  .sheen,
+  .halftone {
     background-image: none;
+  }
+
+  /* L'ombre nette est de l'encre : à l'impression elle doublerait chaque
+     contour d'un aplat gris. Neutraliser `--stamp` suffit à l'éteindre dans
+     les trois niveaux d'élévation à la fois. */
+  :root,
+  .dark {
+    --stamp: transparent;
   }
 }
 

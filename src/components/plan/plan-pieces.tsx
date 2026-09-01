@@ -224,7 +224,7 @@ export function TrayZone({ children, count }: { children: React.ReactNode; count
         isOver ? "border-primary bg-primary-soft" : "border-border bg-surface",
       )}
     >
-      <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted">
+      <h2 className="eyebrow mb-1.5">
         À placer <span className="tabular-nums">({count})</span>
       </h2>
       <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-0.5">{children}</div>

@@ -13,8 +13,26 @@ interface FurnitureStyle {
   stroke: string;
   textFill: string;
   dashed?: boolean;
+  /** Rayures diagonales par-dessus l'aplat. Réservé au tableau. */
+  hatched?: boolean;
 }
 
+/**
+ * Le TABLEAU n'est plus un aplat violet plein.
+ *
+ * Il porte désormais le traitement du modèle : un aplat vert PÂLE, rayé en
+ * diagonale, bordé et titré dans le vert soutenu. Deux raisons —
+ *
+ *  - le violet est la couleur de l'ACTION ; l'étaler sur le plus grand meuble
+ *    de la salle en faisait la tache dominante d'un écran où il ne se passe
+ *    rien, et rendait les boutons moins visibles par contraste ;
+ *  - les rayures distinguent le tableau au premier coup d'œil sans recourir à
+ *    une couleur saturée. C'est le repère d'orientation du plan de classe : il
+ *    doit se lire avant tout le reste, y compris en vue pivotée.
+ *
+ * Le bureau garde le violet : c'est un meuble petit, et une touche de la
+ * couleur de marque au bon endroit vaut mieux qu'un aplat.
+ */
 const STYLES: Record<ObjectKind, FurnitureStyle> = {
   TABLE: { fill: "var(--surface-muted)", stroke: "var(--border)", textFill: "var(--muted)" },
   TEACHER_DESK: {
@@ -22,11 +40,39 @@ const STYLES: Record<ObjectKind, FurnitureStyle> = {
     stroke: "var(--primary)",
     textFill: "var(--primary)",
   },
-  BOARD: { fill: "var(--primary)", stroke: "var(--primary)", textFill: "var(--primary)" },
+  BOARD: {
+    fill: "var(--accent-soft)",
+    stroke: "var(--accent)",
+    textFill: "var(--accent)",
+    hatched: true,
+  },
   DOOR: { fill: "transparent", stroke: "var(--muted)", textFill: "var(--muted)", dashed: true },
   WINDOW: { fill: "transparent", stroke: "var(--muted)", textFill: "var(--muted)", dashed: true },
   OBSTACLE: { fill: "var(--surface-muted)", stroke: "var(--muted)", textFill: "var(--muted)", dashed: true },
 };
+
+/**
+ * Identifiants des motifs SVG.
+ *
+ * Fixes et non dérivés de `useId()` : `RoomGrid` n'est rendu qu'une fois par
+ * page — l'éditeur de salle OU l'éditeur de placement — et les hachures ne sont
+ * définies qu'à l'intérieur d'elle. Deux définitions identiques ne poseraient
+ * de toute façon pas de problème de rendu, `url(#…)` retenant la première.
+ */
+const HALFTONE_PATTERN_ID = "sp-halftone";
+const HATCH_PATTERN_ID = "sp-hatch";
+
+/**
+ * Pas de la trame de points, EN CENTIMÈTRES de salle.
+ *
+ * C'est volontaire : la trame appartient au sol de la salle, donc elle grandit
+ * avec le zoom au lieu de rester collée à l'écran. Une salle typique s'affiche
+ * autour de 1 px/cm, ce qui donne des points de 2 px espacés de 11 px — les
+ * valeurs du modèle. L'équivalent en pixels fixes, pour les surfaces qui ne
+ * sont pas un plan de salle, est la classe `.halftone` de globals.css.
+ */
+const HALFTONE_STEP_CM = 11;
+const HALFTONE_DOT_CM = 1.1;
 
 const DEFAULT_LABELS: Partial<Record<ObjectKind, string>> = {
   TEACHER_DESK: "Bureau",
@@ -46,7 +92,22 @@ export interface FurnitureRect {
   label: string | null;
 }
 
-/** Quadrillage de fond, un trait tous les 50 cm. */
+/**
+ * Sol de la salle : trame de points, quadrillage de 50 cm, cadre.
+ *
+ * Les deux trames se superposent et ne disent pas la même chose. La TRAME DE
+ * POINTS est décorative — c'est la matière du sol, elle donne au plan son
+ * grain d'atelier. Le QUADRILLAGE de 50 cm est un outil de mesure : c'est lui
+ * qu'on suit pour aligner deux tables dans l'éditeur de salle. Il est donc
+ * resté, mais très dilué, pour que les points restent la texture dominante.
+ *
+ * Les motifs sont définis en unités utilisateur, donc en centimètres de salle.
+ * Les deux éditeurs les rendent sans déformation : celui de la salle emploie
+ * `preserveAspectRatio="xMidYMid meet"`, et celui du plan de classe emploie
+ * `none` mais dans un conteneur dont le rapport largeur/hauteur est
+ * exactement celui de la salle. Dans les deux cas l'échelle reste isotrope, et
+ * les points restent des disques.
+ */
 export function RoomGrid({
   widthCm,
   heightCm,
@@ -61,12 +122,41 @@ export function RoomGrid({
 
   return (
     <g aria-hidden="true">
-      <rect x={0} y={0} width={widthCm} height={heightCm} fill="var(--surface)" />
+      <defs>
+        <pattern
+          id={HALFTONE_PATTERN_ID}
+          width={HALFTONE_STEP_CM}
+          height={HALFTONE_STEP_CM}
+          patternUnits="userSpaceOnUse"
+        >
+          <circle
+            cx={HALFTONE_STEP_CM / 2}
+            cy={HALFTONE_STEP_CM / 2}
+            r={HALFTONE_DOT_CM}
+            fill="var(--halftone)"
+          />
+        </pattern>
+
+        {/* Hachures du tableau : des traits à 45°, dans une tuile carrée. Deux
+            traits par tuile — celui du coin et son décalage d'une demi-tuile —
+            pour que le motif se raccorde sans couture d'une tuile à l'autre. */}
+        <pattern id={HATCH_PATTERN_ID} width={10} height={10} patternUnits="userSpaceOnUse">
+          <path
+            d="M -2 2 L 2 -2 M 0 10 L 10 0 M 8 12 L 12 8"
+            stroke="var(--hatch)"
+            strokeWidth={3}
+          />
+        </pattern>
+      </defs>
+
+      <rect x={0} y={0} width={widthCm} height={heightCm} fill="var(--room-floor)" />
+      <rect x={0} y={0} width={widthCm} height={heightCm} fill={`url(#${HALFTONE_PATTERN_ID})`} />
+
       {verticals.map((x) => (
-        <line key={`v${x}`} x1={x} y1={0} x2={x} y2={heightCm} stroke="var(--border)" strokeWidth={1} opacity={0.5} />
+        <line key={`v${x}`} x1={x} y1={0} x2={x} y2={heightCm} stroke="var(--border)" strokeWidth={1} opacity={0.35} />
       ))}
       {horizontals.map((y) => (
-        <line key={`h${y}`} x1={0} y1={y} x2={widthCm} y2={y} stroke="var(--border)" strokeWidth={1} opacity={0.5} />
+        <line key={`h${y}`} x1={0} y1={y} x2={widthCm} y2={y} stroke="var(--border)" strokeWidth={1} opacity={0.35} />
       ))}
       <rect
         x={0}
@@ -104,6 +194,10 @@ export function Furniture({
   const angle = ((object.rotation % 360) + 360) % 360;
   const uprightLabel = angle > 90 && angle < 270;
 
+  // Le tableau est le repère d'orientation du plan : son libellé reprend la
+  // signature des étiquettes de section — capitales très espacées.
+  const isBoard = object.kind === "BOARD";
+
   return (
     <g transform={`rotate(${object.rotation}, ${center.x}, ${center.y})`}>
       <rect
@@ -111,13 +205,29 @@ export function Furniture({
         y={object.y}
         width={object.widthCm}
         height={object.heightCm}
-        rx={object.kind === "BOARD" ? 2 : 6}
+        rx={isBoard ? 4 : 6}
         fill={style.fill}
         stroke={selected ? "var(--primary)" : style.stroke}
         strokeWidth={selected ? 4 : 2}
         strokeDasharray={style.dashed ? "10 6" : undefined}
         style={interactive ? { cursor: "move" } : undefined}
       />
+
+      {/* Les hachures se posent en second rectangle, sans contour : peintes
+          dans le `fill` du premier, elles auraient remplacé l'aplat au lieu de
+          s'y superposer. `pointerEvents: none` laisse le clic au rectangle du
+          dessous, qui porte le glisser. */}
+      {style.hatched && (
+        <rect
+          x={object.x}
+          y={object.y}
+          width={object.widthCm}
+          height={object.heightCm}
+          rx={isBoard ? 4 : 6}
+          fill={`url(#${HATCH_PATTERN_ID})`}
+          style={{ pointerEvents: "none" }}
+        />
+      )}
 
       {showLabel && (
         <text
@@ -127,8 +237,14 @@ export function Furniture({
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={Math.min(20, object.heightCm * 0.5)}
-          fill={object.kind === "BOARD" ? "var(--primary-foreground)" : style.textFill}
-          style={{ pointerEvents: "none", userSelect: "none" }}
+          fill={style.textFill}
+          style={{
+            pointerEvents: "none",
+            userSelect: "none",
+            ...(isBoard
+              ? { letterSpacing: "0.16em", fontWeight: 700, textTransform: "uppercase" as const }
+              : null),
+          }}
         >
           {label}
         </text>

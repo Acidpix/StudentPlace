@@ -259,6 +259,49 @@ export const EmptyRoomArt = (p: ArtProps) => (
   </Art>
 );
 
+// Vignettes des dispositions types. Elles montrent la FORME, pas le compte :
+// le nombre de tables réellement posé dépend de la salle et s'affiche en toutes
+// lettres à côté de la vignette.
+
+/** Rangées face au tableau. */
+export const RowsLayoutArt = (p: ArtProps) => (
+  <Art {...p}>
+    <rect x="42" y="9" width="28" height="3" rx="1.5" />
+    {[26, 42, 58].map((y) =>
+      [18, 46, 74].map((x) => <rect key={`${x}-${y}`} x={x} y={y} width="20" height="7" rx="2" />),
+    )}
+  </Art>
+);
+
+/** U ouvert vers le tableau. */
+export const UShapeLayoutArt = (p: ArtProps) => (
+  <Art {...p}>
+    <rect x="42" y="9" width="28" height="3" rx="1.5" />
+    {[24, 39].map((y) => (
+      <g key={y}>
+        <rect x="16" y={y} width="7" height="13" rx="2" />
+        <rect x="89" y={y} width="7" height="13" rx="2" />
+      </g>
+    ))}
+    {[28, 47, 66].map((x) => <rect key={x} x={x} y="56" width="17" height="7" rx="2" />)}
+  </Art>
+);
+
+/** Îlots de quatre, deux tables jointes. */
+export const IslandsLayoutArt = (p: ArtProps) => (
+  <Art {...p}>
+    <rect x="42" y="9" width="28" height="3" rx="1.5" />
+    {[26, 46].map((y) =>
+      [14, 45, 76].map((x) => (
+        <g key={`${x}-${y}`}>
+          <rect x={x} y={y} width="22" height="6" rx="2" />
+          <rect x={x} y={y + 6} width="22" height="6" rx="2" />
+        </g>
+      )),
+    )}
+  </Art>
+);
+
 /** Une classe sans élèves. */
 export const EmptyClassArt = (p: ArtProps) => (
   <Art {...p}>

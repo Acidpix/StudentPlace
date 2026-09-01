@@ -536,8 +536,25 @@ export function PlanEditor({
 
             {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
                 défilement est son enfant. Mesurer celle-ci ferait osciller la
-                largeur dès qu'une barre apparaît. */}
-            <div ref={planRef}>
+                largeur dès qu'une barre apparaît.
+
+                Le cadre et la trame de points sont posés ICI, et surtout SANS
+                REMBOURRAGE : `usePlanScale` mesure ce conteneur avec
+                `clientWidth`, qui exclut la bordure mais INCLUT le
+                rembourrage. Une bordure ne coûte donc rien à la largeur
+                disponible, là où un `p-3` ferait dépasser la salle de quelques
+                pixels et déclencherait une barre de défilement horizontale à
+                100 % — précisément ce que la double contrainte de
+                `usePlanScale` existe pour éviter.
+
+                La trame ne se voit que sur les marges, quand la salle est
+                contrainte par la hauteur et n'occupe donc pas toute la
+                largeur : c'est le plan de travail sur lequel la salle est
+                posée. */}
+            <div
+              ref={planRef}
+              className="halftone overflow-hidden rounded-card border border-border shadow-soft"
+            >
               {/* `maxHeight` seul, jamais `height` : une hauteur fixe forçait
                   ce conteneur à occuper `planHeight` même quand la salle,
                   contrainte par la largeur, y tenait dans moins d'espace — un
