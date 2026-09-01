@@ -137,12 +137,19 @@ export function RoomGrid({
           />
         </pattern>
 
-        {/* Hachures du tableau : des traits à 45°, dans une tuile carrée. Deux
-            traits par tuile — celui du coin et son décalage d'une demi-tuile —
-            pour que le motif se raccorde sans couture d'une tuile à l'autre. */}
+        {/* Hachures du tableau : des traits à 45°, dans une tuile de 10 cm.
+            La diagonale principale, plus deux bouts de diagonale AUX DEUX COINS
+            opposés : sans eux, le trait s'arrêterait net au bord de la tuile et
+            l'on verrait la couture d'une tuile à l'autre. Les deux bouts
+            débordent volontairement de la tuile — le motif les rogne. */}
         <pattern id={HATCH_PATTERN_ID} width={10} height={10} patternUnits="userSpaceOnUse">
+          {/* `fill="none"` est OBLIGATOIRE : le remplissage par défaut d'un
+              `<path>` est noir, et ces trois sous-tracés ouverts seraient
+              refermés puis peints en aplat — le tableau virerait au noir au
+              lieu de se rayer. */}
           <path
             d="M -2 2 L 2 -2 M 0 10 L 10 0 M 8 12 L 12 8"
+            fill="none"
             stroke="var(--hatch)"
             strokeWidth={3}
           />
@@ -194,8 +201,11 @@ export function Furniture({
   const angle = ((object.rotation % 360) + 360) % 360;
   const uprightLabel = angle > 90 && angle < 270;
 
-  // Le tableau est le repère d'orientation du plan : son libellé reprend la
-  // signature des étiquettes de section — capitales très espacées.
+  // Quand le tableau est assez haut pour porter un libellé, celui-ci reprend la
+  // signature des étiquettes de section — capitales très espacées. À sa taille
+  // par défaut (300 × 12 cm) il est trop plat pour cela, et ce sont les
+  // hachures seules qui l'identifient ; le seuil de `showLabel` reste donc
+  // inchangé, un libellé de 6 px ne serait pas lisible.
   const isBoard = object.kind === "BOARD";
 
   return (

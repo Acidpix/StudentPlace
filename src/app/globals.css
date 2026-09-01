@@ -278,14 +278,22 @@ body::after {
 /* Libellé de section : capitales à chasse fixe, très espacées.
    Le modèle s'en sert pour tout ce qui n'est pas du contenu — intitulés de
    panneau, compteurs, horodatages. C'est ce qui laisse les noms d'élèves seuls
-   en casse normale, donc immédiatement repérables. */
-.eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
+   en casse normale, donc immédiatement repérables.
+
+   DANS `@layer components`, contrairement aux utilitaires voisins : c'est la
+   seule de ces classes qui pose une `color`, et une règle hors couche
+   l'emporterait sur les utilitaires Tailwind à spécificité égale. Écrire
+   `class="eyebrow text-danger"` ne donnerait alors rien. Placée dans la couche
+   `components`, qui précède `utilities`, elle se laisse surcharger. */
+@layer components {
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
 }
 
 /* Anneau de focus homogène et toujours visible au clavier. */
