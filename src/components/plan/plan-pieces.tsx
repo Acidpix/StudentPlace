@@ -206,28 +206,62 @@ export function TrayStudent({ student }: { student: StudentView }) {
 }
 
 /**
- * Le bac n'est rendu que s'il contient quelqu'un — l'éditeur s'en charge.
+ * Colonne « À placer » — la colonne de GAUCHE de l'éditeur, d'après la maquette.
  *
- * Une carte « Tous placés » occupait la colonne en permanence pour ne rien
- * dire. Retirer un élève du plan de classe ne passe donc plus forcément par un
- * dépôt ici : le bouton de la fiche de sélection fait le même travail, et reste
- * disponible quand le bac a disparu.
+ * Elle ne se replie plus quand tout le monde est placé : elle porte aussi la
+ * légende de difficulté, calée en bas, donc elle a toujours quelque chose à
+ * montrer. Une fois la classe placée, elle affiche simplement « Tout le monde
+ * est placé » et reste la ZONE DE DÉPOSE qui sort un élève du plan — c'est la
+ * colonne entière qui est droppable, pas seulement la liste, pour qu'on puisse
+ * viser large en glissant.
+ *
+ * `footer` reçoit la légende plutôt que de l'inclure d'office : la colonne ne
+ * connaît ainsi rien du vocabulaire de difficulté.
  */
-export function TrayZone({ children, count }: { children: React.ReactNode; count: number }) {
+export function TrayColumn({
+  children,
+  count,
+  footer,
+}: {
+  children: React.ReactNode;
+  count: number;
+  footer?: React.ReactNode;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: TRAY_DROPPABLE_ID });
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "material rounded-card border p-2.5 shadow-soft transition-colors",
-        isOver ? "border-primary bg-primary-soft" : "border-border bg-surface",
+        // `flex-1` et non `h-full` : le parent est un conteneur flex en
+        // colonne, tantôt étiré par la grille (grand écran), tantôt plafonné
+        // par une hauteur maximale (petit écran). Une hauteur en POURCENTAGE
+        // ne se résoudrait dans aucun des deux cas — le parent n'a jamais de
+        // hauteur explicite — et la liste déborderait au lieu de défiler.
+        "flex min-h-0 flex-1 flex-col transition-colors",
+        isOver ? "bg-primary-soft" : "bg-surface",
       )}
     >
-      <h2 className="eyebrow mb-1.5">
-        À placer <span className="tabular-nums">({count})</span>
-      </h2>
-      <div className="max-h-[52vh] space-y-1 overflow-y-auto pr-0.5">{children}</div>
+      <div className="px-3 pb-2 pt-3">
+        <h2 className="text-sm font-bold leading-none">À placer</h2>
+        <p className="mt-1.5 text-xs leading-snug text-muted">
+          {count === 0 ? (
+            "Tout le monde est placé. Déposez ici pour retirer."
+          ) : (
+            <>
+              <span className="tabular-nums">{count}</span> élève{count > 1 ? "s" : ""} · glissez
+              sur une place
+            </>
+          )}
+        </p>
+      </div>
+
+      {/* `min-h-0` autorise ce bloc à se comprimer dans la colonne en flex :
+          sans lui, un contenu long pousserait la légende hors de la carte au
+          lieu de faire défiler la liste. */}
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-2">{children}</div>
+
+      {footer && <div className="mt-auto border-t border-border px-3 py-3">{footer}</div>}
     </div>
   );
 }

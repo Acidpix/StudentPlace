@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { NewPlanDialog } from "@/components/plan/new-plan-dialog";
-import { PlanThumbnail } from "@/components/plan/plan-thumbnail";
-import { CARD, CARD_INTERACTIVE, SectionHeader } from "@/components/ui/card";
+import { PlanBrowser } from "@/components/plan/plan-browser";
+import { CARD } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmptyPlanArt } from "@/components/ui/icons";
 import { prisma } from "@/lib/db";
@@ -26,6 +26,9 @@ export default async function DashboardPage() {
       include: { _count: { select: { seats: true } } },
       orderBy: { name: "asc" },
     }),
+    // Tous les plans, et non plus seulement les neuf derniers : le tri par
+    // classe et par salle se fait dans le navigateur, il lui faut la liste
+    // entière. `PlanBrowser` n'en affiche qu'une page à la fois.
     prisma.seatingPlan.findMany({
       where: { userId: user.id },
       include: {
@@ -45,7 +48,6 @@ export default async function DashboardPage() {
         _count: { select: { assignments: true } },
       },
       orderBy: { updatedAt: "desc" },
-      take: 9,
     }),
   ]);
 
@@ -54,10 +56,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* En-tête de la maquette 2c : la salutation EST le titre, en grand, et
+          le contexte chiffré passe en sous-titre. « Tableau de bord » ne
+          servait qu'à répéter l'entrée de navigation déjà surlignée. */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Tableau de bord</h1>
-          <p className="mt-1 text-sm text-muted">Bonjour {user.name.split(" ")[0]}.</p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Bonjour {user.name.split(" ")[0]}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted">
+            {classGroups.length} classe{classGroups.length > 1 ? "s" : ""} · {rooms.length} salle
+            {rooms.length > 1 ? "s" : ""} · {plans.length} plan{plans.length > 1 ? "s" : ""} de
+            classe
+          </p>
         </div>
 
         {classGroups.length > 0 && rooms.length > 0 && (
@@ -68,55 +79,24 @@ export default async function DashboardPage() {
       {isEmpty && <GettingStarted />}
 
       {plans.length > 0 && (
-        <section>
-          <SectionHeader title="Plans de classe récents" />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
-              const total = plan.classGroup._count.students;
-              const seated = plan._count.assignments;
-              const ratio = total === 0 ? 0 : Math.round((seated / total) * 100);
-
-              return (
-                <li key={plan.id}>
-                  <Link
-                    href={`/plans/${plan.id}`}
-                    className={`block overflow-hidden ${CARD} ${CARD_INTERACTIVE}`}
-                  >
-                    <PlanThumbnail
-                      widthCm={plan.room.widthCm}
-                      heightCm={plan.room.heightCm}
-                      objects={plan.room.objects.map((object) => ({
-                        ...object,
-                        kind: object.kind as ObjectKind,
-                      }))}
-                    />
-
-                    <div className="p-4">
-                      <p className="truncate font-medium">{plan.name}</p>
-                      <p className="mt-1 truncate text-sm text-muted">
-                        {plan.classGroup.name} · {plan.room.name}
-                      </p>
-
-                      <div
-                        className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-muted"
-                        role="img"
-                        aria-label={`${seated} élève${seated > 1 ? "s" : ""} placé${seated > 1 ? "s" : ""} sur ${total}`}
-                      >
-                        <div
-                          className="h-full rounded-full bg-accent"
-                          style={{ width: `${ratio}%` }}
-                        />
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted">
-                        {seated}/{total} élève{total > 1 ? "s" : ""} placé{seated > 1 ? "s" : ""}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        <PlanBrowser
+          plans={plans.map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+            classGroupId: plan.classGroupId,
+            classGroupName: plan.classGroup.name,
+            roomId: plan.roomId,
+            roomName: plan.room.name,
+            seated: plan._count.assignments,
+            total: plan.classGroup._count.students,
+            widthCm: plan.room.widthCm,
+            heightCm: plan.room.heightCm,
+            objects: plan.room.objects.map((object) => ({
+              ...object,
+              kind: object.kind as ObjectKind,
+            })),
+          }))}
+        />
       )}
 
       {!isEmpty && plans.length === 0 && (
@@ -170,7 +150,7 @@ function Panel({
   return (
     <section className={`${CARD} p-4`}>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-medium">{title}</h2>
+        <h2 className="eyebrow">{title}</h2>
         <Link href={href} className="text-sm text-primary hover:underline">
           Tout voir
         </Link>
@@ -186,8 +166,8 @@ function Panel({
                 href={item.href}
                 className="flex items-center justify-between py-2 text-sm hover:text-primary"
               >
-                <span className="truncate">{item.label}</span>
-                <span className="shrink-0 pl-3 text-muted">{item.detail}</span>
+                <span className="truncate font-medium">{item.label}</span>
+                <span className="eyebrow shrink-0 pl-3">{item.detail}</span>
               </Link>
             </li>
           ))}
@@ -221,7 +201,7 @@ function GettingStarted() {
 
   return (
     <section className={`${CARD} p-6`}>
-      <h2 className="font-medium">Premiers pas</h2>
+      <h2 className="eyebrow">Premiers pas</h2>
       <ol className="mt-4 grid gap-4 sm:grid-cols-3">
         {steps.map((step, index) => (
           <li key={step.title} className="rounded-control bg-surface-muted p-4">

@@ -5,7 +5,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { createStudent, deleteStudent, updateStudent } from "@/actions/students";
 import { Button } from "@/components/ui/button";
-import { DifficultyBadge, DifficultyLegend } from "@/components/ui/difficulty-badge";
+import { DifficultyLegend, DifficultyMeter } from "@/components/ui/difficulty-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input, Label, Select, Textarea } from "@/components/ui/field";
 import { EmptyClassArt, PlusIcon, SearchIcon, TrashIcon } from "@/components/ui/icons";
@@ -127,46 +127,69 @@ export function StudentManager({
                 />
               </li>
             ) : (
+              // La fiche de la maquette 2c, en réduction : médaillon à
+              // initiales, nom, jauge de difficulté à cinq segments, pastilles
+              // de besoins, note encadrée. C'est la MÊME fiche que celle du
+              // panneau de l'éditeur de plan — un élève se reconnaît donc à la
+              // même carte partout dans l'application.
               <li
                 key={student.id}
-                className="flex items-start gap-2.5 rounded-card border border-border bg-surface p-3 shadow-soft transition-colors hover:border-primary/40"
+                className="material flex flex-col rounded-card border border-border bg-surface shadow-soft transition-colors hover:border-primary/40"
               >
-                <DifficultyBadge difficulty={student.difficulty} />
+                <div className="halftone flex items-center gap-2.5 border-b border-border p-2.5">
+                  <span
+                    aria-hidden="true"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-xs font-bold shadow-soft"
+                  >
+                    {`${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase()}
+                  </span>
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">
+                  <p className="min-w-0 flex-1 truncate text-sm font-bold">
                     {student.lastName} {student.firstName}
                   </p>
-                  {student.comment && (
-                    <p className="truncate text-sm text-muted" title={student.comment}>
-                      {student.comment}
-                    </p>
-                  )}
+
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(student.id)}>
+                      Modifier
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => handleDelete(student)}
+                      aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
+                    >
+                      <TrashIcon />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-1 flex-col gap-2.5 p-2.5">
+                  <DifficultyMeter difficulty={student.difficulty} />
+
                   {(student.needsFront || student.leftHanded) && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
+                    <div className="flex flex-wrap gap-1.5">
                       {student.needsFront && (
-                        <span className="rounded bg-surface-muted px-1.5 py-0.5">1er rang</span>
+                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
+                          1er rang
+                        </span>
                       )}
                       {student.leftHanded && (
-                        <span className="rounded bg-surface-muted px-1.5 py-0.5">Gaucher</span>
+                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
+                          Gaucher
+                        </span>
                       )}
                     </div>
                   )}
-                </div>
 
-                <div className="flex shrink-0 flex-col items-end gap-0.5">
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(student.id)}>
-                    Modifier
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={pending}
-                    onClick={() => handleDelete(student)}
-                    aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
-                  >
-                    <TrashIcon />
-                  </Button>
+                  {student.comment && (
+                    <p
+                      className="mt-auto rounded-control border border-border bg-surface-muted/60 p-2 text-xs leading-snug text-muted"
+                      title={student.comment}
+                    >
+                      {student.comment}
+                    </p>
+                  )}
                 </div>
               </li>
             ),

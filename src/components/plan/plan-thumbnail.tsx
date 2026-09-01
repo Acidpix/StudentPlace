@@ -32,16 +32,19 @@ export function PlanThumbnail({
   widthCm,
   heightCm,
   objects,
+  className = "h-24 w-full border-b border-border bg-surface-muted/40",
 }: {
   widthCm: number;
   heightCm: number;
   objects: ThumbnailObject[];
+  /** Cadre et hauteur. Par défaut : la bande pleine largeur en tête de carte. */
+  className?: string;
 }) {
   return (
     <svg
       viewBox={`0 0 ${widthCm} ${heightCm}`}
       preserveAspectRatio="xMidYMid slice"
-      className="h-24 w-full border-b border-border bg-surface-muted/40"
+      className={className}
       aria-hidden="true"
     >
       {objects.map((object) => {

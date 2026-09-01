@@ -19,29 +19,29 @@ import {
   SeatSpot,
   StudentLabel,
   TRAY_DROPPABLE_ID,
+  TrayColumn,
   TrayStudent,
-  TrayZone,
   parseDraggableId,
   parseSeatDroppableId,
   seatMetrics,
 } from "@/components/plan/plan-pieces";
+import { StudentCard, type StudentCardRelation } from "@/components/plan/student-card";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { Button } from "@/components/ui/button";
-import { DifficultyBadge, DifficultyLegend } from "@/components/ui/difficulty-badge";
-import { FieldError, Input, Label } from "@/components/ui/field";
+import { DifficultyLegend } from "@/components/ui/difficulty-badge";
+import { FieldError, Input } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
-  DeskViewIcon,
   FitIcon,
   LockIcon,
   ShuffleIcon,
   SparkIcon,
   UnlockIcon,
   WarningIcon,
-  XIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
 import { SEAT_CARD_MAX_HEIGHT_CM, SEAT_CARD_MAX_WIDTH_CM } from "@/lib/domain";
 import { conflictingSeatIds, findProximityConflicts } from "@/lib/placement/conflicts";
 import { seatFootprintCm } from "@/lib/placement/geometry";
@@ -226,6 +226,27 @@ export function PlanEditor({
     return { student, seatId, pinned: assignments.get(seatId)?.pinned ?? false };
   }, [selectedStudentId, studentById, assignments]);
 
+  /**
+   * Relations de l'élève sélectionné, l'AUTRE élève déjà résolu.
+   *
+   * `StudentRelation` est normalisée (`studentAId < studentBId`), donc l'élève
+   * courant peut se trouver d'un côté comme de l'autre : c'est ici qu'on tranche,
+   * la fiche n'a pas à connaître cette convention.
+   */
+  const selectionRelations = useMemo<StudentCardRelation[]>(() => {
+    const id = selection?.student.id;
+    if (!id) return [];
+
+    return relations
+      .filter((relation) => relation.studentAId === id || relation.studentBId === id)
+      .map((relation) => {
+        const otherId = relation.studentAId === id ? relation.studentBId : relation.studentAId;
+        const other = studentById.get(otherId);
+        return other ? { id: relation.id, type: relation.type, other } : null;
+      })
+      .filter((entry): entry is StudentCardRelation => entry !== null);
+  }, [selection, relations, studentById]);
+
   // ------------------------------------------------------- glisser-déposer
 
   function handleDragStart(event: DragStartEvent) {
@@ -369,10 +390,29 @@ export function PlanEditor({
     return null;
   }
 
-  // La colonne de droite se gouverne seule : elle ne porte plus que le bac, et
-  // n'existe donc que s'il reste quelqu'un à placer. Le plan reprend sinon
-  // toute la largeur — sans bouton à actionner.
-  const panelVisible = unplaced.length > 0;
+  /**
+   * Paires de relations, prêtes à l'affichage en pastilles.
+   *
+   * La maquette montre « À séparer » et « À rapprocher » comme deux nuages de
+   * pastilles dans la colonne de droite. Ce sont exactement les deux types de
+   * `StudentRelation` : rien à inventer, juste à résoudre les identifiants.
+   */
+  const relationPairs = useMemo(() => {
+    const label = (pair: { a: string; b: string }) => {
+      const a = studentById.get(pair.a);
+      const b = studentById.get(pair.b);
+      if (!a || !b) return null;
+      return { key: `${pair.a}-${pair.b}`, text: `${a.firstName} · ${b.firstName}` };
+    };
+
+    return {
+      separate: incompatibles.map(label).filter((entry) => entry !== null),
+      together: affinities.map(label).filter((entry) => entry !== null),
+    };
+  }, [incompatibles, affinities, studentById]);
+
+  const placedRatio =
+    students.length === 0 ? 0 : Math.round((assignments.size / students.length) * 100);
 
   // --------------------------------------------------------------- rendu
 
@@ -398,26 +438,42 @@ export function PlanEditor({
           </Link>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="min-w-0">
-            <InlinePlanName name={name} onRename={handleRename} />
-            <p className="mt-1 text-sm text-muted">
-              {plan.classGroupName} · {room.name} · {assignments.size}/{students.length} élève
-              {students.length > 1 ? "s" : ""} placé{assignments.size > 1 ? "s" : ""}
-              {pinnedCount > 0 && ` · ${pinnedCount} verrouillée${pinnedCount > 1 ? "s" : ""}`}
-            </p>
-          </div>
+        <FieldError message={error} />
 
-          <div className="print-hidden flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              onClick={() => handleAutoPlace("fresh")}
-              loading={solving}
-              title="Toujours la même proposition pour ce plan de classe"
-            >
-              <SparkIcon />
-              Placer automatiquement
-            </Button>
+        {/* ================================================================
+            L'ÉDITEUR EST UN SEUL CADRE, sur l'architecture de la maquette :
+            une barre supérieure, puis trois colonnes — les élèves à placer à
+            gauche, le plan au centre sur sa trame de points, la fiche et les
+            réglages à droite.
+
+            C'est un renversement par rapport à la version précédente, où le
+            bac occupait la droite et où les réglages vivaient sous le plan.
+            La composition se fait maintenant de gauche à droite : on prend un
+            élève dans la colonne de gauche, on le pose au centre, on ajuste à
+            droite.
+            ================================================================ */}
+        <div className="material overflow-hidden rounded-card border border-border bg-surface shadow-lift">
+          {/* ------------------------------------------ barre supérieure */}
+          <div className="print-hidden flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
+            <InlinePlanName name={name} onRename={handleRename} />
+
+            <span className="flex items-center gap-2 rounded-control border border-border bg-surface-muted/60 px-2.5 py-1.5">
+              <span className="text-xs font-semibold">{plan.classGroupName}</span>
+              <span className="eyebrow">{room.name}</span>
+            </span>
+
+            <span className="eyebrow rounded-control bg-accent-soft px-2 py-1.5 text-accent">
+              {assignments.size}/{students.length} placés
+            </span>
+
+            {pinnedCount > 0 && (
+              <span className="eyebrow rounded-control bg-danger-soft px-2 py-1.5 text-danger">
+                {pinnedCount} verrouillée{pinnedCount > 1 ? "s" : ""}
+              </span>
+            )}
+
+            <span className="flex-1" />
+
             <Button
               size="sm"
               variant="secondary"
@@ -437,278 +493,327 @@ export function PlanEditor({
             >
               Améliorer
             </Button>
-            <Button onClick={handleSave} loading={pending} disabled={!dirty}>
+            <Button
+              size="sm"
+              onClick={() => handleAutoPlace("fresh")}
+              loading={solving}
+              title="Toujours la même proposition pour ce plan de classe"
+            >
+              <SparkIcon />
+              Placer automatiquement
+            </Button>
+            <Button size="sm" onClick={handleSave} loading={pending} disabled={!dirty}>
               {pending ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}
             </Button>
           </div>
-        </div>
 
-        <FieldError message={error} />
-
-        {lastRun && (
-          <p className="print-hidden text-xs text-muted">
-            Proposition n° {variant + 1} · coût {lastRun.cost.toLocaleString("fr-FR")} ·{" "}
-            {lastRun.durationMs} ms
-            {lastRun.moved !== null &&
-              ` · ${lastRun.moved} élève${lastRun.moved > 1 ? "s" : ""} déplacé${lastRun.moved > 1 ? "s" : ""}`}
-          </p>
-        )}
-
-        {conflicts.length > 0 && (
-          <div
-            role="alert"
-            className="rounded-card border border-danger-border bg-danger-soft p-3 text-sm text-danger"
-          >
-            <p className="flex items-center gap-2 font-medium">
-              <WarningIcon />
-              {conflicts.length} incompatibilité{conflicts.length > 1 ? "s" : ""} non respectée
-              {conflicts.length > 1 ? "s" : ""}
-            </p>
-            <ul className="mt-1.5 list-inside list-disc">
-              {conflicts.map((conflict) => {
-                const a = studentById.get(conflict.studentAId);
-                const b = studentById.get(conflict.studentBId);
-                return (
-                  <li key={`${conflict.seatAId}-${conflict.seatBId}`}>
-                    {a ? studentFullName(a) : "?"} et {b ? studentFullName(b) : "?"} sont à{" "}
-                    {conflict.distanceCm} cm l&apos;un de l&apos;autre (seuil : {proximityCm} cm).
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {violations.filter((v) => v.kind !== "INCOMPATIBLE_TOO_CLOSE").length > 0 && (
-          <div className="rounded-card border border-border bg-surface-muted p-3 text-sm">
-            <p className="font-medium">Le placement automatique n&apos;a pas pu tout satisfaire :</p>
-            <ul className="mt-1.5 list-inside list-disc text-muted">
-              {violations
-                .filter((violation) => violation.kind !== "INCOMPATIBLE_TOO_CLOSE")
-                .map((violation, index) => (
-                  <li key={`${violation.kind}-${index}`}>{violation.message}</li>
-                ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Le plan et, à sa droite, la seule colonne dont on se sert en
-            composant : les élèves à placer et celui qu'on vient de cliquer.
-            Les réglages et l'export, qu'on ouvre une fois par séance, passent
-            sous le plan — ils n'ont pas à lui prendre de la largeur en
-            permanence.
-
-            Cette colonne n'a plus de bouton d'affichage : elle apparaît quand
-            elle a quelque chose à montrer — des élèves à placer — et rend sinon
-            toute la largeur au plan. */}
-        <div
-          className={
-            panelVisible
-              ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_15rem]"
-              : "grid gap-4 lg:grid-cols-1"
-          }
-        >
-          {/* ----------------------------------------------------- plan */}
-          <div className="material min-w-0 rounded-card border border-border bg-surface p-2 shadow-soft">
-            <PlanToolbar
-              mirrored={mirrored}
-              onToggleMirror={() => {
-                setMirrored((value) => !value);
-                setDirty(true);
-              }}
-              zoom={zoom}
-              onZoom={setZoom}
-              onReset={resetView}
-              pinnedCount={pinnedCount}
-              placedCount={assignments.size}
-              onPinAll={() => mutate(setAllPinned(assignments, true))}
-              onUnpinAll={() => mutate(setAllPinned(assignments, false))}
-              selection={selection}
-              onToggleSelectionPin={() =>
-                selection && mutate(togglePin(assignments, selection.seatId))
-              }
-              onRemoveSelection={() => {
-                if (!selection) return;
-                mutate(unassignStudent(assignments, selection.student.id));
-                setSelectedStudentId(null);
-              }}
-            />
-
-            {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
-                défilement est son enfant. Mesurer celle-ci ferait osciller la
-                largeur dès qu'une barre apparaît.
-
-                Le cadre et la trame de points sont posés ICI, et surtout SANS
-                REMBOURRAGE : `usePlanScale` mesure ce conteneur avec
-                `clientWidth`, qui exclut la bordure mais INCLUT le
-                rembourrage. Une bordure ne coûte donc rien à la largeur
-                disponible, là où un `p-3` ferait dépasser la salle de quelques
-                pixels et déclencherait une barre de défilement horizontale à
-                100 % — précisément ce que la double contrainte de
-                `usePlanScale` existe pour éviter.
-
-                La trame ne se voit que sur les marges, quand la salle est
-                contrainte par la hauteur et n'occupe donc pas toute la
-                largeur : c'est le plan de travail sur lequel la salle est
-                posée. */}
-            <div
-              ref={planRef}
-              className="halftone overflow-hidden rounded-card border border-border shadow-soft"
-            >
-              {/* `maxHeight` seul, jamais `height` : une hauteur fixe forçait
-                  ce conteneur à occuper `planHeight` même quand la salle,
-                  contrainte par la largeur, y tenait dans moins d'espace — un
-                  vide se creusait alors avant la légende. En laissant le
-                  conteneur se réduire à son contenu, il ne défile que si la
-                  salle dépasse réellement le budget de hauteur. */}
-              <div className="overflow-auto" style={{ maxHeight: planHeight || "68vh" }}>
-                <div
-                  className="relative mx-auto"
-                  style={{
-                    width: widthPx || "100%",
-                    aspectRatio: `${room.widthCm} / ${room.heightCm}`,
-                  }}
-                >
-                  <svg
-                    viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
-                    preserveAspectRatio="none"
-                    className="absolute inset-0 h-full w-full"
-                    aria-hidden="true"
-                  >
-                    <RoomGrid widthCm={room.widthCm} heightCm={room.heightCm} />
-
-                    {room.objects.map((object) => (
-                      <Furniture
-                        key={object.id}
-                        object={{
-                          ...object,
-                          x: flipX(object.x, object.widthCm),
-                          y: flipY(object.y, object.heightCm),
-                          // Rotation de la vue, donc rotation du meuble : +180°.
-                          rotation: mirrored ? (object.rotation + 180) % 360 : object.rotation,
-                        }}
-                      />
-                    ))}
-
-                    {/* Trait rouge entre deux élèves incompatibles trop proches. */}
-                    {conflicts.map((conflict) => {
-                      const a = seats.find((seat) => seat.id === conflict.seatAId);
-                      const b = seats.find((seat) => seat.id === conflict.seatBId);
-                      if (!a || !b) return null;
-                      return (
-                        <line
-                          key={`link-${conflict.seatAId}-${conflict.seatBId}`}
-                          x1={flipX(a.x)}
-                          y1={flipY(a.y)}
-                          x2={flipX(b.x)}
-                          y2={flipY(b.y)}
-                          stroke="var(--danger)"
-                          strokeWidth={5}
-                          strokeDasharray="14 8"
-                        />
-                      );
-                    })}
-                  </svg>
-
-                  {pxPerCm > 0 &&
-                    seats.map((seat) => {
-                      const occupant = assignments.get(seat.id);
-                      const student = occupant
-                        ? (studentById.get(occupant.studentId) ?? null)
-                        : null;
-
-                      return (
-                        <SeatSpot
-                          key={seat.id}
-                          seat={seat}
-                          student={student}
-                          pinned={occupant?.pinned ?? false}
-                          conflicted={conflictedSeats.has(seat.id)}
-                          selected={selectedStudentId === student?.id}
-                          leftPercent={(flipX(seat.x) / room.widthCm) * 100}
-                          topPercent={(flipY(seat.y) / room.heightCm) * 100}
-                          metrics={metrics}
-                          onSelect={() => setSelectedStudentId(student?.id ?? null)}
-                        />
-                      );
-                    })}
-
-                  {seats.length === 0 && (
-                    <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted">
-                      Cette salle ne contient aucune place.{" "}
-                      <Link href={`/salles/${room.id}`} className="ml-1 text-primary hover:underline">
-                        Ajoutez-y des tables.
-                      </Link>
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="print-hidden mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-2">
-              <DifficultyLegend />
-              <p className="text-xs text-muted">
-                La difficulté se lit au cerclage intérieur de l&apos;étiquette.
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-muted">
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-3 w-3 rounded-full border-2 border-solid border-danger"
-                />
-                Cadre rouge plein : place verrouillée, le placement automatique ne la modifie pas.
-                Pointillé rouge : incompatibilité non respectée.
-              </p>
-              <p className="text-xs text-muted">
-                {mirrored
-                  ? "Vue depuis le bureau : les élèves vous font face, le tableau est en bas."
-                  : "Vue du dessus : le tableau est en haut, comme sur le plan de la salle."}
-              </p>
-            </div>
-          </div>
-
-          {/* -------------------------------- colonne de composition */}
-          {panelVisible && (
-            <aside className="print-hidden">
-              <TrayZone count={unplaced.length}>
+          {/* ------------------------------------------- les trois colonnes */}
+          <div className="grid lg:grid-cols-[13rem_minmax(0,1fr)_16rem]">
+            {/* --------------------------------- gauche : les élèves à placer */}
+            <aside className="print-hidden flex max-h-72 flex-col overflow-hidden border-b border-border lg:max-h-none lg:border-b-0 lg:border-r">
+              <TrayColumn
+                count={unplaced.length}
+                footer={
+                  <>
+                    <h3 className="eyebrow mb-2">Difficulté</h3>
+                    <DifficultyLegend vertical />
+                  </>
+                }
+              >
                 {unplaced.map((student) => (
                   <TrayStudent key={student.id} student={student} />
                 ))}
-              </TrayZone>
+              </TrayColumn>
             </aside>
-          )}
+
+            {/* ------------------------------------------- centre : le plan */}
+            <div className="halftone flex min-w-0 flex-col gap-3 bg-background p-3">
+              <CanvasToolbar
+                mirrored={mirrored}
+                onSetMirrored={(value) => {
+                  setMirrored(value);
+                  setDirty(true);
+                }}
+                zoom={zoom}
+                onZoom={setZoom}
+                onReset={resetView}
+                pinnedCount={pinnedCount}
+                placedCount={assignments.size}
+                seatCount={seats.length}
+                onPinAll={() => mutate(setAllPinned(assignments, true))}
+                onUnpinAll={() => mutate(setAllPinned(assignments, false))}
+              />
+
+              {/* `planRef` mesure CE conteneur, qui ne défile jamais : la zone de
+                  défilement est son enfant. Mesurer celle-ci ferait osciller la
+                  largeur dès qu'une barre apparaît.
+
+                  Il n'a AUCUN REMBOURRAGE : `usePlanScale` le mesure avec
+                  `clientWidth`, qui exclut la bordure mais INCLUT le
+                  rembourrage. Une bordure ne coûte donc rien à la largeur
+                  disponible, là où un `p-3` ferait dépasser la salle de quelques
+                  pixels et déclencherait une barre de défilement horizontale à
+                  100 % — précisément ce que la double contrainte de
+                  `usePlanScale` existe pour éviter. Le dégagement autour du plan
+                  est porté par la COLONNE, qui a le `p-3` et la trame de points.
+                  */}
+              <div
+                ref={planRef}
+                className="overflow-hidden rounded-control border border-border shadow-soft"
+              >
+                {/* `maxHeight` seul, jamais `height` : une hauteur fixe forçait
+                    ce conteneur à occuper `planHeight` même quand la salle,
+                    contrainte par la largeur, y tenait dans moins d'espace — un
+                    vide se creusait alors avant la légende. En laissant le
+                    conteneur se réduire à son contenu, il ne défile que si la
+                    salle dépasse réellement le budget de hauteur. */}
+                <div className="overflow-auto" style={{ maxHeight: planHeight || "68vh" }}>
+                  <div
+                    className="relative mx-auto"
+                    style={{
+                      width: widthPx || "100%",
+                      aspectRatio: `${room.widthCm} / ${room.heightCm}`,
+                    }}
+                  >
+                    <svg
+                      viewBox={`0 0 ${room.widthCm} ${room.heightCm}`}
+                      preserveAspectRatio="none"
+                      className="absolute inset-0 h-full w-full"
+                      aria-hidden="true"
+                    >
+                      <RoomGrid widthCm={room.widthCm} heightCm={room.heightCm} />
+
+                      {room.objects.map((object) => (
+                        <Furniture
+                          key={object.id}
+                          object={{
+                            ...object,
+                            x: flipX(object.x, object.widthCm),
+                            y: flipY(object.y, object.heightCm),
+                            // Rotation de la vue, donc rotation du meuble : +180°.
+                            rotation: mirrored ? (object.rotation + 180) % 360 : object.rotation,
+                          }}
+                        />
+                      ))}
+
+                      {/* Trait rouge entre deux élèves incompatibles trop proches. */}
+                      {conflicts.map((conflict) => {
+                        const a = seats.find((seat) => seat.id === conflict.seatAId);
+                        const b = seats.find((seat) => seat.id === conflict.seatBId);
+                        if (!a || !b) return null;
+                        return (
+                          <line
+                            key={`link-${conflict.seatAId}-${conflict.seatBId}`}
+                            x1={flipX(a.x)}
+                            y1={flipY(a.y)}
+                            x2={flipX(b.x)}
+                            y2={flipY(b.y)}
+                            stroke="var(--danger)"
+                            strokeWidth={5}
+                            strokeDasharray="14 8"
+                          />
+                        );
+                      })}
+                    </svg>
+
+                    {pxPerCm > 0 &&
+                      seats.map((seat) => {
+                        const occupant = assignments.get(seat.id);
+                        const student = occupant
+                          ? (studentById.get(occupant.studentId) ?? null)
+                          : null;
+
+                        return (
+                          <SeatSpot
+                            key={seat.id}
+                            seat={seat}
+                            student={student}
+                            pinned={occupant?.pinned ?? false}
+                            conflicted={conflictedSeats.has(seat.id)}
+                            selected={selectedStudentId === student?.id}
+                            leftPercent={(flipX(seat.x) / room.widthCm) * 100}
+                            topPercent={(flipY(seat.y) / room.heightCm) * 100}
+                            metrics={metrics}
+                            onSelect={() => setSelectedStudentId(student?.id ?? null)}
+                          />
+                        );
+                      })}
+
+                    {seats.length === 0 && (
+                      <p className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-muted">
+                        Cette salle ne contient aucune place.{" "}
+                        <Link href={`/salles/${room.id}`} className="ml-1 text-primary hover:underline">
+                          Ajoutez-y des tables.
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ------------------- bandeau de contraintes, sous le plan
+                  C'est la « barre de contraintes » de la maquette : un
+                  bandeau bas, sur une ligne, avec l'action de correction à
+                  droite. Elle remplace la liste à puces qui poussait le plan
+                  vers le bas. Le rouge est ici légitime — ce sont des
+                  incompatibilités non respectées, l'un des deux seuls sens
+                  autorisés pour cette couleur. */}
+              {conflicts.length > 0 && (
+                <div
+                  role="alert"
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-danger-border bg-danger-soft px-3 py-2"
+                >
+                  <span className="eyebrow flex items-center gap-1.5 text-danger">
+                    <WarningIcon />
+                    {conflicts.length} incompatibilité{conflicts.length > 1 ? "s" : ""}
+                  </span>
+                  <span className="min-w-0 flex-1 text-xs leading-snug text-danger">
+                    {conflicts
+                      .map((conflict) => {
+                        const a = studentById.get(conflict.studentAId);
+                        const b = studentById.get(conflict.studentBId);
+                        return `${a ? studentFullName(a) : "?"} et ${b ? studentFullName(b) : "?"} à ${conflict.distanceCm} cm`;
+                      })
+                      .join(" · ")}
+                    {" — seuil "}
+                    {proximityCm} cm.
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleAutoPlace("improve")}
+                    disabled={solving}
+                    title="Retoucher le plan sans le rebrasser"
+                  >
+                    Corriger
+                  </Button>
+                </div>
+              )}
+
+              {violations.filter((v) => v.kind !== "INCOMPATIBLE_TOO_CLOSE").length > 0 && (
+                <div className="rounded-control border border-border bg-surface p-3 text-xs">
+                  <p className="font-medium">
+                    Le placement automatique n&apos;a pas pu tout satisfaire :
+                  </p>
+                  <ul className="mt-1.5 list-inside list-disc text-muted">
+                    {violations
+                      .filter((violation) => violation.kind !== "INCOMPATIBLE_TOO_CLOSE")
+                      .map((violation, index) => (
+                        <li key={`${violation.kind}-${index}`}>{violation.message}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
+              <p className="print-hidden text-xs leading-snug text-muted">
+                {mirrored
+                  ? "Vue depuis le bureau : les élèves vous font face, le tableau est en bas."
+                  : "Vue du dessus : le tableau est en haut, comme sur le plan de la salle."}{" "}
+                Cerclage intérieur : difficulté. Cadre rouge plein : place verrouillée. Pointillé
+                rouge : incompatibilité non respectée.
+              </p>
+            </div>
+
+            {/* ------------------------- droite : fiche, relations, réglages */}
+            <aside className="print-hidden flex flex-col gap-3 border-t border-border p-3 lg:border-l lg:border-t-0">
+              {selection ? (
+                <StudentCard
+                  student={selection.student}
+                  contextLabel={`${plan.classGroupName} · ${room.name}`}
+                  pinned={selection.pinned}
+                  relations={selectionRelations}
+                  onTogglePin={() => mutate(togglePin(assignments, selection.seatId))}
+                  onRemove={() => {
+                    mutate(unassignStudent(assignments, selection.student.id));
+                    setSelectedStudentId(null);
+                  }}
+                  onClose={() => setSelectedStudentId(null)}
+                />
+              ) : (
+                <p className="rounded-control border border-dashed border-border p-3 text-xs leading-snug text-muted">
+                  Cliquez un élève du plan pour ouvrir sa fiche.
+                </p>
+              )}
+
+              <RelationPills title="À séparer" tone="danger" items={relationPairs.separate} />
+              <RelationPills title="À rapprocher" tone="accent" items={relationPairs.together} />
+
+              <div>
+                {/* `<label>` brut et non le `Label` partagé : celui-ci impose
+                    `text-sm text-foreground`, et ces utilitaires l'emportent
+                    sur `.eyebrow`, qui vit dans la couche `components`. */}
+                <label htmlFor="proximity" className="eyebrow mb-2 block">
+                  Seuil de proximité (cm)
+                </label>
+                <Input
+                  id="proximity"
+                  type="number"
+                  min={0}
+                  max={1000}
+                  step={10}
+                  value={proximityCm}
+                  onChange={(event) => {
+                    setProximityCm(Math.max(0, Number(event.target.value)));
+                    setDirty(true);
+                  }}
+                />
+                <p className="mt-1.5 text-xs leading-snug text-muted">
+                  En dessous de cette distance, deux élèves incompatibles déclenchent une alerte.
+                </p>
+              </div>
+
+              {/* Le pavé bas de la maquette : un grand chiffre et une jauge.
+                  Elle y logeait un « score du plan » que rien ne calcule ici ;
+                  on y met la seule mesure dont on dispose vraiment, le nombre
+                  d'élèves placés. */}
+              <div className="mt-auto rounded-control border border-border bg-surface-muted/60 p-3">
+                <h3 className="eyebrow mb-2">Placement</h3>
+                <p className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold leading-none tabular-nums">
+                    {assignments.size}
+                  </span>
+                  <span className="eyebrow">
+                    / {students.length} élève{students.length > 1 ? "s" : ""}
+                  </span>
+                </p>
+                <div
+                  className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-surface-muted"
+                  role="img"
+                  aria-label={`${assignments.size} élève${assignments.size > 1 ? "s" : ""} placé${assignments.size > 1 ? "s" : ""} sur ${students.length}`}
+                >
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{ width: `${placedRatio}%` }}
+                  />
+                </div>
+
+                {lastRun && (
+                  <p className="eyebrow mt-2.5 leading-snug">
+                    Proposition n° {variant + 1} · coût {lastRun.cost.toLocaleString("fr-FR")} ·{" "}
+                    {lastRun.durationMs} ms
+                    {lastRun.moved !== null && ` · ${lastRun.moved} déplacé`}
+                  </p>
+                )}
+              </div>
+            </aside>
+          </div>
         </div>
 
-        {/* --------------------------- réglages, sous le plan de classe */}
+        {/* ------------------- hors du cadre : ce qui sort du plan de classe */}
         <div className="print-hidden grid gap-4 md:grid-cols-2">
-          <div className="material flex flex-col rounded-card border border-border bg-surface p-3 shadow-soft">
-            <Label htmlFor="proximity">Seuil de proximité (cm)</Label>
-            <Input
-              id="proximity"
-              type="number"
-              min={0}
-              max={1000}
-              step={10}
-              value={proximityCm}
-              onChange={(event) => {
-                setProximityCm(Math.max(0, Number(event.target.value)));
-                setDirty(true);
-              }}
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              En dessous de cette distance, deux élèves incompatibles déclenchent une alerte.
-            </p>
+          <ExportPdfPanel planId={plan.id} mirrored={mirrored} />
 
-            {/* `mt-auto` cale le bouton en bas de la carte, pour qu'il s'aligne
-                avec celui de la carte voisine quelle que soit la hauteur du
-                contenu. */}
+          <div className="material flex flex-col rounded-card border border-border bg-surface p-3 shadow-soft">
+            <h2 className="eyebrow">Repartir de zéro</h2>
+            <p className="mt-2 text-sm text-muted">
+              Retire tous les élèves du plan de classe. Les places verrouillées sont conservées.
+            </p>
             <div className="mt-auto pt-4">
               <Button variant="secondary" size="sm" className="w-full" onClick={handleClear}>
                 Vider le plan de classe
               </Button>
             </div>
           </div>
-
-          <ExportPdfPanel planId={plan.id} mirrored={mirrored} />
         </div>
       </div>
 
@@ -795,7 +900,7 @@ function InlinePlanName({
               setEditing(false);
             }
           }}
-          className="w-full max-w-md rounded-control border border-primary bg-surface px-2 py-1 text-2xl font-semibold tracking-tight outline-none ring-2 ring-primary/25 disabled:opacity-60"
+          className="w-48 rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25 disabled:opacity-60"
         />
         <FieldError message={error} />
       </div>
@@ -803,13 +908,16 @@ function InlinePlanName({
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight">
+    <div className="min-w-0">
+      {/* Le titre a QUITTÉ le haut de page pour la barre de l'éditeur : il y
+          est donc dimensionné comme un libellé de barre — `text-base` — et non
+          plus comme un titre de page. Il reste le `<h1>`. */}
+      <h1 className="truncate text-base font-bold tracking-tight">
         <button
           type="button"
           onClick={() => setEditing(true)}
           title="Renommer ce plan de classe"
-          className="-mx-1 rounded-control px-1 text-left hover:bg-surface-muted"
+          className="-mx-1 max-w-full truncate rounded-control px-1 text-left hover:bg-surface-muted"
         >
           {name}
         </button>
@@ -819,152 +927,192 @@ function InlinePlanName({
   );
 }
 
+
 /**
- * Barre d'outils du plan : orientation, verrouillages, zoom — et, quand un
- * élève est sélectionné, sa fiche.
+ * Barre d'outils du CENTRE, au-dessus du plan.
  *
- * La fiche vivait sous forme de bande séparée au-dessus du plan ; elle est
- * intégrée à cette même barre, poussée à droite par `ml-auto`, pour que tout
- * ce qui agit sur le plan reste à un seul endroit. Sur une largeur étroite,
- * `flex-wrap` la fait simplement retomber sur sa propre ligne, toujours dans
- * le même bloc.
+ * Elle reprend la forme de la maquette : des pistes segmentées à gauche —
+ * un fond creux, des segments dont un seul est allumé — et le compteur de
+ * places à droite, en capitales à chasse fixe.
  *
- * Plus de bouton de panneau : la colonne de droite apparaît et disparaît d'elle
- * même selon qu'elle a quelque chose à montrer.
+ * L'orientation était un bouton à bascule dont le libellé changeait ; elle est
+ * maintenant un choix à DEUX SEGMENTS. Un bouton qui dit « Vue du dessus » ne
+ * dit pas s'il décrit l'état courant ou ce qu'on obtiendra en cliquant : deux
+ * segments dont un est enfoncé lèvent l'ambiguïté sans un mot de plus.
+ *
+ * La fiche de l'élève sélectionné n'est plus ici : elle a sa place, entière,
+ * dans la colonne de droite.
  */
-function PlanToolbar({
+function CanvasToolbar({
   mirrored,
-  onToggleMirror,
+  onSetMirrored,
   zoom,
   onZoom,
   onReset,
   pinnedCount,
   placedCount,
+  seatCount,
   onPinAll,
   onUnpinAll,
-  selection,
-  onToggleSelectionPin,
-  onRemoveSelection,
 }: {
   mirrored: boolean;
-  onToggleMirror: () => void;
+  onSetMirrored: (value: boolean) => void;
   zoom: number;
   onZoom: (value: number) => void;
   onReset: () => void;
   pinnedCount: number;
   placedCount: number;
+  seatCount: number;
   onPinAll: () => void;
   onUnpinAll: () => void;
-  selection: { student: StudentView; pinned: boolean } | null;
-  onToggleSelectionPin: () => void;
-  onRemoveSelection: () => void;
 }) {
   return (
-    <div className="print-hidden mb-2 flex flex-wrap items-center gap-1.5 border-b border-border px-1 pb-2">
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={onToggleMirror}
-        title="Pivoter la vue à 180°"
-      >
-        <DeskViewIcon />
-        {mirrored ? "Vue depuis le bureau" : "Vue du dessus"}
-      </Button>
+    <div className="print-hidden flex flex-wrap items-center gap-2">
+      <Track>
+        <Segment active={!mirrored} onClick={() => onSetMirrored(false)}>
+          Vue du dessus
+        </Segment>
+        <Segment active={mirrored} onClick={() => onSetMirrored(true)}>
+          Depuis le bureau
+        </Segment>
+      </Track>
 
-      <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+      <Track>
+        <Segment
+          onClick={onPinAll}
+          disabled={placedCount === 0 || pinnedCount === placedCount}
+          title="Verrouiller toutes les places occupées"
+        >
+          <LockIcon />
+          Tout verrouiller
+        </Segment>
+        <Segment onClick={onUnpinAll} disabled={pinnedCount === 0} title="Tout déverrouiller">
+          <UnlockIcon />
+        </Segment>
+      </Track>
 
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onPinAll}
-        disabled={placedCount === 0 || pinnedCount === placedCount}
-        title="Verrouiller toutes les places occupées"
-      >
-        <LockIcon />
-        Tout verrouiller
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onUnpinAll}
-        disabled={pinnedCount === 0}
-        title="Déverrouiller toutes les places"
-      >
-        <UnlockIcon />
-        Tout déverrouiller
-      </Button>
-
-      <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
-
-      <div className="flex items-center gap-0.5">
-        <Button
-          size="sm"
-          variant="ghost"
+      <Track>
+        <Segment
           onClick={() => onZoom(Math.max(ZOOM_MIN, zoom - ZOOM_STEP))}
           disabled={zoom <= ZOOM_MIN}
-          aria-label="Réduire le plan de classe"
+          title="Réduire le plan de classe"
         >
           <ZoomOutIcon />
-        </Button>
-        <span className="w-12 text-center text-xs tabular-nums text-muted">{zoom} %</span>
-        <Button
-          size="sm"
-          variant="ghost"
+        </Segment>
+        <span className="w-11 text-center text-xs tabular-nums text-muted">{zoom} %</span>
+        <Segment
           onClick={() => onZoom(Math.min(ZOOM_MAX, zoom + ZOOM_STEP))}
           disabled={zoom >= ZOOM_MAX}
-          aria-label="Agrandir le plan de classe"
+          title="Agrandir le plan de classe"
         >
           <ZoomInIcon />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onReset}
-          title="Revenir au zoom par défaut"
-        >
+        </Segment>
+        <Segment onClick={onReset} title="Revenir au zoom par défaut">
           <FitIcon />
-          Ajuster
-        </Button>
-      </div>
+        </Segment>
+      </Track>
 
-      {/* Fiche de l'élève cliqué, poussée à droite : nom, difficulté,
-          commentaire, puis les deux commandes qui agissent sur sa place. */}
-      {selection && (
-        <span className="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          <span className="mx-1 hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+      <span className="flex-1" />
 
-          <span className="flex min-w-0 items-center gap-1.5 text-sm">
-            <DifficultyBadge difficulty={selection.student.difficulty} size="sm" />
-            <span className="max-w-40 truncate font-medium">
-              {studentFullName(selection.student)}
+      <span className="eyebrow whitespace-nowrap">
+        {seatCount} place{seatCount > 1 ? "s" : ""} · {placedCount} occupée
+        {placedCount > 1 ? "s" : ""}
+      </span>
+    </div>
+  );
+}
+
+/** Le fond creux d'une piste segmentée. */
+function Track({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-control bg-surface-muted/70 p-0.5">
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Un segment de piste.
+ *
+ * Le segment allumé est une pastille de surface posée sur le creux, avec
+ * l'ombre nette du thème : c'est le même geste que les cartes, à l'échelle
+ * d'un contrôle. Les autres restent plats et se contentent d'un survol.
+ */
+function Segment({
+  active,
+  disabled = false,
+  title,
+  onClick,
+  children,
+}: {
+  /**
+   * Non renseigné pour un segment qui DÉCLENCHE (verrouiller, zoomer) ; un
+   * booléen pour un segment qui représente un ÉTAT (l'orientation de la vue).
+   * `aria-pressed` n'est posé que dans le second cas : sur un simple bouton
+   * d'action, il annoncerait à tort un interrupteur toujours relâché.
+   */
+  active?: boolean;
+  disabled?: boolean;
+  title?: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-[0.5rem] px-2.5 py-1.5 text-xs font-medium transition-colors",
+        "disabled:pointer-events-none disabled:opacity-40",
+        active
+          ? "bg-surface text-foreground shadow-soft"
+          : "text-muted hover:bg-surface/70 hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Nuage de pastilles « À séparer » / « À rapprocher ».
+ *
+ * Les deux listes de la maquette, adossées aux deux types de
+ * `StudentRelation`. Elles ne sont PAS modifiables ici : les relations se
+ * gèrent sur la page de la classe, qui a la place de le faire correctement.
+ * Le lien y renvoie plutôt que de dupliquer le formulaire.
+ */
+function RelationPills({
+  title,
+  tone,
+  items,
+}: {
+  title: string;
+  tone: "danger" | "accent";
+  items: Array<{ key: string; text: string }>;
+}) {
+  return (
+    <div>
+      <h3 className="eyebrow mb-2">{title}</h3>
+      {items.length === 0 ? (
+        <p className="text-xs text-muted">Aucune.</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((item) => (
+            <span
+              key={item.key}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-xs font-medium",
+                tone === "danger" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent",
+              )}
+            >
+              {item.text}
             </span>
-          </span>
-
-          {selection.student.comment && (
-            <span className="hidden max-w-56 truncate text-xs text-muted lg:inline">
-              {selection.student.comment}
-            </span>
-          )}
-
-          {/* Seule commande de verrouillage à la place : l'étiquette du plan
-              ne porte plus de cadenas, elle se contente d'être cerclée de
-              rouge. */}
-          <Button
-            size="sm"
-            variant={selection.pinned ? "secondary" : "primary"}
-            onClick={onToggleSelectionPin}
-          >
-            {selection.pinned ? <UnlockIcon /> : <LockIcon />}
-            {selection.pinned ? "Déverrouiller" : "Verrouiller ici"}
-          </Button>
-          {/* Retirer du plan sans glisser-déposer : le bac disparaît quand
-              tout le monde est placé, et c'est justement là qu'on a besoin de
-              sortir quelqu'un. */}
-          <Button size="sm" variant="secondary" onClick={onRemoveSelection}>
-            <XIcon />
-            Retirer du plan
-          </Button>
-        </span>
+          ))}
+        </div>
       )}
     </div>
   );

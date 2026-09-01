@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:registry.npmjs.org)",
-      "WebFetch(domain:www.buildwithmatija.com)"
+      "WebFetch(domain:www.buildwithmatija.com)",
+      "Bash(head -n 926 src/components/plan/plan-editor.tsx)",
+      "Bash(mv /tmp/pe.txt src/components/plan/plan-editor.tsx)"
     ]
   }
 }
