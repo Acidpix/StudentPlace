@@ -36,8 +36,8 @@ import {
   ArrowLeftIcon,
   FitIcon,
   LockIcon,
+  RocketIcon,
   ShuffleIcon,
-  SparkIcon,
   UnlockIcon,
   WarningIcon,
   ZoomInIcon,
@@ -624,7 +624,7 @@ export function PlanEditor({
               loading={solving}
               title="Toujours la même proposition pour ce plan de classe"
             >
-              <SparkIcon />
+              <RocketIcon />
               Placer automatiquement
             </Button>
           </div>
@@ -1005,7 +1005,7 @@ function InlinePlanName({
 
   if (editing) {
     return (
-      <div>
+      <div className="min-w-0 flex-1 basis-56">
         <input
           autoFocus
           value={draft}
@@ -1024,7 +1024,7 @@ function InlinePlanName({
               setEditing(false);
             }
           }}
-          className="w-48 rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25"
+          className="w-full max-w-[24rem] min-w-0 rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25 sm:w-80"
         />
         <FieldError message={error} />
       </div>
@@ -1032,10 +1032,16 @@ function InlinePlanName({
   }
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 max-w-[24rem] flex-1 basis-56">
       {/* Le titre a QUITTÉ le haut de page pour la barre de l'éditeur : il y
           est donc dimensionné comme un libellé de barre — `text-base` — et non
-          plus comme un titre de page. Il reste le `<h1>`. */}
+          plus comme un titre de page. Il reste le `<h1>`.
+
+          Il occupe la LARGEUR RESTANTE de la barre — `flex-1` sur une base de
+          56 — plutôt que la seule largeur de son texte : un nom de plan un peu
+          long se coupait à mi-mot alors que la barre avait de la place. Le
+          plafond à 24 rem l'empêche en retour de repousser le sélecteur de
+          plan et les compteurs à la ligne suivante. */}
       <h1 className="truncate text-base font-bold tracking-tight">
         <button
           type="button"

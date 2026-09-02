@@ -166,6 +166,20 @@ export const SparkIcon = (p: IconProps) => (
   </Icon>
 );
 
+/**
+ * Fusée : le placement automatique. Le corps est une amande verticale, les
+ * deux ailerons partent de ses flancs, le hublot est au tiers haut et la
+ * flamme sort par-dessous.
+ */
+export const RocketIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 2c2.7 2.4 4 5.5 4 8.7 0 1.7-.3 3.3-1 4.8h-6c-.7-1.5-1-3.1-1-4.8C8 7.5 9.3 4.4 12 2Z" />
+    <path d="M9 12.5 6.5 15a2 2 0 0 0-.5 1.3V19l3-1.5M15 12.5l2.5 2.5a2 2 0 0 1 .5 1.3V19l-3-1.5" />
+    <circle cx="12" cy="9" r="1.5" />
+    <path d="M10.5 19c.4 1.3 1 2.3 1.5 3 .5-.7 1.1-1.7 1.5-3" />
+  </Icon>
+);
+
 export const SettingsIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="3" />

@@ -20,7 +20,7 @@ import { cn } from "@/lib/cn";
  */
 
 const LINKS = [
-  { href: "/tableau-de-bord", label: "Tableau de bord", Icon: LayoutIcon },
+  { href: "/tableau-de-bord", label: "Plan de classe", Icon: LayoutIcon },
   { href: "/classes", label: "Classes", Icon: UsersIcon },
   { href: "/salles", label: "Salles", Icon: GridIcon },
   { href: "/compte", label: "Compte", Icon: SettingsIcon },

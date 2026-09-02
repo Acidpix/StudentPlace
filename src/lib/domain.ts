@@ -64,9 +64,9 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
   TABLE: { widthCm: 160, heightCm: 55 },
   TEACHER_DESK: { widthCm: 140, heightCm: 70 },
-  BOARD: { widthCm: 300, heightCm: 12 },
-  DOOR: { widthCm: 90, heightCm: 12 },
-  WINDOW: { widthCm: 200, heightCm: 12 },
+  BOARD: { widthCm: 300, heightCm: 35 },
+  DOOR: { widthCm: 90, heightCm: 35 },
+  WINDOW: { widthCm: 200, heightCm: 35 },
   OBSTACLE: { widthCm: 80, heightCm: 80 },
 };
 
