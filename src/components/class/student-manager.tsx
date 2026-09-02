@@ -8,10 +8,14 @@ import { StudentDialog, type StudentDialogRelation } from "@/components/class/st
 import { Button } from "@/components/ui/button";
 import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DifficultyLegend, DifficultyMeter } from "@/components/ui/difficulty-badge";
+import {
+  DifficultyBadge,
+  DifficultyLegend,
+  DifficultyMeter,
+} from "@/components/ui/difficulty-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input } from "@/components/ui/field";
-import { EmptyClassArt, PlusIcon, SearchIcon, TrashIcon } from "@/components/ui/icons";
+import { EmptyClassArt, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/components/ui/icons";
 import type { RelationView, StudentView } from "@/lib/view-models";
 
 /**
@@ -19,8 +23,9 @@ import type { RelationView, StudentView } from "@/lib/view-models";
  *
  * Disposée en GRILLE et non en colonne unique : à trente élèves, la liste
  * empilée occupait deux écrans de haut et obligeait à faire défiler pour
- * atteindre les sections suivantes. Deux à trois colonnes selon la largeur, et
- * un filtre par nom pour les grandes classes.
+ * atteindre les sections suivantes. Jusqu'à QUATRE colonnes selon la largeur —
+ * voir `StudentTile`, dont la compacité est ce qui les rend possibles — et un
+ * filtre par nom pour les grandes classes.
  *
  * L'ÉDITION SE FAIT EN POPUP (`StudentDialog`, la fiche de la maquette 2c), et
  * non plus en dépliant un formulaire à la place de la carte. Le formulaire en
@@ -162,78 +167,114 @@ export function StudentManager({
           Aucun élève ne correspond à « {query} ».
         </p>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((student) => (
-            // La fiche de la maquette 2c, en réduction : médaillon à
-            // initiales, nom, jauge de difficulté à cinq segments, pastilles
-            // de besoins, note encadrée. C'est la MÊME fiche que celle du
-            // popup et du panneau de l'éditeur de plan — un élève se reconnaît
-            // donc à la même carte partout dans l'application.
-              <li
-                key={student.id}
-                className={`flex flex-col ${CARD} ${CARD_INTERACTIVE}`}
-              >
-                <div className="halftone flex items-center gap-2.5 border-b border-border p-2.5">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-xs font-bold shadow-soft"
-                  >
-                    {`${student.firstName.charAt(0)}${student.lastName.charAt(0)}`.toUpperCase()}
-                  </span>
-
-                  <p className="min-w-0 flex-1 truncate text-sm font-bold">
-                    {student.lastName} {student.firstName}
-                  </p>
-
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    <Button size="sm" variant="ghost" onClick={() => setEditing(student.id)}>
-                      Modifier
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => setDeleting(student)}
-                      aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-1 flex-col gap-2.5 p-2.5">
-                  <DifficultyMeter difficulty={student.difficulty} />
-
-                  {(student.needsFront || student.leftHanded) && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {student.needsFront && (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
-                          1er rang
-                        </span>
-                      )}
-                      {student.leftHanded && (
-                        <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-medium text-primary">
-                          Gaucher
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {student.comment && (
-                    <p
-                      className="mt-auto rounded-control border border-border bg-surface-muted/60 p-2 text-xs leading-snug text-muted"
-                      title={student.comment}
-                    >
-                      {student.comment}
-                    </p>
-                  )}
-                </div>
-              </li>
+            <li key={student.id}>
+              <StudentTile
+                student={student}
+                disabled={pending}
+                onEdit={() => setEditing(student.id)}
+                onDelete={() => setDeleting(student)}
+              />
+            </li>
           ))}
         </ul>
       )}
 
       {students.length > 0 && <DifficultyLegend className="mt-3" />}
     </section>
+  );
+}
+
+/**
+ * Vignette d'élève — la fiche 2c ramenée à l'essentiel.
+ *
+ * La version précédente reprenait la fiche entière : bandeau à médaillon,
+ * jauge pleine hauteur, pastilles, commentaire encadré. Quatre blocs empilés
+ * par élève, soit une classe de trente qui occupait trois écrans. Ici tout
+ * tient en DEUX LIGNES, et la grille passe à quatre colonnes.
+ *
+ * Ce qui a été rendu :
+ *
+ * - le médaillon rond a laissé la place à une PASTILLE DE DIFFICULTÉ chiffrée,
+ *   qui occupe le même coin mais dit quelque chose ;
+ * - la jauge est en version `compact` : mêmes cinq segments, hauteur d'un
+ *   filet, le mot conservé — la couleur ne porte jamais l'information seule ;
+ *   elle sert à comparer deux élèves du regard, pas à être lue ;
+ * - les besoins particuliers sont abrégés en deux jetons minuscules, comme
+ *   dans le bac de l'éditeur de plan ;
+ * - le commentaire tient sur UNE ligne tronquée, le texte entier restant dans
+ *   l'infobulle. Il est de toute façon visible en entier dans le popup.
+ *
+ * Les deux commandes n'apparaissent qu'au SURVOL et au focus clavier : à
+ * quatre colonnes, huit boutons par rangée saturaient la grille. `opacity` et
+ * non `hidden` — un bouton retiré du flux ferait sauter la mise en page à
+ * chaque passage de souris, et resterait inatteignable au clavier.
+ */
+function StudentTile({
+  student,
+  disabled,
+  onEdit,
+  onDelete,
+}: {
+  student: StudentView;
+  disabled: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const needs = [
+    student.needsFront ? { key: "front", short: "1er", label: "Doit être au premier rang" } : null,
+    student.leftHanded ? { key: "left", short: "G", label: "Gaucher" } : null,
+  ].filter((need): need is { key: string; short: string; label: string } => need !== null);
+
+  return (
+    <div className={`group flex flex-col gap-1.5 p-2 ${CARD} ${CARD_INTERACTIVE}`}>
+      <div className="flex items-center gap-2">
+        <DifficultyBadge difficulty={student.difficulty} size="sm" />
+
+        <p className="min-w-0 flex-1 truncate text-sm leading-tight">
+          <span className="font-bold">{student.lastName}</span>{" "}
+          <span className="text-muted">{student.firstName}</span>
+        </p>
+
+        {needs.map((need) => (
+          <span
+            key={need.key}
+            title={need.label}
+            className="shrink-0 rounded bg-primary-soft px-1 text-[10px] font-bold text-primary"
+          >
+            {need.short}
+          </span>
+        ))}
+
+        <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <Button
+            variant="ghost"
+            onClick={onEdit}
+            aria-label={`Modifier ${student.firstName} ${student.lastName}`}
+            className="h-6 w-6 px-0"
+          >
+            <PencilIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            disabled={disabled}
+            onClick={onDelete}
+            aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
+            className="h-6 w-6 px-0 hover:text-danger"
+          >
+            <TrashIcon />
+          </Button>
+        </div>
+      </div>
+
+      <DifficultyMeter difficulty={student.difficulty} compact />
+
+      {student.comment && (
+        <p className="truncate text-[11px] leading-snug text-muted" title={student.comment}>
+          {student.comment}
+        </p>
+      )}
+    </div>
   );
 }

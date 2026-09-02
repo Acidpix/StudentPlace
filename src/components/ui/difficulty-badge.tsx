@@ -66,18 +66,21 @@ export function DifficultyBadge({
  */
 export function DifficultyMeter({
   difficulty,
+  compact = false,
   className,
 }: {
   difficulty: Difficulty;
+  /** Version resserrée, pour les vignettes de la liste d'élèves. */
+  compact?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      {/* Le mot en gros à gauche, comme dans la maquette. C'est lui qui porte
+    <div className={cn("flex items-center", compact ? "gap-2" : "gap-3", className)}>
+      {/* Le mot à gauche, comme dans la maquette. C'est lui qui porte
           l'information ; les segments ne font que la rendre comparable d'un
           coup d'œil entre deux élèves. */}
       <span
-        className="shrink-0 text-sm font-bold"
+        className={cn("shrink-0 font-bold", compact ? "text-[11px]" : "text-sm")}
         style={{ color: DIFFICULTY_COLORS[difficulty] }}
       >
         {DIFFICULTY_SHORT_LABELS[difficulty]}
@@ -87,7 +90,7 @@ export function DifficultyMeter({
         {DIFFICULTY_VALUES.map((level) => (
           <span
             key={level}
-            className="h-4 flex-1 rounded-[4px]"
+            className={cn("flex-1 rounded-[3px]", compact ? "h-1.5" : "h-4")}
             style={{
               backgroundColor:
                 level <= difficulty ? DIFFICULTY_COLORS[difficulty] : "var(--surface-muted)",

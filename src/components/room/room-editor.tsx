@@ -588,11 +588,11 @@ export function RoomEditor({ room }: { room: RoomView }) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        {/* Le cadre est le plan de travail : papier de la page et trame de
-            points. La salle, elle, a son propre sol un cran plus clair
-            (`--room-floor`, posé par `RoomGrid`), ce qui la détache du cadre
-            même quand elle ne le remplit pas entièrement. */}
-        <div className="halftone overflow-hidden rounded-card border border-border bg-background p-2 shadow-soft">
+        {/* Le cadre est le plan de travail : surface du thème et trame de
+            points. La salle, elle, est BLANCHE (`--room-floor`, posé par
+            `RoomGrid`), ce qui la détache du cadre même quand elle ne le
+            remplit pas entièrement. */}
+        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}

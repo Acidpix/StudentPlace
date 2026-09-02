@@ -104,9 +104,12 @@
      thème sombre — c'est le contraste avec le fond du meuble qui compte. */
   --hatch: rgb(255 255 255 / 0.5);
 
-  /* Sol de la salle : un cran plus clair que le papier de la page, pour que le
-     rectangle de la salle se détache du plan de travail. */
-  --room-floor: #fbf8f2;
+  /* Sol de la salle : BLANC FRANC, comme dans la maquette.
+     Il était crème, et le plan de classe entier virait au beige. C'est le plus
+     grand aplat de l'application : la moindre teinte y pèse. Le papier chaud du
+     thème reste tout autour — cadre, colonnes, cartes — et le contraste entre
+     les deux fait justement lire la salle comme une feuille posée dessus. */
+  --room-floor: #ffffff;
 
   /* Voile derrière une modale. Encre diluée plutôt que noir pur : le papier
      doit rester perceptible dessous, c'est ce qui garde la modale « posée sur »

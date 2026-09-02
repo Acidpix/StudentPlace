@@ -649,7 +649,7 @@ export function PlanEditor({
             </aside>
 
             {/* ------------------------------------------- centre : le plan */}
-            <div className="halftone flex min-w-0 flex-col gap-3 bg-background p-3">
+            <div className="halftone flex min-w-0 flex-col gap-3 bg-surface p-3">
               <CanvasToolbar
                 mirrored={mirrored}
                 onSetMirrored={(value) => {
