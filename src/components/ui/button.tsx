@@ -8,19 +8,25 @@ export type ButtonSize = "sm" | "md" | "lg";
 /**
  * Boutons, à la forme de la maquette.
  *
- * Point à ne pas défaire : **la maquette n'estampe QUE les cartes.** Un bouton
- * plein n'y porte pas l'ombre nette décalée du thème, mais une LUEUR DIFFUSE de
- * sa propre teinte (`--shadow-glow`) ; un bouton secondaire est un aplat de
- * surface à filet fin, sans ombre du tout. C'est ce qui fait qu'une barre
- * d'outils reste calme au milieu de cartes très marquées.
+ * **UN BOUTON EST UN APLAT. Aucun effet de volume, sur aucune variante.**
+ * Pas de dégradé vertical, pas de liseré de tranche, pas d'ombre portée : rien
+ * qui simule une pastille bombée. Un bouton plein est sa couleur, un bouton
+ * secondaire est la surface avec un filet fin, un point c'est tout.
  *
- * Corollaire : l'ancien geste d'enfoncement — se déplacer de 2 px pour combler
- * son propre décalage — n'a plus d'ombre à combler. Il est remplacé par un
- * appui d'un pixel, qui va avec la lueur.
+ * Trois choses ont été retirées dans cet esprit, et ne doivent pas revenir :
  *
- * `sheen` pose un voile clair en haut et sombre en bas : le bouton cesse d'être
- * un aplat sans qu'il faille définir deux teintes par variante. `material` fait
- * de même, en plus discret, pour le bouton secondaire.
+ * - `sheen`, un voile clair en haut et sombre en bas. C'était LUI le relief :
+ *   il donnait à chaque bouton plein l'air d'un galet en plastique.
+ * - `material` sur le secondaire, qui faisait la même chose en plus discret.
+ * - la lueur colorée sous les boutons pleins. La maquette en pose une, mais
+ *   elle lit comme une élévation dès qu'on la regarde ; l'aplat franc est plus
+ *   proche de l'intention — des contours fins et de la couleur en petites
+ *   touches — que la lettre du modèle.
+ *
+ * L'ÉTAT se lit donc uniquement à la teinte : la luminosité monte au survol,
+ * et l'appui déplace d'un pixel. C'est aussi pourquoi les cartes gardent, elles,
+ * l'ombre nette décalée du thème — le contraste entre les deux est ce qui garde
+ * une barre d'outils calme au milieu de cartes très marquées.
  */
 const PRESS = "active:translate-y-px";
 
@@ -37,12 +43,11 @@ const PRESS = "active:translate-y-px";
  * une fiche. Le corail reste à ce qui crée ou calcule.
  */
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: `sheen bg-primary text-primary-foreground shadow-glow hover:brightness-110 ${PRESS}`,
-  ink: `sheen bg-foreground text-background hover:brightness-125 ${PRESS}`,
-  accent: `sheen bg-accent text-accent-foreground shadow-glow hover:brightness-110 ${PRESS}`,
-  danger: `sheen bg-danger text-white shadow-glow-danger hover:brightness-110 ${PRESS}`,
-  // Blanc à filet fin, sans ombre : le bouton « discret » de la maquette.
-  secondary: `material bg-surface text-foreground border border-border hover:bg-surface-muted hover:border-primary/50 ${PRESS}`,
+  primary: `bg-primary text-primary-foreground hover:brightness-110 ${PRESS}`,
+  ink: `bg-foreground text-background hover:brightness-125 ${PRESS}`,
+  accent: `bg-accent text-accent-foreground hover:brightness-110 ${PRESS}`,
+  danger: `bg-danger text-white hover:brightness-110 ${PRESS}`,
+  secondary: `bg-surface text-foreground border border-border hover:bg-surface-muted hover:border-primary/50 ${PRESS}`,
   ghost: "text-muted hover:bg-surface-muted hover:text-foreground",
 };
 
@@ -63,7 +68,7 @@ const BASE =
  * Pour les `<a>` et les `<Link>` qui doivent en avoir l'apparence — export PDF,
  * retour à l'accueil depuis la page 404, lien de téléchargement des données.
  * Ils recopiaient jusqu'ici la chaîne à la main et avaient déjà divergé : ni
- * `sheen`, ni appui, ni la bonne graisse. Une seule source, donc.
+ * appui, ni la bonne graisse. Une seule source, donc.
  */
 export function buttonClasses(
   variant: ButtonVariant = "primary",

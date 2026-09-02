@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ClassHeader } from "@/components/class/class-header";
-import { CsvImport } from "@/components/class/csv-import";
 import { DeleteClassButton } from "@/components/class/delete-class-button";
 import { RelationManager } from "@/components/class/relation-manager";
 import { StudentManager } from "@/components/class/student-manager";
@@ -17,7 +16,11 @@ import { requireUser } from "@/lib/session";
 export const metadata: Metadata = { title: "Classe" };
 
 /**
- * Page d'une classe : ses élèves, leurs relations, l'import.
+ * Page d'une classe : ses élèves et leurs relations.
+ *
+ * L'import de liste n'a plus de section à lui : il est commandé depuis
+ * l'en-tête de la liste d'élèves, à côté d'« Ajouter un élève », et s'ouvre en
+ * popup (`CsvImport`).
  *
  * Elle ne parle QUE de la classe. Les plans de classe en ont été retirés — ils
  * vivent sur le tableau de bord, qui les rassemble tous et sait les filtrer,
@@ -90,8 +93,6 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       />
 
       <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
-
-      <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
 
       {/* La suppression est TOUT EN BAS, et en rouge. Elle voisinait le titre,
           à portée d'un clic distrait, alors qu'elle emporte les élèves, leurs

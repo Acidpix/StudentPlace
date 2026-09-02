@@ -549,11 +549,11 @@ export function PlanEditor({
 
         <div className="print-hidden">
           <Link
-            href={`/classes/${plan.classGroupId}`}
+            href="/tableau-de-bord"
             className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"
           >
             <ArrowLeftIcon />
-            {plan.classGroupName}
+            Retour
           </Link>
         </div>
 

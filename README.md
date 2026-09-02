@@ -44,7 +44,7 @@ voisins**.
 | | |
 |---|---|
 | Cadre applicatif | Next.js 16 (App Router), React 19, TypeScript |
-| Style | Tailwind CSS v4, `next-themes` |
+| Style | Tailwind CSS v4, `next-themes` — six palettes, chacune en clair et en sombre |
 | Base de données | SQLite via Prisma 7 (`@prisma/adapter-better-sqlite3`) |
 | Authentification | Better Auth (e-mail + mot de passe) |
 | Glisser-déposer | `@dnd-kit/core` |

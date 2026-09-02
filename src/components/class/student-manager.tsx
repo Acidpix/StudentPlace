@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { deleteStudent } from "@/actions/students";
+import { CsvImport } from "@/components/class/csv-import";
 import { StudentDialog, type StudentDialogRelation } from "@/components/class/student-dialog";
 import { Button } from "@/components/ui/button";
 import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
@@ -15,7 +16,14 @@ import {
 } from "@/components/ui/difficulty-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input } from "@/components/ui/field";
-import { EmptyClassArt, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from "@/components/ui/icons";
+import {
+  EmptyClassArt,
+  PencilIcon,
+  PlusIcon,
+  SearchIcon,
+  TrashIcon,
+  UploadIcon,
+} from "@/components/ui/icons";
 import type { RelationView, StudentView } from "@/lib/view-models";
 
 /**
@@ -48,6 +56,8 @@ export function StudentManager({
   /** `"new"` pour une création, un identifiant pour une modification. */
   const [editing, setEditing] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  /** Popup d'import : commandé depuis l'en-tête, à côté d'« Ajouter un élève ». */
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Élève dont la suppression attend confirmation. */
   const [deleting, setDeleting] = useState<StudentView | null>(null);
@@ -125,6 +135,13 @@ export function StudentManager({
         relations={editingRelations}
       />
 
+      <CsvImport
+        open={importing}
+        onClose={() => setImporting(false)}
+        classGroupId={classGroupId}
+        hasStudents={students.length > 0}
+      />
+
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="eyebrow">
           Élèves <span className="text-muted">({students.length})</span>
@@ -147,6 +164,10 @@ export function StudentManager({
               />
             </div>
           )}
+          <Button variant="secondary" size="sm" onClick={() => setImporting(true)}>
+            <UploadIcon />
+            Importer une liste
+          </Button>
           <Button size="sm" onClick={() => setEditing("new")}>
             <PlusIcon />
             Ajouter un élève
@@ -206,10 +227,12 @@ export function StudentManager({
  * - le commentaire tient sur UNE ligne tronquée, le texte entier restant dans
  *   l'infobulle. Il est de toute façon visible en entier dans le popup.
  *
- * Les deux commandes n'apparaissent qu'au SURVOL et au focus clavier : à
- * quatre colonnes, huit boutons par rangée saturaient la grille. `opacity` et
- * non `hidden` — un bouton retiré du flux ferait sauter la mise en page à
- * chaque passage de souris, et resterait inatteignable au clavier.
+ * Les deux commandes sont TOUJOURS VISIBLES, simplement ATTÉNUÉES au repos et
+ * pleines au survol ou au focus clavier. Les effacer complètement au repos
+ * calmait la grille mais les rendait introuvables — et sur un écran tactile,
+ * où il n'y a pas de survol, elles n'apparaissaient jamais. `opacity` et non
+ * `hidden` : un bouton retiré du flux ferait sauter la mise en page à chaque
+ * passage de souris.
  */
 function StudentTile({
   student,
@@ -247,7 +270,7 @@ function StudentTile({
           </span>
         ))}
 
-        <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        <div className="flex shrink-0 items-center opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <Button
             variant="ghost"
             onClick={onEdit}

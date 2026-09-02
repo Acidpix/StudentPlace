@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
+import { useId, useMemo, useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 
 import { importStudents } from "@/actions/students";
 import { Button } from "@/components/ui/button";
-import { CARD } from "@/components/ui/card";
 import { FieldError, Label, Select, Textarea } from "@/components/ui/field";
+import { XIcon } from "@/components/ui/icons";
+import { Modal } from "@/components/ui/modal";
 import { NAME_ORDERS, NAME_ORDER_LABELS, parseStudentList, type NameOrder } from "@/lib/csv";
 
 const EXAMPLE = `Martin Camille
@@ -17,15 +18,55 @@ Bernard Noah
 Nom;Prénom;Difficulté;Commentaire
 Martin;Camille;3;Bavarde en fin d'heure`;
 
+/**
+ * Import d'une liste d'élèves, en POPUP.
+ *
+ * Il vivait en pied de page, dans un panneau qui se dépliait sur place et
+ * poussait le reste vers le bas. Il est désormais commandé depuis l'en-tête de
+ * la liste d'élèves, à côté d'« Ajouter un élève » : les deux façons de peupler
+ * une classe se lisent au même endroit, et la seconde ne déplace plus rien.
+ *
+ * Comme `StudentDialog`, la boîte est une `Modal` — donc un `<dialog>` natif —
+ * et son contenu n'est monté qu'à l'ouverture : la saisie abandonnée ne
+ * revient pas à la fois suivante.
+ */
 export function CsvImport({
+  open,
+  onClose,
   classGroupId,
   hasStudents,
 }: {
+  open: boolean;
+  onClose: () => void;
   classGroupId: string;
   hasStudents: boolean;
 }) {
+  const titleId = useId();
+
+  return (
+    <Modal open={open} onClose={onClose} labelledBy={titleId} className="max-w-lg">
+      <CsvImportForm
+        titleId={titleId}
+        classGroupId={classGroupId}
+        hasStudents={hasStudents}
+        onClose={onClose}
+      />
+    </Modal>
+  );
+}
+
+function CsvImportForm({
+  titleId,
+  classGroupId,
+  hasStudents,
+  onClose,
+}: {
+  titleId: string;
+  classGroupId: string;
+  hasStudents: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
   const [nameOrder, setNameOrder] = useState<NameOrder>("lastFirst");
   const [replaceExisting, setReplaceExisting] = useState(false);
@@ -65,32 +106,40 @@ export function CsvImport({
       router.refresh();
 
       // Les avertissements de lignes doivent rester lisibles : on ne referme
-      // le panneau que si tout est passé sans réserve.
-      if (result.data.errors.length === 0) setOpen(false);
+      // la boîte que si tout est passé sans réserve.
+      if (result.data.errors.length === 0) onClose();
     });
   }
 
-  if (!open) {
-    return (
-      <section>
-        <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-          Importer une liste d&apos;élèves
-        </Button>
-      </section>
-    );
-  }
-
   return (
-    <section className={`${CARD} p-4`}>
-      <h2 className="eyebrow">Importer une liste d&apos;élèves</h2>
-      <p className="mt-1 text-sm text-muted">
-        Un élève par ligne, en texte simple : « Martin Camille ». Vous pouvez aussi coller les
-        colonnes d&apos;un tableur ou choisir un fichier — ordre attendu : nom, prénom,
-        difficulté (1-5, facultative), commentaire (facultatif).
-      </p>
+    <form onSubmit={handleSubmit}>
+      {/* -------------------------------------------------------- en-tête */}
+      <header className="halftone flex items-start gap-3 border-b border-border p-4">
+        <div className="min-w-0 flex-1">
+          <h2 id={titleId} className="text-lg font-bold leading-tight">
+            Importer une liste d&apos;élèves
+          </h2>
+          <p className="mt-1 text-sm leading-snug text-muted">
+            Un élève par ligne, en texte simple : « Martin Camille ». Vous pouvez aussi coller
+            les colonnes d&apos;un tableur ou choisir un fichier — ordre attendu : nom, prénom,
+            difficulté (1-5, facultative), commentaire (facultatif).
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-3">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Fermer"
+          className="shrink-0 rounded-control p-1.5 text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+        >
+          <XIcon />
+        </button>
+      </header>
+
+      {/* ---------------------------------------------------------- corps */}
+      <div className="max-h-[65vh] overflow-y-auto p-4">
         <Textarea
+          autoFocus
           value={content}
           onChange={(event) => setContent(event.target.value)}
           rows={8}
@@ -174,16 +223,17 @@ export function CsvImport({
             </ul>
           </div>
         )}
+      </div>
 
-        <div className="mt-4 flex gap-2">
-          <Button type="submit" size="sm" disabled={pending || content.trim() === ""}>
-            {pending ? "Import…" : "Importer"}
-          </Button>
-          <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
-            Fermer
-          </Button>
-        </div>
-      </form>
-    </section>
+      {/* ----------------------------------------------------------- pied */}
+      <footer className="flex justify-end gap-2 border-t border-border p-4">
+        <Button type="button" size="sm" variant="secondary" onClick={onClose}>
+          Fermer
+        </Button>
+        <Button type="submit" size="sm" disabled={pending || content.trim() === ""}>
+          {pending ? "Import…" : "Importer"}
+        </Button>
+      </footer>
+    </form>
   );
 }

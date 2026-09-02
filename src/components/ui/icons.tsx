@@ -43,6 +43,20 @@ export const MoonIcon = (p: IconProps) => (
   </Icon>
 );
 
+/** Le mode « Système » : ni soleil ni lune, l'écran qui décide. */
+export const MonitorIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2" y="4" width="20" height="13" rx="2" />
+    <path d="M8 21h8M12 17v4" />
+  </Icon>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m20 6-11 11-5-5" />
+  </Icon>
+);
+
 export const PlusIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 5v14M5 12h14" />
@@ -72,6 +86,13 @@ export const UnlockIcon = (p: IconProps) => (
 export const DownloadIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 3v12M7 11l5 5 5-5M4 20h16" />
+  </Icon>
+);
+
+/** L'import : le tracé de `DownloadIcon`, la flèche retournée. */
+export const UploadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 16V4M7 8l5-5 5 5M4 20h16" />
   </Icon>
 );
 

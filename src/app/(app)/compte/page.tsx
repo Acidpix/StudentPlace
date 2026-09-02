@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AppearanceSection } from "@/components/account/appearance-section";
 import { DangerZone } from "@/components/account/danger-zone";
 import { buttonClasses } from "@/components/ui/button";
 import { CARD } from "@/components/ui/card";
@@ -58,6 +59,8 @@ export default async function AccountPage() {
             Contient vos classes, élèves, commentaires déchiffrés, salles et plans de classe.
           </p>
         </section>
+
+        <AppearanceSection />
 
         <section className={`${CARD} p-4`}>
           <h2 className="eyebrow">Confidentialité</h2>

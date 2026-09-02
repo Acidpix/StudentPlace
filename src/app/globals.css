@@ -30,6 +30,11 @@
 
    Toutes les couleurs passent par des variables : aucun composant ne code une
    teinte en dur, et changer de thème ne touche que ce fichier.
+
+   « Atelier » est la palette PAR DÉFAUT, et à ce titre la seule à ne pas
+   porter d'attribut : elle vit dans `:root` et `.dark` ci-dessous. Les cinq
+   autres sont plus bas, sous `[data-palette]`. Voir la note de spécificité qui
+   les précède avant d'en ajouter une.
 --------------------------------------------------------------------------- */
 
 :root {
@@ -185,6 +190,452 @@
   --pastille-ink: #1a1207;
 }
 
+/* ---------------------------------------------------------------------------
+   Palettes alternatives.
+
+   Chacune existe en CLAIR ET EN SOMBRE : le choix de la palette et le choix du
+   mode sont deux réglages indépendants. La palette se pose en `data-palette`
+   sur `<html>` (`palette-provider.tsx`), le mode reste la classe `dark` de
+   next-themes.
+
+   TROIS RÈGLES À NE PAS DÉFAIRE :
+
+   1. « Atelier » n'a PAS de bloc ici. C'est la palette par défaut, et le
+      fournisseur RETIRE l'attribut plutôt que d'écrire `data-palette="atelier"`.
+      Sans cela, `:root[data-palette="atelier"]` (0,2,0) l'emporterait sur le
+      `.dark` de base (0,1,0) et le thème sombre virerait au clair.
+
+   2. La sélection claire porte `:not(.dark)`. Les deux variantes pèsent alors
+      le même poids — (0,3,0) — et sont mutuellement exclusives ; toutes deux
+      passent devant le `.dark` de base, dont elles reprennent donc TOUTES les
+      variables. Une palette incomplète laisserait fuiter du corail.
+
+   3. Ce qui varie d'une palette à l'autre, ce sont les NEUTRES et la couleur
+      d'ACTION. `--accent` reste vert partout : ce n'est pas une couleur de
+      marque mais un sens — le tableau, une affinité, une classe entièrement
+      placée. `--danger` reste rouge, et garde son écart de clarté avec
+      `--primary` (voir l'invariant en tête de fichier). La palette de
+      difficulté (`domain.ts`) ne bouge dans aucune.
+
+   Les variables purement structurelles — `--elev-*`, `--radius-*`, les fontes —
+   ne sont pas redéfinies : elles n'appartiennent pas à la palette. Seul
+   `--stamp`, qui est de l'encre, suit les neutres.
+--------------------------------------------------------------------------- */
+
+/* --- Studio : gris bleutés, violet. Le thème qui a précédé « Atelier ». --- */
+:root[data-palette="studio"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #f1f3f8;
+  --surface: #ffffff;
+  --surface-muted: #e6eaf2;
+  --border: #d4dae6;
+  --foreground: #1a1f2b;
+  --muted: #626b80;
+
+  --primary: oklch(0.55 0.19 285);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.96 0.03 285);
+  --primary-glow: oklch(0.55 0.19 285 / 0.32);
+
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e0f2f0;
+
+  --danger: oklch(0.5 0.18 25);
+  --danger-glow: oklch(0.5 0.18 25 / 0.3);
+  --danger-soft: oklch(0.96 0.02 25);
+  --danger-border: oklch(0.83 0.08 25);
+  --success: #0f766e;
+
+  --stamp: rgb(26 31 43 / 0.12);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(26 31 43 / 0.025));
+
+  --mesh-a: oklch(0.55 0.19 285 / 0.09);
+  --mesh-b: rgb(15 118 110 / 0.07);
+  --mesh-c: rgb(59 130 246 / 0.07);
+  --grain-opacity: 0.035;
+
+  --halftone: rgb(26 31 43 / 0.1);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(26 31 43 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="studio"] {
+  color-scheme: dark;
+
+  --background: #0e1015;
+  --surface: #171a22;
+  --surface-muted: #20242f;
+  --border: #2f3542;
+  --foreground: #eef1f7;
+  --muted: #98a1b4;
+
+  --primary: oklch(0.7 0.16 285);
+  --primary-foreground: #150a2c;
+  --primary-soft: oklch(0.31 0.07 285);
+  --primary-glow: oklch(0.7 0.16 285 / 0.3);
+
+  --accent: #2dd4bf;
+  --accent-foreground: #04302b;
+  --accent-soft: #0f2d2a;
+
+  --danger: oklch(0.63 0.2 20);
+  --danger-glow: oklch(0.63 0.2 20 / 0.3);
+  --danger-soft: oklch(0.27 0.06 20);
+  --danger-border: oklch(0.42 0.11 20);
+  --success: #2dd4bf;
+
+  --stamp: rgb(0 0 0 / 0.55);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: oklch(0.7 0.16 285 / 0.12);
+  --mesh-b: rgb(45 212 191 / 0.08);
+  --mesh-c: rgb(59 130 246 / 0.08);
+  --grain-opacity: 0.045;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #14161c;
+  --backdrop: rgb(0 0 0 / 0.65);
+  --pastille-ink: #1a1207;
+}
+
+/* --- Encre : neutres froids, action azur. --- */
+:root[data-palette="encre"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #eaf0f6;
+  --surface: #ffffff;
+  --surface-muted: #dde6f0;
+  --border: #c8d5e3;
+  --foreground: #0e1b28;
+  --muted: #55697d;
+
+  --primary: oklch(0.53 0.15 248);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.96 0.03 248);
+  --primary-glow: oklch(0.53 0.15 248 / 0.32);
+
+  --accent: #0e766a;
+  --accent-foreground: #ffffff;
+  --accent-soft: #dff0ec;
+
+  --danger: oklch(0.5 0.17 22);
+  --danger-glow: oklch(0.5 0.17 22 / 0.3);
+  --danger-soft: oklch(0.96 0.02 22);
+  --danger-border: oklch(0.83 0.08 22);
+  --success: #0e766a;
+
+  --stamp: rgb(14 27 40 / 0.13);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(14 27 40 / 0.025));
+
+  --mesh-a: oklch(0.53 0.15 248 / 0.1);
+  --mesh-b: rgb(14 118 106 / 0.07);
+  --mesh-c: rgb(99 102 241 / 0.07);
+  --grain-opacity: 0.035;
+
+  --halftone: rgb(14 27 40 / 0.1);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(14 27 40 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="encre"] {
+  color-scheme: dark;
+
+  --background: #0a1119;
+  --surface: #121a24;
+  --surface-muted: #1a2532;
+  --border: #27333f;
+  --foreground: #e9f0f7;
+  --muted: #90a2b4;
+
+  --primary: oklch(0.71 0.13 248);
+  --primary-foreground: #06192e;
+  --primary-soft: oklch(0.3 0.06 248);
+  --primary-glow: oklch(0.71 0.13 248 / 0.3);
+
+  --accent: #2dd4bf;
+  --accent-foreground: #04302b;
+  --accent-soft: #0d2b28;
+
+  --danger: oklch(0.63 0.2 18);
+  --danger-glow: oklch(0.63 0.2 18 / 0.3);
+  --danger-soft: oklch(0.27 0.06 18);
+  --danger-border: oklch(0.42 0.11 18);
+  --success: #2dd4bf;
+
+  --stamp: rgb(0 0 0 / 0.55);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: oklch(0.71 0.13 248 / 0.12);
+  --mesh-b: rgb(45 212 191 / 0.08);
+  --mesh-c: rgb(99 102 241 / 0.08);
+  --grain-opacity: 0.045;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #10161d;
+  --backdrop: rgb(0 0 0 / 0.65);
+  --pastille-ink: #1a1207;
+}
+
+/* --- Ambre : sable et or brûlé. La plus chaude des six. --- */
+:root[data-palette="ambre"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #f4eee2;
+  --surface: #fffdf8;
+  --surface-muted: #eae1cd;
+  --border: #dcd0b4;
+  --foreground: #241f16;
+  --muted: #6f6552;
+
+  /* Or BRÛLÉ et non or vif : un ambre clair ne porterait pas de texte blanc. */
+  --primary: oklch(0.58 0.13 62);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.96 0.03 70);
+  --primary-glow: oklch(0.58 0.13 62 / 0.32);
+
+  --accent: #2f6b45;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e3efe6;
+
+  --danger: oklch(0.47 0.16 25);
+  --danger-glow: oklch(0.47 0.16 25 / 0.3);
+  --danger-soft: oklch(0.96 0.02 25);
+  --danger-border: oklch(0.82 0.08 25);
+  --success: #2f6b45;
+
+  --stamp: rgb(36 31 22 / 0.14);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(36 31 22 / 0.025));
+
+  --mesh-a: oklch(0.58 0.13 62 / 0.1);
+  --mesh-b: rgb(47 107 69 / 0.07);
+  --mesh-c: rgb(190 138 60 / 0.1);
+  --grain-opacity: 0.045;
+
+  --halftone: rgb(36 31 22 / 0.12);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(36 31 22 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="ambre"] {
+  color-scheme: dark;
+
+  --background: #14110c;
+  --surface: #1e1a13;
+  --surface-muted: #29231a;
+  --border: #3a3225;
+  --foreground: #f5f0e4;
+  --muted: #a89b83;
+
+  --primary: oklch(0.76 0.13 70);
+  --primary-foreground: #2a1a00;
+  --primary-soft: oklch(0.3 0.05 70);
+  --primary-glow: oklch(0.76 0.13 70 / 0.3);
+
+  --accent: #6ec28a;
+  --accent-foreground: #06301a;
+  --accent-soft: #142c1e;
+
+  --danger: oklch(0.63 0.2 18);
+  --danger-glow: oklch(0.63 0.2 18 / 0.3);
+  --danger-soft: oklch(0.27 0.06 18);
+  --danger-border: oklch(0.42 0.11 18);
+  --success: #6ec28a;
+
+  --stamp: rgb(0 0 0 / 0.55);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: oklch(0.76 0.13 70 / 0.12);
+  --mesh-b: rgb(110 194 138 / 0.08);
+  --mesh-c: rgb(190 138 60 / 0.09);
+  --grain-opacity: 0.05;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #1b1811;
+  --backdrop: rgb(0 0 0 / 0.65);
+  --pastille-ink: #1a1207;
+}
+
+/* --- Prune : neutres mauves, action magenta. --- */
+:root[data-palette="prune"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #f3eef4;
+  --surface: #fffcfe;
+  --surface-muted: #eae1ec;
+  --border: #dcd0e0;
+  --foreground: #221a26;
+  --muted: #6b6070;
+
+  --primary: oklch(0.55 0.2 340);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.96 0.03 340);
+  --primary-glow: oklch(0.55 0.2 340 / 0.32);
+
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e0f2f0;
+
+  /* Teinte 25 contre 340 pour l'action : c'est ici l'ÉCART DE TEINTE qui
+     sépare le rouge réservé du magenta, l'écart de clarté venant en renfort. */
+  --danger: oklch(0.47 0.17 25);
+  --danger-glow: oklch(0.47 0.17 25 / 0.3);
+  --danger-soft: oklch(0.96 0.02 25);
+  --danger-border: oklch(0.82 0.08 25);
+  --success: #0f766e;
+
+  --stamp: rgb(34 26 38 / 0.13);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 26 38 / 0.025));
+
+  --mesh-a: oklch(0.55 0.2 340 / 0.1);
+  --mesh-b: rgb(15 118 110 / 0.06);
+  --mesh-c: rgb(129 90 200 / 0.08);
+  --grain-opacity: 0.04;
+
+  --halftone: rgb(34 26 38 / 0.11);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(34 26 38 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="prune"] {
+  color-scheme: dark;
+
+  --background: #130f16;
+  --surface: #1c161f;
+  --surface-muted: #261e2a;
+  --border: #372c3c;
+  --foreground: #f3edf5;
+  --muted: #a396a8;
+
+  --primary: oklch(0.72 0.17 340);
+  --primary-foreground: #2b0620;
+  --primary-soft: oklch(0.3 0.07 340);
+  --primary-glow: oklch(0.72 0.17 340 / 0.3);
+
+  --accent: #34d399;
+  --accent-foreground: #052e21;
+  --accent-soft: #102b23;
+
+  --danger: oklch(0.62 0.2 20);
+  --danger-glow: oklch(0.62 0.2 20 / 0.3);
+  --danger-soft: oklch(0.27 0.06 20);
+  --danger-border: oklch(0.42 0.11 20);
+  --success: #34d399;
+
+  --stamp: rgb(0 0 0 / 0.55);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: oklch(0.72 0.17 340 / 0.12);
+  --mesh-b: rgb(52 211 153 / 0.08);
+  --mesh-c: rgb(129 90 200 / 0.09);
+  --grain-opacity: 0.05;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #1a151c;
+  --backdrop: rgb(0 0 0 / 0.65);
+  --pastille-ink: #1a1207;
+}
+
+/* --- Graphite : neutre, sans couleur de marque.
+   Seule palette où l'action n'est PAS colorée : le bouton plein est de
+   l'encre. Le vert et le rouge n'en ressortent que mieux — c'est le choix à
+   proposer à qui trouve l'application trop bavarde. --- */
+:root[data-palette="graphite"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #f0f0f0;
+  --surface: #ffffff;
+  --surface-muted: #e6e6e6;
+  --border: #d4d4d4;
+  --foreground: #1c1c1c;
+  --muted: #666666;
+
+  --primary: oklch(0.38 0.02 250);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.95 0.005 250);
+  --primary-glow: oklch(0.38 0.02 250 / 0.25);
+
+  --accent: #2f6f5f;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e3efec;
+
+  --danger: oklch(0.48 0.17 25);
+  --danger-glow: oklch(0.48 0.17 25 / 0.3);
+  --danger-soft: oklch(0.96 0.02 25);
+  --danger-border: oklch(0.83 0.08 25);
+  --success: #2f6f5f;
+
+  --stamp: rgb(28 28 28 / 0.13);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(28 28 28 / 0.025));
+
+  /* Un fond gris n'a pas de taches de couleur : les trois dégradés sont ici de
+     simples variations de densité. */
+  --mesh-a: rgb(28 28 28 / 0.05);
+  --mesh-b: rgb(47 111 95 / 0.05);
+  --mesh-c: rgb(28 28 28 / 0.04);
+  --grain-opacity: 0.03;
+
+  --halftone: rgb(28 28 28 / 0.1);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(28 28 28 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="graphite"] {
+  color-scheme: dark;
+
+  --background: #101010;
+  --surface: #191919;
+  --surface-muted: #232323;
+  --border: #333333;
+  --foreground: #f0f0f0;
+  --muted: #9a9a9a;
+
+  /* L'encre s'inverse : sur fond noir, le bouton plein neutre est CLAIR. */
+  --primary: oklch(0.82 0.015 250);
+  --primary-foreground: #141414;
+  --primary-soft: oklch(0.3 0.01 250);
+  --primary-glow: oklch(0.82 0.015 250 / 0.18);
+
+  --accent: #34d399;
+  --accent-foreground: #052e21;
+  --accent-soft: #102a23;
+
+  --danger: oklch(0.63 0.2 18);
+  --danger-glow: oklch(0.63 0.2 18 / 0.3);
+  --danger-soft: oklch(0.27 0.06 18);
+  --danger-border: oklch(0.42 0.11 18);
+  --success: #34d399;
+
+  --stamp: rgb(0 0 0 / 0.6);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: rgb(255 255 255 / 0.04);
+  --mesh-b: rgb(52 211 153 / 0.05);
+  --mesh-c: rgb(255 255 255 / 0.03);
+  --grain-opacity: 0.045;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #171717;
+  --backdrop: rgb(0 0 0 / 0.7);
+  --pastille-ink: #1a1207;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -213,8 +664,14 @@
   --shadow-lift: var(--elev-2);
   --shadow-float: var(--elev-3);
 
-  /* Halo des boutons pleins. La maquette n'estampe QUE les cartes : un bouton
-     y reçoit une lueur diffuse de sa propre teinte, pas l'ombre nette. */
+  /* Halo coloré, ACTUELLEMENT INEMPLOYÉ.
+     La maquette pose une lueur diffuse sous ses boutons pleins ; on l'a retirée
+     parce qu'elle se lit comme une élévation, et qu'un bouton doit être un
+     aplat (voir `button.tsx`). Les jetons `--*-glow` restent définis dans
+     chaque palette : c'est le seul endroit à toucher si l'on veut la reprendre,
+     et les supprimer des dix palettes pour les y remettre ensuite ne vaut pas
+     la peine. NE PAS rebrancher `shadow-glow` sur les boutons sans le décider
+     explicitement. */
   --shadow-glow: 0 2px 6px var(--primary-glow);
   --shadow-glow-danger: 0 2px 6px var(--danger-glow);
 
@@ -281,11 +738,9 @@ body::after {
   background-image: var(--surface-grad);
 }
 
-/* Voile clair sur les boutons pleins : la même teinte prend du volume sans
-   qu'on ait à définir deux couleurs par variante. */
-.sheen {
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(0 0 0 / 0.06));
-}
+/* `.sheen` A ÉTÉ RETIRÉE. C'était le voile clair en haut et sombre en bas des
+   boutons pleins : c'est lui qui leur donnait l'air de galets bombés. Un bouton
+   est un APLAT — voir `button.tsx`. Ne pas la réintroduire. */
 
 /* Trame de points — le « sol d'atelier » du modèle.
    Posée en CSS et non en motif SVG partout où la surface n'est pas un plan de
@@ -394,17 +849,19 @@ body::after {
   }
 
   .material,
-  .sheen,
   .halftone {
     background-image: none;
   }
 
   /* L'ombre nette est de l'encre : à l'impression elle doublerait chaque
      contour d'un aplat gris. Neutraliser `--stamp` suffit à l'éteindre dans
-     les trois niveaux d'élévation à la fois. */
+     les trois niveaux d'élévation à la fois.
+
+     `!important` et non une sélection plus précise : les blocs de palette
+     pèsent (0,3,0) et l'emporteraient sinon, palette par palette. */
   :root,
   .dark {
-    --stamp: transparent;
+    --stamp: transparent !important;
   }
 }
 

@@ -80,7 +80,10 @@ export function PlanCard({ plan }: { plan: PlanCardData }) {
           <div className="h-full rounded-full bg-accent" style={{ width: `${ratio}%` }} />
         </div>
 
-        <span className="sheen mt-3 flex h-9 items-center justify-center rounded-control bg-foreground text-xs font-semibold text-background">
+        {/* Aplat franc, comme les vrais boutons : pas de dégradé de volume.
+            C'est un `<span>` et non un `Button` — la carte entière est déjà un
+            lien, et imbriquer deux éléments interactifs serait fautif. */}
+        <span className="mt-3 flex h-9 items-center justify-center rounded-control bg-foreground text-xs font-semibold text-background">
           Ouvrir
         </span>
       </div>

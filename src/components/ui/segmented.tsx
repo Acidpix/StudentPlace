@@ -39,9 +39,11 @@ export function Track({
 /**
  * Un segment de piste.
  *
- * Le segment allumé est une pastille de surface posée sur le creux, avec
- * l'ombre nette du thème : c'est le même geste que les cartes, à l'échelle
- * d'un contrôle. Les autres restent plats et se contentent d'un survol.
+ * Le segment allumé est une pastille de SURFACE posée sur le creux, à filet
+ * fin — pas d'ombre, pas de liseré de tranche. C'est un contrôle, et un
+ * contrôle est un aplat, exactement comme les boutons (`button.tsx`) : le
+ * contraste entre le creux et la pastille suffit à dire lequel est allumé.
+ * Les autres segments restent transparents et se contentent d'un survol.
  */
 export function Segment({
   active,
@@ -72,9 +74,12 @@ export function Segment({
       className={cn(
         "inline-flex items-center gap-1.5 rounded-[0.5rem] px-2.5 py-1.5 text-xs font-medium transition-colors",
         "disabled:pointer-events-none disabled:opacity-40",
+        // Le segment éteint porte une bordure TRANSPARENTE : sans elle, il
+        // serait deux pixels plus petit que le segment allumé, et la piste
+        // sauterait à chaque bascule.
         active
-          ? "bg-surface text-foreground shadow-soft"
-          : "text-muted hover:bg-surface/70 hover:text-foreground",
+          ? "border border-border bg-surface text-foreground"
+          : "border border-transparent text-muted hover:bg-surface/70 hover:text-foreground",
       )}
     >
       {children}

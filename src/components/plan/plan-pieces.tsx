@@ -83,7 +83,9 @@ export function seatMetrics(footprint: { widthCm: number; heightCm: number }, px
     height,
     font,
     fontSmall: Math.max(6, font * 0.85),
-    ring: Math.max(2, Math.min(5, height * 0.08)),
+    // Un filet, pas un cadre : le cerclage de difficulté doit se lire sans
+    // manger la place du nom.
+    ring: Math.max(1, Math.min(2, height * 0.03)),
     radius: Math.max(4, Math.min(10, height * 0.18)),
     twoLines,
     tiny: width < 44,
