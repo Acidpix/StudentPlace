@@ -22,8 +22,9 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Passer en thème clair" : "Passer en thème sombre"}
       title={isDark ? "Thème clair" : "Thème sombre"}
-      // Carré : la taille `md` donne la hauteur, la largeur la rattrape.
-      className="w-10 px-0"
+      // Taille CARRÉE en propre : un `px-0` posé par-dessus `md` ne prend pas,
+      // `cn()` ne fusionne pas les utilitaires (voir `SIZES`, button.tsx).
+      size="icon"
     >
       {/* 22 px et non les 16 par défaut : seule icône de la barre à être seule
           dans son bouton, sans libellé à côté pour la porter. */}
@@ -34,7 +35,7 @@ export function ThemeToggle() {
           <MoonIcon width="22" height="22" />
         )
       ) : (
-        <span className="h-[22px] w-[22px]" />
+        <span className="h-[22px] w-[22px] shrink-0" />
       )}
     </Button>
   );

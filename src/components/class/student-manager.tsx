@@ -275,21 +275,22 @@ function StudentTile({
           <Button
             variant="secondary"
             onClick={onEdit}
+            size="icon-sm"
             title="Modifier"
             aria-label={`Modifier ${student.firstName} ${student.lastName}`}
-            className="h-7 w-7 px-0"
           >
-            <PencilIcon width="15" height="15" />
+            <PencilIcon />
           </Button>
           <Button
             variant="secondary"
             disabled={disabled}
             onClick={onDelete}
+            size="icon-sm"
             title="Supprimer"
             aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
-            className="h-7 w-7 px-0 text-danger hover:border-danger/50 hover:text-danger"
+            className="text-danger hover:border-danger/50 hover:text-danger"
           >
-            <TrashIcon width="15" height="15" />
+            <TrashIcon />
           </Button>
         </div>
       </div>

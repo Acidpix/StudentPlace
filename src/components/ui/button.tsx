@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "accent" | "danger" | "ink";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 /**
  * Boutons, à la forme de la maquette.
@@ -51,10 +51,28 @@ const VARIANTS: Record<ButtonVariant, string> = {
   ghost: "text-muted hover:bg-surface-muted hover:text-foreground",
 };
 
+/**
+ * Les deux tailles CARRÉES existent en propre, et ne s'obtiennent PAS en
+ * passant `px-0` en `className` par-dessus une taille normale.
+ *
+ * `cn()` est une simple concaténation, sans `tailwind-merge` : `px-4` et `px-0`
+ * se retrouvaient tous deux dans l'attribut, à spécificité égale, et c'est
+ * l'ordre de la feuille générée qui tranchait — `px-4` gagnait. Un bouton de
+ * 28 px gardait donc 32 px de rembourrage horizontal, son contenu était écrasé
+ * à zéro, et l'icône DISPARAISSAIT en laissant une case vide. Le bouton de
+ * thème, plus large, n'en gardait qu'un moignon de quelques pixels — d'où
+ * l'impression, fausse, d'une icône trop petite.
+ *
+ * Le `shrink-0` sur l'icône est la seconde moitié du remède : un enfant de
+ * flex se laisse comprimer sous sa taille intrinsèque, donc l'attribut `width`
+ * du SVG ne suffit pas à le garantir.
+ */
 const SIZES: Record<ButtonSize, string> = {
   sm: "h-8 px-3 text-sm",
   md: "h-10 px-4 text-sm",
   lg: "h-11 px-5 text-[0.9375rem]",
+  icon: "h-10 w-10 text-sm [&>svg]:shrink-0",
+  "icon-sm": "h-8 w-8 text-sm [&>svg]:shrink-0",
 };
 
 const BASE =
