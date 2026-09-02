@@ -227,12 +227,13 @@ export function StudentManager({
  * - le commentaire tient sur UNE ligne tronquée, le texte entier restant dans
  *   l'infobulle. Il est de toute façon visible en entier dans le popup.
  *
- * Les deux commandes sont TOUJOURS VISIBLES, simplement ATTÉNUÉES au repos et
- * pleines au survol ou au focus clavier. Les effacer complètement au repos
- * calmait la grille mais les rendait introuvables — et sur un écran tactile,
- * où il n'y a pas de survol, elles n'apparaissaient jamais. `opacity` et non
- * `hidden` : un bouton retiré du flux ferait sauter la mise en page à chaque
- * passage de souris.
+ * Les deux commandes sont TOUJOURS VISIBLES, ET À PLEINE OPACITÉ. Elles sont
+ * passées par deux états rejetés : effacées au repos (introuvables, et jamais
+ * révélées sur un écran tactile, où il n'y a pas de survol), puis simplement
+ * atténuées — un `ghost` en `text-muted` à 60 % d'opacité, soit une icône de
+ * 16 px presque effacée sur la trame. Ce sont désormais des boutons
+ * SECONDAIRES, donc bordés : c'est le filet, plus que l'icône, qui les fait
+ * lire comme cliquables dans une grille dense.
  */
 function StudentTile({
   student,
@@ -251,7 +252,7 @@ function StudentTile({
   ].filter((need): need is { key: string; short: string; label: string } => need !== null);
 
   return (
-    <div className={`group flex flex-col gap-1.5 p-2 ${CARD} ${CARD_INTERACTIVE}`}>
+    <div className={`flex flex-col gap-1.5 p-2 ${CARD} ${CARD_INTERACTIVE}`}>
       <div className="flex items-center gap-2">
         <DifficultyBadge difficulty={student.difficulty} size="sm" />
 
@@ -270,23 +271,25 @@ function StudentTile({
           </span>
         ))}
 
-        <div className="flex shrink-0 items-center opacity-60 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
-            variant="ghost"
+            variant="secondary"
             onClick={onEdit}
+            title="Modifier"
             aria-label={`Modifier ${student.firstName} ${student.lastName}`}
-            className="h-6 w-6 px-0"
+            className="h-7 w-7 px-0"
           >
-            <PencilIcon />
+            <PencilIcon width="15" height="15" />
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             disabled={disabled}
             onClick={onDelete}
+            title="Supprimer"
             aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
-            className="h-6 w-6 px-0 hover:text-danger"
+            className="h-7 w-7 px-0 text-danger hover:border-danger/50 hover:text-danger"
           >
-            <TrashIcon />
+            <TrashIcon width="15" height="15" />
           </Button>
         </div>
       </div>

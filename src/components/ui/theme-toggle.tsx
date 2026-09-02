@@ -25,16 +25,16 @@ export function ThemeToggle() {
       // Carré : la taille `md` donne la hauteur, la largeur la rattrape.
       className="w-10 px-0"
     >
-      {/* 20 px et non les 16 par défaut : seule icône de la barre à être seule
+      {/* 22 px et non les 16 par défaut : seule icône de la barre à être seule
           dans son bouton, sans libellé à côté pour la porter. */}
       {mounted ? (
         isDark ? (
-          <SunIcon width="20" height="20" />
+          <SunIcon width="22" height="22" />
         ) : (
-          <MoonIcon width="20" height="20" />
+          <MoonIcon width="22" height="22" />
         )
       ) : (
-        <span className="h-5 w-5" />
+        <span className="h-[22px] w-[22px]" />
       )}
     </Button>
   );
