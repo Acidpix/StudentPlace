@@ -8,12 +8,14 @@ import { DeleteClassButton } from "@/components/class/delete-class-button";
 import { RelationManager } from "@/components/class/relation-manager";
 import { StudentManager } from "@/components/class/student-manager";
 import { NewPlanDialog } from "@/components/plan/new-plan-dialog";
-import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
+import { PlanCard } from "@/components/plan/plan-card";
+import { SectionHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ArrowLeftIcon, EmptyPlanArt } from "@/components/ui/icons";
+import { PageWidth } from "@/components/ui/page-width";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
-import { toDifficulty, type RelationType } from "@/lib/domain";
+import { toDifficulty, type ObjectKind, type RelationType } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Classe" };
@@ -28,7 +30,21 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
       students: { orderBy: [{ lastName: "asc" }, { firstName: "asc" }] },
       relations: true,
       seatingPlans: {
-        include: { room: { select: { name: true } } },
+        include: {
+          // La carte de plan montre la silhouette de la salle et l'état du
+          // placement : il lui faut les meubles et le compte d'affectations.
+          room: {
+            select: {
+              name: true,
+              widthCm: true,
+              heightCm: true,
+              objects: {
+                select: { id: true, kind: true, x: true, y: true, widthCm: true, heightCm: true },
+              },
+            },
+          },
+          _count: { select: { assignments: true } },
+        },
         orderBy: { updatedAt: "desc" },
       },
     },
@@ -61,7 +77,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
   }));
 
   return (
-    <div className="space-y-8">
+    <PageWidth className="space-y-8">
       <div>
         <Link href="/classes" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
           <ArrowLeftIcon />
@@ -91,14 +107,22 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
 
       {/* Sections empilées : la grille d'élèves a besoin de toute la largeur
           pour tenir sur trois colonnes, ce qui est justement le but. */}
-      <StudentManager classGroupId={classGroup.id} students={students} />
+      {/* `relations` sert aussi à la fiche élève : la maquette 2c y montre une
+          section « relations », et elle se remplit avec les mêmes données que
+          le gestionnaire ci-dessous. */}
+      <StudentManager
+        classGroupId={classGroup.id}
+        classGroupName={classGroup.name}
+        students={students}
+        relations={relations}
+      />
 
       <RelationManager classGroupId={classGroup.id} students={students} relations={relations} />
 
       <CsvImport classGroupId={classGroup.id} hasStudents={students.length > 0} />
 
       <section>
-        <h2 className="mb-3 font-medium">Plans de classe</h2>
+        <SectionHeader title="Plans de classe" />
         {classGroup.seatingPlans.length === 0 ? (
           <EmptyState
             Illustration={EmptyPlanArt}
@@ -120,18 +144,29 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {classGroup.seatingPlans.map((plan) => (
               <li key={plan.id}>
-                <Link
-                  href={`/plans/${plan.id}`}
-                  className={`block p-4 ${CARD} ${CARD_INTERACTIVE}`}
-                >
-                  <p className="font-medium">{plan.name}</p>
-                  <p className="mt-1 text-sm text-muted">{plan.room.name}</p>
-                </Link>
+                {/* La MÊME carte que sur le tableau de bord : la page d'une
+                    classe montrait jusqu'ici le même objet en bien plus pauvre.
+                    `classGroupName` est omis — on est déjà dans la classe. */}
+                <PlanCard
+                  plan={{
+                    id: plan.id,
+                    name: plan.name,
+                    roomName: plan.room.name,
+                    seated: plan._count.assignments,
+                    total: students.length,
+                    widthCm: plan.room.widthCm,
+                    heightCm: plan.room.heightCm,
+                    objects: plan.room.objects.map((object) => ({
+                      ...object,
+                      kind: object.kind as ObjectKind,
+                    })),
+                  }}
+                />
               </li>
             ))}
           </ul>
         )}
       </section>
-    </div>
+    </PageWidth>
   );
 }

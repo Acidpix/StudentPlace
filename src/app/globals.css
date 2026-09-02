@@ -13,10 +13,17 @@
    diffus. C'est le trait dominant du langage visuel : contours fins, aplats
    crème, couleur en petites touches.
 
-   Le rouge n'est JAMAIS décoratif : il signale une place verrouillée ou une
-   incompatibilité non respectée. Aucune couleur d'action ne doit s'en
-   approcher — c'est la raison pour laquelle l'accent est violet et non chaud,
-   et c'est ce qui a écarté le corail du modèle d'origine.
+   L'ACTION EST CORAIL, LE SIGNAL RÉSERVÉ EST BRIQUE. C'est le renversement de
+   la règle précédente, qui interdisait toute couleur d'action approchant le
+   rouge et imposait un accent violet. La maquette bâtit son identité sur le
+   corail `oklch(0.72 0.14 25)` ; on le prend.
+
+   Le rouge n'en reste pas moins NON DÉCORATIF : il signale une place
+   verrouillée ou une incompatibilité non respectée, rien d'autre. Ce qui sépare
+   désormais les deux n'est plus la teinte mais la LUMINOSITÉ — le corail est
+   clair et orangé, le brique est sombre et saturé. Toute retouche de l'un des
+   deux doit préserver cet écart : deux rouges de même clarté rendraient un
+   cerclage de verrouillage indiscernable d'un bouton.
 
    Le vert de confirmation est celui du PDF (`plan-document.tsx`) : l'export
    était déjà sur une crème chaude, l'écran le rejoint au lieu de le contredire.
@@ -35,21 +42,28 @@
   --foreground: #22201f;
   --muted: #6d675e;
 
-  --primary: #6d28d9;
+  /* Le corail de la maquette, repris tel quel. */
+  --primary: oklch(0.72 0.14 25);
   --primary-foreground: #ffffff;
-  --primary-soft: #efe9fd;
+  --primary-soft: oklch(0.97 0.02 25);
+
+  /* Halo coloré posé SOUS le bouton plein. La maquette n'estampe pas ses
+     boutons — seules les cartes le sont — et leur donne à la place cette
+     lueur diffuse de leur propre teinte. */
+  --primary-glow: oklch(0.72 0.14 25 / 0.35);
 
   --accent: #0f6f5c;
   --accent-foreground: #ffffff;
   --accent-soft: #e2f1ec;
 
-  /* Le rouge reste FRANCHEMENT rouge. Le réchauffer vers l'orangé le ferait
-     entrer en concurrence avec le niveau 4 de l'échelle de difficulté
-     (`#fb923c`), et un verrouillage ne doit jamais se confondre avec une
-     pastille d'élève. Seuls le fond et la bordure suivent le papier. */
-  --danger: #dc2626;
-  --danger-soft: #fdeeea;
-  --danger-border: #f0ad9d;
+  /* Brique profond, et non plus rouge vif : c'est l'écart de LUMINOSITÉ avec le
+     corail de l'action qui porte la distinction. Il reste par ailleurs plus
+     sombre que le niveau 5 de l'échelle de difficulté (`#f87171`), donc un
+     verrouillage ne se confond pas non plus avec une pastille d'élève. */
+  --danger: oklch(0.47 0.16 22);
+  --danger-glow: oklch(0.47 0.16 22 / 0.3);
+  --danger-soft: oklch(0.96 0.02 22);
+  --danger-border: oklch(0.82 0.08 22);
   --success: #0f6f5c;
 
   /* Encre de l'ombre portée nette. Une seule variable pilote les trois
@@ -74,9 +88,9 @@
      carte cesse d'être un aplat. */
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 32 31 / 0.025));
 
-  /* Taches du dégradé de fond. La troisième est ocre : c'est elle qui réchauffe
-     le papier là où l'ancienne palette remettait du violet. */
-  --mesh-a: rgb(109 40 217 / 0.07);
+  /* Taches du dégradé de fond : corail, vert, ocre — les trois teintes de la
+     maquette, très diluées. */
+  --mesh-a: oklch(0.72 0.14 25 / 0.08);
   --mesh-b: rgb(15 111 92 / 0.07);
   --mesh-c: rgb(190 138 60 / 0.09);
 
@@ -93,6 +107,11 @@
   /* Sol de la salle : un cran plus clair que le papier de la page, pour que le
      rectangle de la salle se détache du plan de travail. */
   --room-floor: #fbf8f2;
+
+  /* Voile derrière une modale. Encre diluée plutôt que noir pur : le papier
+     doit rester perceptible dessous, c'est ce qui garde la modale « posée sur »
+     la page et non « à la place de » la page. */
+  --backdrop: rgb(34 32 31 / 0.45);
 
   /* Encre des pastilles de difficulté : volontairement très sombre, pour
      conserver un contraste suffisant sur les cinq teintes de la palette. */
@@ -111,17 +130,24 @@
   --foreground: #f3f0e9;
   --muted: #a1998a;
 
-  --primary: #a78bfa;
-  --primary-foreground: #1a1030;
-  --primary-soft: #251d3c;
+  /* Le corail est éclairci d'un cran pour tenir sur fond sombre. */
+  --primary: oklch(0.78 0.13 25);
+  --primary-foreground: #2a1008;
+  --primary-soft: oklch(0.3 0.05 25);
+  --primary-glow: oklch(0.78 0.13 25 / 0.3);
 
   --accent: #34d399;
   --accent-foreground: #052e21;
   --accent-soft: #102b23;
 
-  --danger: #f87171;
-  --danger-soft: #2c1815;
-  --danger-border: #7f2d1d;
+  /* En thème sombre l'écart ne peut plus se jouer sur la seule luminosité — un
+     brique trop foncé disparaîtrait dans le fond. Le rouge réservé est donc
+     RENDU PLUS SOMBRE ET PLUS SATURÉ que le corail, et déplacé vers une teinte
+     plus froide (18 contre 25) : les deux restent séparables. */
+  --danger: oklch(0.63 0.2 18);
+  --danger-glow: oklch(0.63 0.2 18 / 0.3);
+  --danger-soft: oklch(0.27 0.06 18);
+  --danger-border: oklch(0.42 0.11 18);
   --success: #34d399;
 
   /* Sur fond sombre l'ombre nette doit être franchement noire : à la même
@@ -140,7 +166,7 @@
 
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
 
-  --mesh-a: rgb(167 139 250 / 0.12);
+  --mesh-a: oklch(0.78 0.13 25 / 0.12);
   --mesh-b: rgb(52 211 153 / 0.08);
   --mesh-c: rgb(190 138 60 / 0.08);
 
@@ -149,6 +175,7 @@
   --halftone: rgb(255 255 255 / 0.07);
   --hatch: rgb(0 0 0 / 0.3);
   --room-floor: #1a1815;
+  --backdrop: rgb(0 0 0 / 0.65);
 
   /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
      donc sombre, inchangée. */
@@ -182,6 +209,11 @@
   --shadow-soft: var(--elev-1);
   --shadow-lift: var(--elev-2);
   --shadow-float: var(--elev-3);
+
+  /* Halo des boutons pleins. La maquette n'estampe QUE les cartes : un bouton
+     y reçoit une lueur diffuse de sa propre teinte, pas l'ombre nette. */
+  --shadow-glow: 0 2px 6px var(--primary-glow);
+  --shadow-glow-danger: 0 2px 6px var(--danger-glow);
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -235,22 +267,9 @@ body::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Filigrane de marque : posé une seule fois pour TOUT le site, et non par
-   chaque page qui en aurait besoin — `position: fixed` le fait suivre le
-   défilement partout, plan de classe compris. `z-index: -3` le place sous le
-   dégradé et le grain, qui restent la texture de fond dominante ; le
-   filigrane n'est qu'un repère discret par-dessous. Masqué à l'impression. */
-.watermark {
-  position: fixed;
-  inset: 0;
-  z-index: -3;
-  pointer-events: none;
-  background-image: url("/c.png");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 300%;
-  opacity: 0.06;
-}
+/* Le FILIGRANE DE MARQUE A ÉTÉ RETIRÉ. C'était un logo répété en fond de page,
+   sous le dégradé et le grain. Ces deux-là restent : ce sont eux la matière du
+   thème. Le fichier `public/c.png` est parti avec. */
 
 /* Matière des surfaces.
    `background-image` par-dessus la couleur de fond posée par `bg-surface` :
@@ -296,6 +315,51 @@ body::after {
   }
 }
 
+/* Boîte de dialogue modale.
+   Bâtie sur le `<dialog>` NATIF : il donne gratuitement le piège à focus, la
+   fermeture par Échap, l'inertie de la page derrière et la calque supérieure —
+   tout ce qu'une modale maison réimplémente mal.
+
+   Trois précautions, toutes obligatoires :
+
+   - `display` est piloté ICI et non par une classe utilitaire. Poser
+     `display: flex` sur un `<dialog>` le rendrait visible même FERMÉ, le
+     `display: none` par défaut du navigateur étant écrasé. D'où la paire
+     `:not([open])` / `[open]`.
+   - le panneau est centré par `margin: auto` sur l'ENFANT, et non par
+     `align-items: center`. Centrer par l'alignement rogne le haut d'un panneau
+     plus grand que la fenêtre, qui devient alors inatteignable au défilement.
+   - la boîte occupe toute la fenêtre et reste transparente : c'est ce qui donne
+     une zone cliquable autour du panneau pour fermer au clic extérieur. */
+.modal {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 1rem;
+  border: 0;
+  background: transparent;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.modal:not([open]) {
+  display: none;
+}
+
+.modal[open] {
+  display: flex;
+}
+
+.modal > * {
+  margin: auto;
+}
+
+.modal::backdrop {
+  background: var(--backdrop);
+}
+
 /* Anneau de focus homogène et toujours visible au clavier. */
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -322,8 +386,7 @@ body::after {
   }
 
   body::before,
-  body::after,
-  .watermark {
+  body::after {
     display: none;
   }
 

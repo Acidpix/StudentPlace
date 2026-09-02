@@ -5,6 +5,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { createClassGroup } from "@/actions/class-groups";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Input, Label } from "@/components/ui/field";
 import { PlusIcon } from "@/components/ui/icons";
 
@@ -53,7 +54,7 @@ export function NewClassForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-card border border-border bg-surface p-4">
+    <form onSubmit={handleSubmit} className={`w-full max-w-sm ${CARD} p-4`}>
       <div className="space-y-3">
         <div>
           <Label htmlFor="class-name">Nom de la classe</Label>
@@ -68,7 +69,7 @@ export function NewClassForm() {
       <FieldError message={error} />
 
       <div className="mt-4 flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           {pending ? "Création…" : "Créer"}
         </Button>
         <Button type="button" variant="secondary" onClick={() => setOpen(false)}>

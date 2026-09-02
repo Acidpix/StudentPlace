@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { deleteRoom, duplicateRoom } from "@/actions/rooms";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError } from "@/components/ui/field";
 
 export function RoomCardActions({ roomId, roomName }: { roomId: string; roomName: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleDuplicate() {
@@ -20,37 +23,46 @@ export function RoomCardActions({ roomId, roomName }: { roomId: string; roomName
   }
 
   function handleDelete() {
-    const confirmed = window.confirm(
-      `Supprimer la salle « ${roomName} » ?\n\nTous les plans de classe qui l'utilisent seront également supprimés.`,
-    );
-    if (!confirmed) return;
-
     startTransition(async () => {
       const result = await deleteRoom(roomId);
-      if (!result.ok) setError(result.error);
-      else router.refresh();
+      if (!result.ok) {
+        setError(result.error);
+        setConfirming(false);
+        return;
+      }
+      setConfirming(false);
+      router.refresh();
     });
   }
 
   return (
     <div className="mt-3 border-t border-border pt-3">
-      <div className="flex gap-3 text-sm">
-        <button
-          type="button"
-          onClick={handleDuplicate}
-          disabled={pending}
-          className="text-muted hover:text-foreground disabled:opacity-50"
-        >
+      {/* La confirmation passe par la modale du thème et non plus par
+          `window.confirm()`, qui ouvrait une boîte du système au milieu de
+          l'application. */}
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={handleDelete}
+        loading={pending}
+        title={`Supprimer « ${roomName} » ?`}
+        description="Tous les plans de classe qui utilisent cette salle seront également supprimés. Cette action est définitive."
+        confirmLabel="Supprimer la salle"
+      />
+
+      <div className="flex gap-1">
+        <Button variant="ghost" size="sm" onClick={handleDuplicate} disabled={pending}>
           Dupliquer
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setConfirming(true)}
           disabled={pending}
-          className="text-muted hover:text-danger disabled:opacity-50"
+          className="hover:text-danger"
         >
           Supprimer
-        </button>
+        </Button>
       </div>
       <FieldError message={error} />
     </div>

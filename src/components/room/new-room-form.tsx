@@ -5,6 +5,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { createRoom } from "@/actions/rooms";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Hint, Input, Label } from "@/components/ui/field";
 import { PlusIcon } from "@/components/ui/icons";
 
@@ -47,7 +48,7 @@ export function NewRoomForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-card border border-border bg-surface p-4">
+    <form onSubmit={handleSubmit} className={`w-full max-w-sm ${CARD} p-4`}>
       <div className="space-y-3">
         <div>
           <Label htmlFor="room-name">Nom de la salle</Label>
@@ -70,7 +71,7 @@ export function NewRoomForm() {
       <FieldError message={error} />
 
       <div className="mt-4 flex gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" loading={pending}>
           {pending ? "Création…" : "Créer"}
         </Button>
         <Button type="button" variant="secondary" onClick={() => setOpen(false)}>

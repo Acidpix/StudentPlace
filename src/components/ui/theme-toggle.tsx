@@ -3,6 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "@/components/ui/icons";
 
 export function ThemeToggle() {
@@ -16,12 +17,13 @@ export function ThemeToggle() {
   const isDark = resolvedTheme === "dark";
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label={isDark ? "Passer en thème clair" : "Passer en thème sombre"}
       title={isDark ? "Thème clair" : "Thème sombre"}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-muted hover:text-foreground"
+      // Carré : la taille `md` donne la hauteur, la largeur la rattrape.
+      className="w-10 px-0"
     >
       {mounted ? (
         isDark ? (
@@ -32,6 +34,6 @@ export function ThemeToggle() {
       ) : (
         <span className="h-4 w-4" />
       )}
-    </button>
+    </Button>
   );
 }

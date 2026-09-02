@@ -48,7 +48,12 @@ export async function updatePlanSettings(id: string, input: unknown): Promise<Ac
     },
   });
 
+  // Le NOM du plan s'affiche aussi sur le tableau de bord et sur la page de sa
+  // classe : les revalider tous les trois, sinon un renommage y reste invisible
+  // jusqu'au prochain passage à froid.
   revalidatePath(`/plans/${id}`);
+  revalidatePath("/tableau-de-bord");
+  revalidatePath(`/classes/${plan.classGroupId}`);
   return ok();
 }
 
@@ -117,7 +122,12 @@ export async function saveAssignments(input: unknown): Promise<ActionResult> {
     prisma.seatingPlan.update({ where: { id: planId }, data: { updatedAt: new Date() } }),
   ]);
 
+  // Le tableau de bord affiche le compteur « placés » et trie par date de
+  // modification : sans cette revalidation il resterait périmé, ce que
+  // l'enregistrement automatique rend d'autant plus visible.
   revalidatePath(`/plans/${planId}`);
+  revalidatePath("/tableau-de-bord");
+  revalidatePath(`/classes/${plan.classGroupId}`);
   return ok();
 }
 

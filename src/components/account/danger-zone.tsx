@@ -34,7 +34,7 @@ export function DangerZone() {
 
   return (
     <section className="rounded-card border border-danger-border bg-danger-soft p-4">
-      <h2 className="font-medium text-danger">Supprimer mon compte</h2>
+      <h2 className="eyebrow text-danger">Supprimer mon compte</h2>
       <p className="mt-2 text-sm text-danger">
         Efface définitivement votre compte et l&apos;intégralité de vos données : classes, élèves,
         commentaires, salles et plans de classe. Cette action est irréversible — pensez à exporter vos
@@ -57,7 +57,7 @@ export function DangerZone() {
           <FieldError message={error} />
 
           <div className="mt-3 flex gap-2">
-            <Button variant="danger" onClick={handleDelete} disabled={pending}>
+            <Button variant="danger" onClick={handleDelete} loading={pending}>
               {pending ? "Suppression…" : "Supprimer définitivement"}
             </Button>
             <Button variant="secondary" onClick={() => setOpen(false)}>

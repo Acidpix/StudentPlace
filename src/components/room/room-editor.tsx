@@ -8,6 +8,7 @@ import { saveRoomLayout } from "@/actions/rooms";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { LayoutPresetsPanel } from "@/components/room/layout-presets-panel";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
@@ -18,6 +19,7 @@ import {
   UndoIcon,
 } from "@/components/ui/icons";
 import { InlineRename } from "@/components/ui/inline-rename";
+import { Segment, Track } from "@/components/ui/segmented";
 import {
   GRID_CM,
   OBJECT_DEFAULT_SIZE,
@@ -490,18 +492,23 @@ export function RoomEditor({ room }: { room: RoomView }) {
               return null;
             }}
           />
-          <p className="mt-1 text-sm text-muted">
+          <p className="eyebrow mt-1.5">
             {seatCount} place{seatCount > 1 ? "s" : ""} · {layout.widthCm} × {layout.heightCm} cm
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={history.undo} disabled={!history.canUndo} aria-label="Annuler">
-            <UndoIcon />
-          </Button>
-          <Button variant="secondary" size="sm" onClick={history.redo} disabled={!history.canRedo} aria-label="Rétablir">
-            <RedoIcon />
-          </Button>
+          {/* Même vocabulaire que la barre d'outils du plan de classe : une
+              piste creuse, des segments dedans. Les deux éditeurs se
+              ressemblaient de moins en moins. */}
+          <Track>
+            <Segment onClick={history.undo} disabled={!history.canUndo} title="Annuler">
+              <UndoIcon />
+            </Segment>
+            <Segment onClick={history.redo} disabled={!history.canRedo} title="Rétablir">
+              <RedoIcon />
+            </Segment>
+          </Track>
           <Button onClick={handleSave} loading={pending} disabled={!dirty}>
             {pending ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}
           </Button>
@@ -626,7 +633,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
           </svg>
         </div>
 
-        <aside className="rounded-card border border-border bg-surface p-4 shadow-soft">
+        <aside className={`${CARD} p-4`}>
           {selected ? (
             <SelectedPanel
               object={selected}
@@ -636,16 +643,16 @@ export function RoomEditor({ room }: { room: RoomView }) {
             />
           ) : (
             <div className="text-sm text-muted">
-              <p className="font-medium text-foreground">Aucun meuble sélectionné</p>
+              <p className="font-bold">Aucun meuble sélectionné</p>
               <ul className="mt-3 space-y-1.5">
                 <li>Cliquez un meuble pour le modifier.</li>
                 <li>Faites-le glisser pour le déplacer.</li>
                 <li>
-                  <kbd className="rounded bg-surface-muted px-1">Suppr</kbd> l&apos;efface.
+                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Suppr</kbd> l&apos;efface.
                 </li>
                 <li>
-                  <kbd className="rounded bg-surface-muted px-1">Ctrl</kbd>+
-                  <kbd className="rounded bg-surface-muted px-1">Z</kbd> annule.
+                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Ctrl</kbd>+
+                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Z</kbd> annule.
                 </li>
               </ul>
               <p className="mt-4 border-t border-border pt-3">
@@ -673,7 +680,7 @@ function SelectedPanel({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-medium">{OBJECT_LABELS[object.kind]}</h2>
+        <h2 className="eyebrow">{OBJECT_LABELS[object.kind]}</h2>
         <Button size="sm" variant="ghost" onClick={onDelete} aria-label="Supprimer le meuble">
           <TrashIcon />
         </Button>

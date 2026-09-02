@@ -2,6 +2,7 @@ import { cn } from "@/lib/cn";
 import {
   DIFFICULTY_COLORS,
   DIFFICULTY_LABELS,
+  DIFFICULTY_SHORT_LABELS,
   DIFFICULTY_VALUES,
   type Difficulty,
 } from "@/lib/domain";
@@ -71,23 +72,30 @@ export function DifficultyMeter({
   className?: string;
 }) {
   return (
-    <div className={className}>
-      <p className="flex items-baseline gap-1.5 text-xs">
-        <span className="font-bold tabular-nums">{difficulty}/5</span>
-        <span className="truncate text-muted">{DIFFICULTY_LABELS[difficulty]}</span>
-      </p>
-      <div className="mt-1.5 flex gap-1" aria-hidden="true">
+    <div className={cn("flex items-center gap-3", className)}>
+      {/* Le mot en gros à gauche, comme dans la maquette. C'est lui qui porte
+          l'information ; les segments ne font que la rendre comparable d'un
+          coup d'œil entre deux élèves. */}
+      <span
+        className="shrink-0 text-sm font-bold"
+        style={{ color: DIFFICULTY_COLORS[difficulty] }}
+      >
+        {DIFFICULTY_SHORT_LABELS[difficulty]}
+      </span>
+
+      <span className="flex flex-1 gap-1" aria-hidden="true">
         {DIFFICULTY_VALUES.map((level) => (
           <span
             key={level}
-            className="h-2.5 flex-1 rounded-[3px]"
+            className="h-4 flex-1 rounded-[4px]"
             style={{
               backgroundColor:
                 level <= difficulty ? DIFFICULTY_COLORS[difficulty] : "var(--surface-muted)",
             }}
           />
         ))}
-      </div>
+      </span>
+
       <span className="sr-only">
         Difficulté {difficulty} sur 5, {DIFFICULTY_LABELS[difficulty]}
       </span>
@@ -119,7 +127,7 @@ export function DifficultyLegend({
         className,
       )}
     >
-      {!vertical && <span className="font-medium text-foreground">Difficulté :</span>}
+      {!vertical && <span className="eyebrow">Difficulté</span>}
       {([1, 2, 3, 4, 5] as const).map((level) => (
         <span key={level} className="inline-flex items-center gap-1.5">
           <DifficultyBadge difficulty={level} size="sm" />

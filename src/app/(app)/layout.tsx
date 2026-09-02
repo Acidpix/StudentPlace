@@ -7,7 +7,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       <AppNav userName={user.name} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      {/* Plus de plafond de largeur ICI : chaque page pose le sien avec
+          `PageWidth`. L'éditeur de plan de classe en demande un plus large que
+          les autres, et un layout parent ne peut pas être élargi par la page
+          qu'il contient. Le layout ne garde donc que le rembourrage. */}
+      <main className="w-full flex-1 px-4 py-8">{children}</main>
     </div>
   );
 }

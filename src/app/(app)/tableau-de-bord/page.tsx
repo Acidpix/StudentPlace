@@ -6,6 +6,7 @@ import { PlanBrowser } from "@/components/plan/plan-browser";
 import { CARD } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmptyPlanArt } from "@/components/ui/icons";
+import { PageWidth } from "@/components/ui/page-width";
 import { prisma } from "@/lib/db";
 import type { ObjectKind } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
   const isEmpty = classGroups.length === 0 && rooms.length === 0;
 
   return (
-    <div className="space-y-8">
+    <PageWidth className="space-y-8">
       {/* En-tête de la maquette 2c : la salutation EST le titre, en grand, et
           le contexte chiffré passe en sous-titre. « Tableau de bord » ne
           servait qu'à répéter l'entrée de navigation déjà surlignée. */}
@@ -132,7 +133,7 @@ export default async function DashboardPage() {
           }))}
         />
       </div>
-    </div>
+    </PageWidth>
   );
 }
 

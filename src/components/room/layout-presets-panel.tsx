@@ -3,6 +3,7 @@
 import { useMemo, useState, type ComponentType } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { Hint, Input, Label } from "@/components/ui/field";
 import {
   IslandsLayoutArt,
@@ -66,10 +67,10 @@ export function LayoutPresetsPanel({
   const selected = previews[preset];
 
   return (
-    <section className="rounded-card border border-border bg-surface p-4 shadow-soft material">
+    <section className={`${CARD} p-4`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-medium">Dispositions types</h2>
+          <h2 className="eyebrow">Dispositions types</h2>
           <p className="mt-0.5 text-sm text-muted">
             Remplace les tables de la salle. Le tableau, la porte et les fenêtres restent en place.
           </p>

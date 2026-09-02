@@ -5,6 +5,7 @@ import { NewClassForm } from "@/components/class/new-class-form";
 import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmptyClassArt } from "@/components/ui/icons";
+import { PageWidth } from "@/components/ui/page-width";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/session";
 
@@ -20,11 +21,11 @@ export default async function ClassesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <PageWidth className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Mes classes</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Mes classes</h1>
+          <p className="mt-1.5 text-sm text-muted">
             Une classe rassemble des élèves, leurs difficultés et leurs incompatibilités.
           </p>
         </div>
@@ -45,22 +46,17 @@ export default async function ClassesPage() {
                 href={`/classes/${classGroup.id}`}
                 className={`block p-4 ${CARD} ${CARD_INTERACTIVE}`}
               >
-                <p className="font-medium">{classGroup.name}</p>
+                <p className="text-base font-bold">{classGroup.name}</p>
                 {classGroup.schoolYear && (
-                  <p className="text-sm text-muted">{classGroup.schoolYear}</p>
+                  <p className="mt-0.5 text-xs text-muted">{classGroup.schoolYear}</p>
                 )}
-                <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-                  <span>
-                    <span className="text-base font-semibold tabular-nums text-foreground">
-                      {classGroup._count.students}
-                    </span>{" "}
-                    élève{classGroup._count.students > 1 ? "s" : ""}
+                <p className="eyebrow mt-3 flex flex-wrap gap-x-3 gap-y-1">
+                  <span className="tabular-nums">
+                    {classGroup._count.students} élève{classGroup._count.students > 1 ? "s" : ""}
                   </span>
-                  <span>
-                    <span className="text-base font-semibold tabular-nums text-foreground">
-                      {classGroup._count.seatingPlans}
-                    </span>{" "}
-                    plan{classGroup._count.seatingPlans > 1 ? "s" : ""} de classe
+                  <span className="tabular-nums">
+                    {classGroup._count.seatingPlans} plan
+                    {classGroup._count.seatingPlans > 1 ? "s" : ""}
                   </span>
                 </p>
               </Link>
@@ -68,6 +64,6 @@ export default async function ClassesPage() {
           ))}
         </ul>
       )}
-    </div>
+    </PageWidth>
   );
 }

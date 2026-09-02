@@ -10,11 +10,18 @@ import type { ObjectKind } from "@/lib/domain";
  * noms.
  */
 
-/** Mêmes teintes que `Furniture`, en aplats : le tableau en vert, le bureau en violet. */
+/**
+ * Mêmes teintes que `Furniture`, en aplats.
+ *
+ * Le tableau est en vert PÂLE bordé de vert soutenu, comme dans le plan : un
+ * aplat vert plein, tel qu'il était, contredisait la salle qu'il représente.
+ * Les hachures, elles, ne descendent pas jusqu'ici — à cette taille elles
+ * feraient une bouillie.
+ */
 const TONES: Partial<Record<ObjectKind, { fill: string; stroke: string }>> = {
   TABLE: { fill: "var(--surface-muted)", stroke: "var(--border)" },
   TEACHER_DESK: { fill: "var(--primary-soft)", stroke: "var(--primary)" },
-  BOARD: { fill: "var(--accent)", stroke: "var(--accent)" },
+  BOARD: { fill: "var(--accent-soft)", stroke: "var(--accent)" },
 };
 
 const FALLBACK = { fill: "transparent", stroke: "var(--border)" };

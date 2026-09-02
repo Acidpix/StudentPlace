@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition, type ChangeEvent, type FormEvent } fr
 
 import { importStudents } from "@/actions/students";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Label, Select, Textarea } from "@/components/ui/field";
 import { NAME_ORDERS, NAME_ORDER_LABELS, parseStudentList, type NameOrder } from "@/lib/csv";
 
@@ -80,8 +81,8 @@ export function CsvImport({
   }
 
   return (
-    <section className="rounded-card border border-border bg-surface p-4">
-      <h2 className="font-medium">Importer une liste d&apos;élèves</h2>
+    <section className={`${CARD} p-4`}>
+      <h2 className="eyebrow">Importer une liste d&apos;élèves</h2>
       <p className="mt-1 text-sm text-muted">
         Un élève par ligne, en texte simple : « Martin Camille ». Vous pouvez aussi coller les
         colonnes d&apos;un tableur ou choisir un fichier — ordre attendu : nom, prénom,
@@ -118,7 +119,7 @@ export function CsvImport({
             type="file"
             accept=".csv,.txt,text/csv,text/plain"
             onChange={handleFile}
-            className="text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-muted file:px-3 file:py-1.5 file:text-sm file:text-foreground"
+            className="text-sm text-muted file:mr-3 file:rounded-control file:border file:border-border file:bg-surface-muted file:px-3 file:py-1.5 file:text-sm file:text-foreground"
           />
 
           {hasStudents && (
@@ -134,7 +135,7 @@ export function CsvImport({
         </div>
 
         {replaceExisting && (
-          <p className="mt-2 rounded-lg border border-danger-border bg-danger-soft p-2 text-sm text-danger">
+          <p className="mt-2 rounded-control border border-danger-border bg-danger-soft p-2 text-sm text-danger">
             Les élèves actuels seront supprimés, avec leurs incompatibilités et leurs places
             dans tous les plans de classe qui les utilisent.
           </p>
@@ -143,7 +144,7 @@ export function CsvImport({
         <FieldError message={error} />
 
         {preview && preview.students.length > 0 && (
-          <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
+          <div className="mt-3 rounded-control border border-border bg-surface-muted p-3">
             <p className="text-sm font-medium">
               {preview.students.length} élève{preview.students.length > 1 ? "s" : ""} à importer
             </p>
@@ -164,7 +165,7 @@ export function CsvImport({
         )}
 
         {warnings.length > 0 && (
-          <div className="mt-3 rounded-lg border border-border bg-surface-muted p-3">
+          <div className="mt-3 rounded-control border border-border bg-surface-muted p-3">
             <p className="text-sm font-medium">Import terminé, avec des réserves :</p>
             <ul className="mt-1 list-inside list-disc text-sm text-muted">
               {warnings.map((warning) => (

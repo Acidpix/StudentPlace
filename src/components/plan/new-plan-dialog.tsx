@@ -5,6 +5,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { createPlan } from "@/actions/plans";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import { PlusIcon } from "@/components/ui/icons";
 
@@ -61,9 +62,9 @@ export function NewPlanDialog({
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-md rounded-card border border-border bg-surface p-4 shadow-lift"
+      className={`w-full max-w-md ${CARD} p-4 shadow-lift`}
     >
-      <h2 className="mb-3 font-medium">Nouveau plan de classe</h2>
+      <h2 className="eyebrow mb-3">Nouveau plan de classe</h2>
 
       <div className="space-y-3">
         <div>

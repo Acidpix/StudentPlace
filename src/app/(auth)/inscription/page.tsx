@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SignUpForm } from "./sign-up-form";
+import { CARD } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Créer un compte" };
@@ -11,8 +12,8 @@ export default async function SignUpPage() {
   if (await getCurrentUser()) redirect("/tableau-de-bord");
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6">
-      <h2 className="text-lg font-semibold">Créer un compte</h2>
+    <div className={`${CARD} p-6`}>
+      <h2 className="text-lg font-bold">Créer un compte</h2>
       <p className="mt-1 mb-5 text-sm text-muted">
         Votre espace est strictement personnel : vos classes ne sont visibles que par vous.
       </p>

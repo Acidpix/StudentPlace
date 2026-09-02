@@ -10,13 +10,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="flex flex-1 items-center justify-center px-4 pb-16">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center text-center">
+            {/* RONDE, comme la pastille de la barre de navigation : c'est la
+                marque du modèle, et les deux ne doivent pas diverger. */}
             <span
               aria-hidden="true"
-              className="mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-gradient-to-br from-primary to-accent text-base font-bold text-primary-foreground shadow-lift"
+              className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground shadow-lift"
             >
               SP
             </span>
-            <h1 className="text-2xl font-semibold tracking-tight">StudentPlace</h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">StudentPlace</h1>
             <p className="mt-1 text-sm text-muted">Vos plans de classe, sans le casse-tête.</p>
           </div>
           {children}

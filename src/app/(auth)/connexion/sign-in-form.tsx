@@ -63,7 +63,7 @@ export function SignInForm() {
 
       <FieldError message={error} />
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button type="submit" loading={pending} className="w-full">
         {pending ? "Connexion…" : "Se connecter"}
       </Button>
     </form>

@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition, type FormEvent } from "react";
 
 import { createRelation, deleteRelation } from "@/actions/relations";
 import { Button } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { FieldError, Label, Select } from "@/components/ui/field";
 import { TrashIcon, WarningIcon } from "@/components/ui/icons";
 import type { RelationType } from "@/lib/domain";
@@ -65,7 +66,7 @@ export function RelationManager({
   if (students.length < 2) {
     return (
       <section>
-        <h2 className="mb-3 font-medium">Incompatibilités et affinités</h2>
+        <h2 className="eyebrow mb-3">Incompatibilités et affinités</h2>
         <p className="rounded-card border border-dashed border-border p-6 text-center text-sm text-muted">
           Ajoutez au moins deux élèves pour déclarer une relation.
         </p>
@@ -75,13 +76,13 @@ export function RelationManager({
 
   return (
     <section>
-      <h2 className="mb-1 font-medium">Incompatibilités et affinités</h2>
+      <h2 className="eyebrow mb-1">Incompatibilités et affinités</h2>
       <p className="mb-3 text-sm text-muted">
         Deux élèves incompatibles ne seront jamais assis à proximité l&apos;un de l&apos;autre ; le
         contraire est signalé en rouge dans l&apos;éditeur.
       </p>
 
-      <form onSubmit={handleSubmit} className="rounded-card border border-border bg-surface p-4">
+      <form onSubmit={handleSubmit} className={`${CARD} p-4`}>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="studentAId">Élève</Label>
@@ -116,7 +117,7 @@ export function RelationManager({
 
         <FieldError message={error} />
 
-        <Button type="submit" size="sm" className="mt-3" disabled={pending}>
+        <Button type="submit" size="sm" className="mt-3" loading={pending}>
           {pending ? "Ajout…" : "Ajouter la relation"}
         </Button>
       </form>
@@ -163,8 +164,8 @@ function RelationList({
   tone: "danger" | "neutral";
 }) {
   return (
-    <div className="rounded-card border border-border bg-surface p-4">
-      <h3 className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+    <div className={`${CARD} p-4`}>
+      <h3 className="eyebrow mb-2 flex items-center gap-1.5">
         {tone === "danger" && <WarningIcon className="text-danger" />}
         {title}
       </h3>
@@ -180,15 +181,16 @@ function RelationList({
                 <span className="mx-1.5 text-muted">↔</span>
                 {nameById.get(relation.studentBId) ?? "?"}
               </span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onDelete(relation.id)}
                 disabled={pending}
                 aria-label="Supprimer la relation"
-                className="text-muted hover:text-danger disabled:opacity-50"
+                className="hover:text-danger"
               >
                 <TrashIcon />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

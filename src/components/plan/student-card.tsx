@@ -45,6 +45,7 @@ export function StudentCard({
   pinned,
   relations,
   onTogglePin,
+  onEdit,
   onRemove,
   onClose,
 }: {
@@ -54,6 +55,8 @@ export function StudentCard({
   pinned: boolean;
   relations: StudentCardRelation[];
   onTogglePin: () => void;
+  /** Ouvre la fiche en popup, la seule forme MODIFIABLE de cette fiche. */
+  onEdit: () => void;
   onRemove: () => void;
   onClose: () => void;
 }) {
@@ -162,9 +165,18 @@ export function StudentCard({
             {pinned ? <UnlockIcon /> : <LockIcon />}
             {pinned ? "Déverrouiller" : "Verrouiller ici"}
           </Button>
-          <Button size="sm" variant="secondary" onClick={onRemove} className="w-full">
-            Retirer du plan
-          </Button>
+
+          {/* La ligne finale de la maquette : un bouton plein à l'encre, un
+              bouton bordé à côté. « Modifier » ouvre la fiche en popup — la
+              même que celle de la page de classe. */}
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="ink" onClick={onEdit} className="flex-1">
+              Modifier
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onRemove}>
+              Retirer
+            </Button>
+          </div>
         </div>
       </div>
     </section>

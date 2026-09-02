@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { buttonClasses } from "@/components/ui/button";
+import { CARD } from "@/components/ui/card";
 import { DownloadIcon } from "@/components/ui/icons";
 
 /**
@@ -27,13 +29,14 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
   const sensitive = includeComments || includeDifficulty;
 
   return (
-    <div className="material rounded-card border border-border bg-surface p-3 shadow-soft">
-      <h2 className="mb-2 text-sm font-medium">Export PDF</h2>
+    <div className={`${CARD} p-3`}>
+      <h2 className="eyebrow mb-2">Export PDF</h2>
 
       <div className="space-y-1.5 text-sm">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-primary"
             checked={includeRoster}
             onChange={(event) => setIncludeRoster(event.target.checked)}
           />
@@ -42,6 +45,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-primary"
             checked={includeDifficulty}
             onChange={(event) => setIncludeDifficulty(event.target.checked)}
           />
@@ -50,6 +54,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
+            className="accent-primary"
             checked={includeComments}
             onChange={(event) => setIncludeComments(event.target.checked)}
           />
@@ -67,7 +72,7 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
         href={`/api/plans/${planId}/pdf?${params.toString()}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-medium text-primary-foreground shadow-soft hover:brightness-110"
+        className={buttonClasses("primary", "sm", "mt-3 w-full")}
       >
         <DownloadIcon />
         Télécharger le PDF
@@ -75,8 +80,8 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
 
       <p className="mt-2 text-xs text-muted">
         Le plan de classe est exporté tel qu&apos;il est affiché,{" "}
-        {mirrored ? "vue depuis le bureau" : "vue du dessus"}. Enregistrez vos modifications avant
-        d&apos;exporter.
+        {mirrored ? "vue depuis le bureau" : "vue du dessus"}. Les modifications sont enregistrées
+        automatiquement : il reflète toujours ce que vous voyez.
       </p>
     </div>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { GridIcon, LayoutIcon, SettingsIcon, UsersIcon } from "@/components/ui/icons";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { authClient } from "@/lib/auth-client";
@@ -84,14 +85,9 @@ export function AppNav({ userName }: { userName: string }) {
               compteur, pas au nom d'une personne. */}
           <span className="hidden text-sm text-muted sm:inline">{userName}</span>
           <ThemeToggle />
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="rounded-control border border-border px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-          >
-            {signingOut ? "…" : "Déconnexion"}
-          </button>
+          <Button variant="secondary" onClick={handleSignOut} loading={signingOut}>
+            Déconnexion
+          </Button>
         </div>
       </div>
     </header>

@@ -119,6 +119,22 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   5: "Très perturbateur",
 };
 
+/**
+ * Les mêmes niveaux en UN MOT.
+ *
+ * La jauge à cinq segments met le libellé en gros, à gauche des segments : un
+ * « Difficulté marquée » sur deux lignes y écraserait les segments. Ce sont
+ * bien les mêmes cinq niveaux, seulement abrégés — la forme longue reste celle
+ * des listes, des infobulles et des lecteurs d'écran.
+ */
+export const DIFFICULTY_SHORT_LABELS: Record<Difficulty, string> = {
+  1: "Aucune",
+  2: "Légère",
+  3: "Moyenne",
+  4: "Marquée",
+  5: "Très forte",
+};
+
 export function toDifficulty(value: number): Difficulty {
   const clamped = Math.min(5, Math.max(1, Math.round(value)));
   return clamped as Difficulty;

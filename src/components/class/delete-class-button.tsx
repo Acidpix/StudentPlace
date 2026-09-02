@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 
 import { deleteClassGroup } from "@/actions/class-groups";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError } from "@/components/ui/field";
 
 export function DeleteClassButton({
@@ -16,18 +17,15 @@ export function DeleteClassButton({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleDelete() {
-    const confirmed = window.confirm(
-      `Supprimer définitivement la classe « ${classGroupName} » ?\n\nSes élèves, leurs commentaires, leurs incompatibilités et tous ses plans de classe seront effacés. Cette action est irréversible.`,
-    );
-    if (!confirmed) return;
-
     startTransition(async () => {
       const result = await deleteClassGroup(classGroupId);
       if (!result.ok) {
         setError(result.error);
+        setConfirming(false);
         return;
       }
       router.push("/classes");
@@ -37,8 +35,18 @@ export function DeleteClassButton({
 
   return (
     <div>
-      <Button variant="secondary" onClick={handleDelete} disabled={pending}>
-        {pending ? "Suppression…" : "Supprimer la classe"}
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={handleDelete}
+        loading={pending}
+        title={`Supprimer « ${classGroupName} » ?`}
+        description="Ses élèves, leurs commentaires, leurs incompatibilités et tous ses plans de classe seront effacés. Cette action est irréversible."
+        confirmLabel="Supprimer la classe"
+      />
+
+      <Button variant="secondary" onClick={() => setConfirming(true)} disabled={pending}>
+        Supprimer la classe
       </Button>
       <FieldError message={error} />
     </div>

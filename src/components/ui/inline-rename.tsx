@@ -105,7 +105,7 @@ export function InlineRename({
           }}
           className={cn(
             "w-full max-w-xl rounded-control border border-primary bg-surface px-2 py-1",
-            "text-2xl font-semibold tracking-tight outline-none ring-2 ring-primary/25",
+            "text-2xl font-bold tracking-tight sm:text-3xl outline-none ring-2 ring-primary/25",
             "disabled:opacity-60",
             className,
           )}
@@ -117,7 +117,7 @@ export function InlineRename({
 
   return (
     <div>
-      <Tag className={cn("text-2xl font-semibold tracking-tight", className)}>
+      <Tag className={cn("text-2xl font-bold tracking-tight sm:text-3xl", className)}>
         <button
           type="button"
           onClick={() => setEditing(true)}

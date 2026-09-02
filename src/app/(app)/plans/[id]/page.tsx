@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PlanEditor } from "@/components/plan/plan-editor";
+import { PageWidth } from "@/components/ui/page-width";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
 import { toDifficulty, type ObjectKind, type RelationType } from "@/lib/domain";
@@ -29,6 +30,31 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   });
 
   if (!plan) notFound();
+
+  /**
+   * Tous les plans du compte, pour le sélecteur de la barre d'outils.
+   *
+   * Requête séparée et volontairement MAIGRE — quatre champs par plan, aucun
+   * meuble, aucune place : elle ne sert qu'à remplir un menu. Le tri par nom de
+   * classe puis nom de plan est celui de l'affichage, groupé par classe.
+   */
+  const plans = (
+    await prisma.seatingPlan.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true,
+        name: true,
+        classGroup: { select: { name: true } },
+        room: { select: { name: true } },
+      },
+      orderBy: [{ classGroup: { name: "asc" } }, { name: "asc" }],
+    })
+  ).map((entry) => ({
+    id: entry.id,
+    name: entry.name,
+    classGroupName: entry.classGroup.name,
+    roomName: entry.room.name,
+  }));
 
   const students: StudentView[] = plan.classGroup.students.map((student) => ({
     id: student.id,
@@ -79,19 +105,25 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
   }));
 
   return (
-    <PlanEditor
-      plan={{
-        id: plan.id,
-        name: plan.name,
-        mirrored: plan.mirrored,
-        proximityCm: plan.proximityCm,
-        classGroupId: plan.classGroupId,
-        classGroupName: plan.classGroup.name,
-      }}
-      room={room}
-      students={students}
-      relations={relations}
-      initialAssignments={assignments}
-    />
+    // `wide` : la seule page du site à sortir des 72 rem. Les deux colonnes
+    // latérales de l'éditeur mangeaient la moitié de la largeur utile, et il ne
+    // restait qu'environ 660 px au plan lui-même.
+    <PageWidth wide>
+      <PlanEditor
+        plan={{
+          id: plan.id,
+          name: plan.name,
+          mirrored: plan.mirrored,
+          proximityCm: plan.proximityCm,
+          classGroupId: plan.classGroupId,
+          classGroupName: plan.classGroup.name,
+        }}
+        plans={plans}
+        room={room}
+        students={students}
+        relations={relations}
+        initialAssignments={assignments}
+      />
+    </PageWidth>
   );
 }

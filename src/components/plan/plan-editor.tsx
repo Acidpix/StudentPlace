@@ -11,9 +11,10 @@ import {
 } from "@dnd-kit/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { saveAssignments, updatePlanSettings } from "@/actions/plans";
+import { StudentDialog, type StudentDialogRelation } from "@/components/class/student-dialog";
 import { ExportPdfPanel } from "@/components/plan/export-pdf-panel";
 import {
   SeatSpot,
@@ -28,6 +29,7 @@ import {
 import { StudentCard, type StudentCardRelation } from "@/components/plan/student-card";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DifficultyLegend } from "@/components/ui/difficulty-badge";
 import { FieldError, Input } from "@/components/ui/field";
 import {
@@ -41,6 +43,7 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "@/components/ui/icons";
+import { Segment, Track } from "@/components/ui/segmented";
 import { cn } from "@/lib/cn";
 import { SEAT_CARD_MAX_HEIGHT_CM, SEAT_CARD_MAX_WIDTH_CM } from "@/lib/domain";
 import { conflictingSeatIds, findProximityConflicts } from "@/lib/placement/conflicts";
@@ -82,6 +85,25 @@ interface PlanMeta {
   classGroupName: string;
 }
 
+/** Une entrée du sélecteur de plans de la barre supérieure. */
+export interface PlanOption {
+  id: string;
+  name: string;
+  classGroupName: string;
+  roomName: string;
+}
+
+/**
+ * Délai d'inactivité avant enregistrement automatique.
+ *
+ * Assez long pour qu'un glisser-déposer suivi d'un autre ne déclenche qu'un
+ * seul aller-retour, assez court pour que la fenêtre de perte reste courte si
+ * l'onglet est fermé brutalement — un `beforeunload` couvre le reste.
+ */
+const AUTOSAVE_DELAY_MS = 800;
+
+type SaveState = "clean" | "pending" | "saving" | "saved" | "error";
+
 /** Poids d'inertie d'« Améliorer » : retoucher, et non tout rebrasser. */
 const IMPROVE_STABILITY = 250;
 
@@ -93,12 +115,15 @@ type PlaceMode = "fresh" | "variant" | "improve";
 
 export function PlanEditor({
   plan,
+  plans,
   room,
   students,
   relations,
   initialAssignments,
 }: {
   plan: PlanMeta;
+  /** Tous les plans du compte, pour le sélecteur de la barre supérieure. */
+  plans: PlanOption[];
   room: RoomView;
   students: StudentView[];
   relations: RelationView[];
@@ -113,10 +138,14 @@ export function PlanEditor({
   const [mirrored, setMirrored] = useState(plan.mirrored);
   const [proximityCm, setProximityCm] = useState(plan.proximityCm);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  /** Élève ouvert dans le popup de fiche, ou `null` si le popup est fermé. */
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [draggingStudentId, setDraggingStudentId] = useState<string | null>(null);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>("clean");
+  /** « Vider le plan de classe » attend confirmation. */
+  const [clearing, setClearing] = useState(false);
   const [solving, setSolving] = useState(false);
   const [variant, setVariant] = useState(0);
   const [lastRun, setLastRun] = useState<{
@@ -128,7 +157,6 @@ export function PlanEditor({
   // 0 = pas encore connue ; la hauteur de la fenêtre de plan se déduit de
   // l'écran, qui n'existe pas au rendu serveur.
   const [planHeight, setPlanHeight] = useState(0);
-  const [pending, startTransition] = useTransition();
 
   /**
    * La fenêtre de plan n'est plus redimensionnable à la main : sa hauteur suit
@@ -212,9 +240,10 @@ export function PlanEditor({
     return desk ? { x: desk.x + desk.widthCm / 2, y: desk.y + desk.heightCm / 2 } : null;
   }, [room.objects]);
 
+  /** Toute modification du placement passe par ici, et arme l'enregistrement. */
   const mutate = useCallback((next: SeatAssignments) => {
     setAssignments(next);
-    setDirty(true);
+    setSaveState("pending");
   }, []);
 
   // Place et état de l'élève sélectionné, pour la fiche du panneau latéral.
@@ -227,25 +256,55 @@ export function PlanEditor({
   }, [selectedStudentId, studentById, assignments]);
 
   /**
-   * Relations de l'élève sélectionné, l'AUTRE élève déjà résolu.
+   * Relations d'un élève, l'AUTRE élève déjà résolu.
    *
    * `StudentRelation` est normalisée (`studentAId < studentBId`), donc l'élève
    * courant peut se trouver d'un côté comme de l'autre : c'est ici qu'on tranche,
    * la fiche n'a pas à connaître cette convention.
    */
-  const selectionRelations = useMemo<StudentCardRelation[]>(() => {
-    const id = selection?.student.id;
-    if (!id) return [];
+  const relationsOf = useCallback(
+    (studentId: string): StudentCardRelation[] =>
+      relations
+        .filter(
+          (relation) => relation.studentAId === studentId || relation.studentBId === studentId,
+        )
+        .map((relation) => {
+          const otherId =
+            relation.studentAId === studentId ? relation.studentBId : relation.studentAId;
+          const other = studentById.get(otherId);
+          return other ? { id: relation.id, type: relation.type, other } : null;
+        })
+        .filter((entry): entry is StudentCardRelation => entry !== null),
+    [relations, studentById],
+  );
 
-    return relations
-      .filter((relation) => relation.studentAId === id || relation.studentBId === id)
-      .map((relation) => {
-        const otherId = relation.studentAId === id ? relation.studentBId : relation.studentAId;
-        const other = studentById.get(otherId);
-        return other ? { id: relation.id, type: relation.type, other } : null;
-      })
-      .filter((entry): entry is StudentCardRelation => entry !== null);
-  }, [selection, relations, studentById]);
+  const selectionRelations = useMemo(
+    () => (selection ? relationsOf(selection.student.id) : []),
+    [selection, relationsOf],
+  );
+
+  /**
+   * L'élève ouvert dans le popup.
+   *
+   * Tiré de son PROPRE identifiant et non de la sélection : sans cela, cliquer
+   * une autre place pendant que le popup est ouvert le ferait changer d'élève
+   * sous les doigts, et fermer la fiche du panneau laisserait le popup armé
+   * pour la sélection suivante.
+   */
+  const editingStudent = editingStudentId ? (studentById.get(editingStudentId) ?? null) : null;
+
+  /** Les mêmes relations, dans la forme attendue par le popup. */
+  const dialogRelations = useMemo<StudentDialogRelation[]>(
+    () =>
+      editingStudent
+        ? relationsOf(editingStudent.id).map((relation) => ({
+            id: relation.id,
+            type: relation.type,
+            otherName: studentFullName(relation.other),
+          }))
+        : [],
+    [editingStudent, relationsOf],
+  );
 
   // ------------------------------------------------------- glisser-déposer
 
@@ -345,50 +404,85 @@ export function PlanEditor({
   }
 
   function handleClear() {
-    if (
-      !window.confirm(
-        "Retirer tous les élèves du plan de classe ? Les places verrouillées sont conservées.",
-      )
-    ) {
-      return;
-    }
     mutate(keepOnlyPinned(assignments));
     setViolations([]);
     setLastRun(null);
+    setClearing(false);
   }
 
-  function handleSave() {
+  /**
+   * Enregistre le plan de classe. Appelée par l'anti-rebond, jamais à la main.
+   *
+   * Volontairement HORS de `startTransition` : une transition sert à ne pas
+   * bloquer l'interface pendant un rendu coûteux, alors qu'ici on ne veut que
+   * connaître l'issue d'un aller-retour serveur. L'état `saveState` suffit à
+   * l'annoncer.
+   */
+  const save = useCallback(async () => {
+    setSaveState("saving");
     setError(null);
 
-    startTransition(async () => {
-      const [assignmentsResult, settingsResult] = await Promise.all([
-        saveAssignments({ planId: plan.id, assignments: toAssignmentList(assignments) }),
-        updatePlanSettings(plan.id, { name, mirrored, proximityCm }),
-      ]);
+    const [assignmentsResult, settingsResult] = await Promise.all([
+      saveAssignments({ planId: plan.id, assignments: toAssignmentList(assignments) }),
+      updatePlanSettings(plan.id, { name, mirrored, proximityCm }),
+    ]);
 
-      if (!assignmentsResult.ok) {
-        setError(assignmentsResult.error);
-        return;
-      }
-      if (!settingsResult.ok) {
-        setError(settingsResult.error);
-        return;
-      }
+    const failure = !assignmentsResult.ok
+      ? assignmentsResult.error
+      : !settingsResult.ok
+        ? settingsResult.error
+        : null;
 
-      setDirty(false);
-      router.refresh();
-    });
-  }
+    if (failure) {
+      setError(failure);
+      setSaveState("error");
+      return;
+    }
 
-  /** Renommage en ligne : les réglages en cours partent avec le nouveau nom. */
-  async function handleRename(nextName: string): Promise<string | null> {
-    const result = await updatePlanSettings(plan.id, { name: nextName, mirrored, proximityCm });
-    if (!result.ok) return result.error;
+    setSaveState("saved");
+  }, [plan.id, assignments, name, mirrored, proximityCm]);
 
-    setName(nextName);
-    router.refresh();
-    return null;
-  }
+  /**
+   * ENREGISTREMENT AUTOMATIQUE.
+   *
+   * Le bouton « Enregistrer » a disparu : composer un plan de classe est une
+   * suite de petits gestes, et devoir penser à les valider était le seul moment
+   * où l'on pouvait tout perdre.
+   *
+   * `saveState` gouverne le cycle. Seul `"pending"` déclenche : les mutations
+   * le posent, ce qui évite d'enregistrer au montage — un effet dépendant des
+   * données seules serait parti dès le premier rendu — et évite aussi de
+   * réenregistrer en boucle après un succès.
+   *
+   * Le minuteur est reposé à chaque frappe : un renommage lettre à lettre ne
+   * donne qu'un seul aller-retour.
+   *
+   * Pas de `router.refresh()` : il rerendrait la page serveur à chaque
+   * enregistrement, donc à chaque déplacement d'élève. Les actions revalident
+   * déjà les pages CONCERNÉES côté serveur ; la page courante, elle, affiche
+   * l'état local, qui est par construction le plus à jour.
+   */
+  useEffect(() => {
+    if (saveState !== "pending") return;
+
+    const timer = setTimeout(() => void save(), AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [saveState, save]);
+
+  /**
+   * Garde-fou de fermeture.
+   *
+   * L'anti-rebond ouvre une fenêtre courte mais réelle pendant laquelle une
+   * modification n'est pas encore partie. Fermer l'onglet à cet instant la
+   * perdrait sans un mot.
+   */
+  useEffect(() => {
+    if (saveState !== "pending" && saveState !== "saving") return;
+
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [saveState]);
 
   /**
    * Paires de relations, prêtes à l'affichage en pastilles.
@@ -428,6 +522,31 @@ export function PlanEditor({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="space-y-4">
+        {/* La fiche élève MODIFIABLE est un popup, la même que sur la page de
+            classe. La carte du panneau de droite en reste la forme en
+            lecture. Après enregistrement, `router.refresh()` renvoie les
+            élèves à jour SANS remonter cet éditeur : le placement en cours,
+            qui vit dans l'état local, survit à la modification. */}
+        <ConfirmDialog
+          open={clearing}
+          onClose={() => setClearing(false)}
+          onConfirm={handleClear}
+          title="Vider le plan de classe ?"
+          description="Tous les élèves sont retirés du plan. Les places verrouillées, elles, sont conservées."
+          confirmLabel="Vider le plan"
+        />
+
+        {editingStudent && (
+          <StudentDialog
+            open
+            onClose={() => setEditingStudentId(null)}
+            classGroupId={plan.classGroupId}
+            student={editingStudent}
+            contextLabel={`${plan.classGroupName} · ${room.name}`}
+            relations={dialogRelations}
+          />
+        )}
+
         <div className="print-hidden">
           <Link
             href={`/classes/${plan.classGroupId}`}
@@ -455,12 +574,13 @@ export function PlanEditor({
         <div className="material overflow-hidden rounded-card border border-border bg-surface shadow-lift">
           {/* ------------------------------------------ barre supérieure */}
           <div className="print-hidden flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
-            <InlinePlanName name={name} onRename={handleRename} />
+            <InlinePlanName name={name} onRename={setName} />
 
-            <span className="flex items-center gap-2 rounded-control border border-border bg-surface-muted/60 px-2.5 py-1.5">
-              <span className="text-xs font-semibold">{plan.classGroupName}</span>
-              <span className="eyebrow">{room.name}</span>
-            </span>
+            <PlanSwitcher
+              currentId={plan.id}
+              plans={plans}
+              onSelect={(id) => router.push(`/plans/${id}`)}
+            />
 
             <span className="eyebrow rounded-control bg-accent-soft px-2 py-1.5 text-accent">
               {assignments.size}/{students.length} placés
@@ -474,6 +594,11 @@ export function PlanEditor({
 
             <span className="flex-1" />
 
+            <SaveIndicator state={saveState} onRetry={() => void save()} />
+
+            {/* Les trois boutons de la maquette : deux discrets à filet fin,
+                puis l'action pleine. Plus de bouton « Enregistrer » — voir
+                l'enregistrement automatique plus haut. */}
             <Button
               size="sm"
               variant="secondary"
@@ -502,9 +627,6 @@ export function PlanEditor({
               <SparkIcon />
               Placer automatiquement
             </Button>
-            <Button size="sm" onClick={handleSave} loading={pending} disabled={!dirty}>
-              {pending ? "Enregistrement…" : dirty ? "Enregistrer" : "Enregistré"}
-            </Button>
           </div>
 
           {/* ------------------------------------------- les trois colonnes */}
@@ -532,7 +654,7 @@ export function PlanEditor({
                 mirrored={mirrored}
                 onSetMirrored={(value) => {
                   setMirrored(value);
-                  setDirty(true);
+                  setSaveState("pending");
                 }}
                 zoom={zoom}
                 onZoom={setZoom}
@@ -723,6 +845,7 @@ export function PlanEditor({
                   pinned={selection.pinned}
                   relations={selectionRelations}
                   onTogglePin={() => mutate(togglePin(assignments, selection.seatId))}
+                  onEdit={() => setEditingStudentId(selection.student.id)}
                   onRemove={() => {
                     mutate(unassignStudent(assignments, selection.student.id));
                     setSelectedStudentId(null);
@@ -754,7 +877,7 @@ export function PlanEditor({
                   value={proximityCm}
                   onChange={(event) => {
                     setProximityCm(Math.max(0, Number(event.target.value)));
-                    setDirty(true);
+                    setSaveState("pending");
                   }}
                 />
                 <p className="mt-1.5 text-xs leading-snug text-muted">
@@ -809,7 +932,12 @@ export function PlanEditor({
               Retire tous les élèves du plan de classe. Les places verrouillées sont conservées.
             </p>
             <div className="mt-auto pt-4">
-              <Button variant="secondary" size="sm" className="w-full" onClick={handleClear}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full"
+                onClick={() => setClearing(true)}
+              >
                 Vider le plan de classe
               </Button>
             </div>
@@ -843,18 +971,22 @@ function InlinePlanName({
   onRename,
 }: {
   name: string;
-  onRename: (name: string) => Promise<string | null>;
+  /**
+   * Pose simplement le nouveau nom. Le renommage n'appelle plus l'action
+   * lui-même : l'enregistrement automatique de l'éditeur s'en charge, comme de
+   * toute autre modification.
+   */
+  onRename: (name: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!editing) setDraft(name);
   }, [name, editing]);
 
-  async function commit() {
+  function commit() {
     const next = draft.trim();
     if (next === name) {
       setEditing(false);
@@ -866,14 +998,7 @@ function InlinePlanName({
       return;
     }
 
-    setSaving(true);
-    const message = await onRename(next);
-    setSaving(false);
-
-    if (message) {
-      setError(message);
-      return;
-    }
+    onRename(next);
     setError(null);
     setEditing(false);
   }
@@ -885,14 +1010,13 @@ function InlinePlanName({
           autoFocus
           value={draft}
           maxLength={80}
-          disabled={saving}
           aria-label="Nouveau nom du plan de classe"
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              void commit();
+              commit();
             } else if (event.key === "Escape") {
               event.preventDefault();
               setDraft(name);
@@ -900,7 +1024,7 @@ function InlinePlanName({
               setEditing(false);
             }
           }}
-          className="w-48 rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25 disabled:opacity-60"
+          className="w-48 rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25"
         />
         <FieldError message={error} />
       </div>
@@ -1022,61 +1146,6 @@ function CanvasToolbar({
   );
 }
 
-/** Le fond creux d'une piste segmentée. */
-function Track({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-control bg-surface-muted/70 p-0.5">
-      {children}
-    </div>
-  );
-}
-
-/**
- * Un segment de piste.
- *
- * Le segment allumé est une pastille de surface posée sur le creux, avec
- * l'ombre nette du thème : c'est le même geste que les cartes, à l'échelle
- * d'un contrôle. Les autres restent plats et se contentent d'un survol.
- */
-function Segment({
-  active,
-  disabled = false,
-  title,
-  onClick,
-  children,
-}: {
-  /**
-   * Non renseigné pour un segment qui DÉCLENCHE (verrouiller, zoomer) ; un
-   * booléen pour un segment qui représente un ÉTAT (l'orientation de la vue).
-   * `aria-pressed` n'est posé que dans le second cas : sur un simple bouton
-   * d'action, il annoncerait à tort un interrupteur toujours relâché.
-   */
-  active?: boolean;
-  disabled?: boolean;
-  title?: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-pressed={active}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-[0.5rem] px-2.5 py-1.5 text-xs font-medium transition-colors",
-        "disabled:pointer-events-none disabled:opacity-40",
-        active
-          ? "bg-surface text-foreground shadow-soft"
-          : "text-muted hover:bg-surface/70 hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
  * Nuage de pastilles « À séparer » / « À rapprocher ».
  *
@@ -1115,5 +1184,102 @@ function RelationPills({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Sélecteur de plan de classe, dans la barre supérieure.
+ *
+ * C'est la pastille « classe · salle » de la maquette, qui y porte un chevron
+ * sans rien faire : elle devient ici un vrai menu vers les autres plans du
+ * compte. Passer d'un plan à l'autre était jusqu'ici un aller-retour par le
+ * tableau de bord.
+ *
+ * Un `<select>` NATIF, habillé : le clavier, le tactile et les lecteurs
+ * d'écran sont acquis, là où un menu maison demanderait de tout réimplémenter.
+ * `appearance-none` retire le chevron du système, redessiné à côté pour suivre
+ * le thème ; le `<select>` reste posé PAR-DESSUS en transparence, si bien que
+ * c'est bien lui qu'on clique.
+ *
+ * Les options sont groupées par classe : un professeur a plusieurs plans par
+ * classe — « Groupe A », « Éval » — et c'est la classe qu'il cherche d'abord.
+ */
+function PlanSwitcher({
+  currentId,
+  plans,
+  onSelect,
+}: {
+  currentId: string;
+  plans: PlanOption[];
+  onSelect: (id: string) => void;
+}) {
+  const groups = useMemo(() => {
+    const byClass = new Map<string, PlanOption[]>();
+    for (const entry of plans) {
+      const list = byClass.get(entry.classGroupName);
+      if (list) list.push(entry);
+      else byClass.set(entry.classGroupName, [entry]);
+    }
+    return [...byClass];
+  }, [plans]);
+
+  const current = plans.find((entry) => entry.id === currentId);
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2 rounded-control border border-border bg-surface-muted/60 px-2.5 py-1.5">
+        <span className="text-xs font-semibold">{current?.classGroupName}</span>
+        <span className="eyebrow">{current?.roomName}</span>
+        <span aria-hidden="true" className="text-[0.6rem] text-muted">
+          ▾
+        </span>
+      </div>
+
+      <select
+        value={currentId}
+        onChange={(event) => {
+          if (event.target.value !== currentId) onSelect(event.target.value);
+        }}
+        aria-label="Changer de plan de classe"
+        className="absolute inset-0 w-full cursor-pointer appearance-none rounded-control opacity-0"
+      >
+        {groups.map(([classGroupName, entries]) => (
+          <optgroup key={classGroupName} label={classGroupName}>
+            {entries.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name} — {entry.roomName}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/**
+ * État de l'enregistrement automatique, à la place du bouton « Enregistrer ».
+ *
+ * Il ne dit rien tant que rien n'a changé : un « Enregistré » permanent sur un
+ * plan qu'on vient d'ouvrir est du bruit. Il n'apparaît qu'une fois qu'il a
+ * quelque chose à annoncer, et l'échec est le seul état qui rende la main —
+ * un bouton pour retenter.
+ */
+function SaveIndicator({ state, onRetry }: { state: SaveState; onRetry: () => void }) {
+  if (state === "clean") return null;
+
+  if (state === "error") {
+    return (
+      <Button size="sm" variant="danger" onClick={onRetry}>
+        <WarningIcon />
+        Échec — réessayer
+      </Button>
+    );
+  }
+
+  return (
+    <span className="eyebrow whitespace-nowrap" role="status">
+      {state === "saved" ? "Enregistré" : "Enregistrement…"}
+    </span>
   );
 }
