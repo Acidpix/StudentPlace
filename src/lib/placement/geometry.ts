@@ -116,8 +116,11 @@ export function generateSeatPositions(
  *     colonne, avec 25 % de jeu — un rang de plus loin se lit mal quand les
  *     cartes s'empilent bord à bord.
  *  2. La largeur suit alors le plus petit écart HORIZONTAL parmi les SEULES
- *     paires de places dont les bandes verticales se chevauchent, avec 6 % de
+ *     paires de places dont les bandes verticales se chevauchent, avec 4 % de
  *     jeu pour que deux étiquettes voisines ne se touchent pas tout à fait.
+ *     Ce jeu est mince à dessein : chaque centimètre laissé là est un
+ *     centimètre de moins pour le nom, et les cartes ont un cadre qui les
+ *     sépare déjà.
  *
  * La version précédente prenait en plus la plus petite distance tous azimuts,
  * ce qui bridait toute la salle au voisin le plus proche quelle que soit sa
@@ -167,7 +170,7 @@ export function seatFootprintCm(
 
   const widthCm = Math.min(
     maxWidthCm,
-    Number.isFinite(minRowGap) ? minRowGap * 0.94 : maxWidthCm,
+    Number.isFinite(minRowGap) ? minRowGap * 0.96 : maxWidthCm,
   );
 
   return { widthCm, heightCm };

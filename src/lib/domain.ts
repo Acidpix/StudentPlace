@@ -189,9 +189,11 @@ export const ROOM_MAX_CM = 3000;
  * plafond rognerait le gain et l'élargissement n'aurait servi à rien : une
  * table de 230 cm à deux places rend des cartes de 108 cm.
  *
- * La HAUTEUR reste bien plus basse que la largeur : l'étiquette ne tient que
- * sur une ligne, et une carte haute n'y ajouterait que du vide tout en
- * rapprochant deux rangs voisins.
+ * La HAUTEUR reste plus basse que la largeur — l'étiquette ne tient que sur une
+ * ligne — mais assez ample pour que la carte soit un BLOC, pas un filet de
+ * texte : c'est une cible de dépose, elle doit se viser à la souris, et une
+ * classe entière de cartes trop plates se lit comme un tableau de chiffres.
+ * Le rapport de 2 pour 1 est celui de la maquette.
  */
-export const SEAT_CARD_MAX_WIDTH_CM = 120;
-export const SEAT_CARD_MAX_HEIGHT_CM = 48;
+export const SEAT_CARD_MAX_WIDTH_CM = 130;
+export const SEAT_CARD_MAX_HEIGHT_CM = 62;

@@ -24,6 +24,7 @@ import {
   TrayStudent,
   parseDraggableId,
   parseSeatDroppableId,
+  planLabelStyle,
   seatMetrics,
 } from "@/components/plan/plan-pieces";
 import { StudentCard, type StudentCardRelation } from "@/components/plan/student-card";
@@ -199,6 +200,11 @@ export function PlanEditor({
     [seats],
   );
   const metrics = useMemo(() => seatMetrics(footprint, pxPerCm), [footprint, pxPerCm]);
+
+  // Forme et corps de texte COMMUNS à toute la classe : c'est le nom le plus
+  // long qui les fixe, pour qu'aucun ne soit coupé et qu'aucun ne s'affiche
+  // plus gros qu'un autre. Se recalcule quand la fenêtre change d'échelle.
+  const labels = useMemo(() => planLabelStyle(students, metrics), [students, metrics]);
 
   /**
    * La salle bride-t-elle les étiquettes ?
@@ -700,7 +706,7 @@ export function PlanEditor({
                     vide se creusait alors avant la légende. En laissant le
                     conteneur se réduire à son contenu, il ne défile que si la
                     salle dépasse réellement le budget de hauteur. */}
-                <div className="overflow-auto" style={{ maxHeight: planHeight || "80vh" }}>
+                <div className="overflow-auto" style={{ maxHeight: planHeight || "88vh" }}>
                   <div
                     className="relative mx-auto"
                     style={{
@@ -767,6 +773,7 @@ export function PlanEditor({
                             leftPercent={(flipX(seat.x) / room.widthCm) * 100}
                             topPercent={(flipY(seat.y) / room.heightCm) * 100}
                             metrics={metrics}
+                            labels={labels}
                             onSelect={() => setSelectedStudentId(student?.id ?? null)}
                           />
                         );
