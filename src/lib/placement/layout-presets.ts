@@ -91,16 +91,45 @@ const ISLAND_GAP_Y_CM = 70;
 /** Une table porte deux élèves dans toutes les dispositions types. */
 const SEATS_PER_TABLE = 2;
 
+interface TableSize {
+  widthCm: number;
+  heightCm: number;
+}
+
 /**
  * La table de référence : celle du barème pour deux places. Passer par
  * `tableWidthForSeats()` plutôt que par une constante propre garantit que les
  * tables posées par une disposition type et celles ajoutées à la main depuis la
  * palette ont exactement le même écartement de places.
  */
-const TABLE_SIZE = {
+const TABLE_SIZE: TableSize = {
   widthCm: tableWidthForSeats(SEATS_PER_TABLE),
   heightCm: OBJECT_DEFAULT_SIZE.TABLE.heightCm,
 };
+
+/**
+ * En deçà, l'écartement des places repasse sous les 75 cm et les noms du plan
+ * de classe redeviennent illisibles. On préfère alors annoncer un `shortfall`.
+ */
+const TABLE_MIN_WIDTH_CM = 150;
+
+/**
+ * Largeurs essayées, de la plus généreuse à la plus serrée.
+ *
+ * LA TABLE EST AUSSI LARGE QUE LA SALLE LE PERMET. Le barème vise la
+ * lisibilité des étiquettes, pas le réalisme : à 190 cm, une salle de 9 m ne
+ * loge plus que trois colonnes de tables au lieu de quatre, et une classe de
+ * trente s'y retrouverait à l'étroit. Plutôt que de trancher une fois pour
+ * toutes entre « lisible » et « tout le monde assis », on essaie les largeurs
+ * dans l'ordre et l'on s'arrête à la première qui loge la classe entière —
+ * c'est donc la CLASSE, et non une constante, qui décide de la finesse des
+ * tables.
+ */
+const TABLE_WIDTH_CHOICES: number[] = (() => {
+  const widths: number[] = [];
+  for (let width = TABLE_SIZE.widthCm; width >= TABLE_MIN_WIDTH_CM; width -= 10) widths.push(width);
+  return widths.length > 0 ? widths : [TABLE_MIN_WIDTH_CM];
+})();
 
 /** Bornes du nombre de places demandé. */
 export const PRESET_SEAT_MIN = 2;
@@ -136,8 +165,13 @@ function countAlong(availableCm: number, itemCm: number, gapCm: number): number 
  * centre est donc la seule façon de raisonner identiquement sur une table à
  * plat et sur une table pivotée d'un quart de tour.
  */
-function tableAt(cx: number, cy: number, rotation: 0 | 90, seatCount = SEATS_PER_TABLE): PresetObject {
-  const size = TABLE_SIZE;
+function tableAt(
+  size: TableSize,
+  cx: number,
+  cy: number,
+  rotation: 0 | 90,
+  seatCount = SEATS_PER_TABLE,
+): PresetObject {
   return {
     kind: "TABLE",
     x: snapToGrid(cx - size.widthCm / 2),
@@ -186,8 +220,12 @@ function defaultFixtures(widthCm: number): PresetObject[] {
 
 // -------------------------------- Rangées -----------------------------------
 
-function rowsTables(widthCm: number, heightCm: number, wanted: number): PresetObject[] {
-  const size = TABLE_SIZE;
+function rowsTables(
+  widthCm: number,
+  heightCm: number,
+  wanted: number,
+  size: TableSize,
+): PresetObject[] {
   const front = frontClearanceCm(heightCm);
 
   const columns = countAlong(widthCm - 2 * WALL_MARGIN_CM, size.widthCm, AISLE_X_CM);
@@ -206,7 +244,9 @@ function rowsTables(widthCm: number, heightCm: number, wanted: number): PresetOb
     const startX = (widthCm - rowWidth) / 2 + size.widthCm / 2;
 
     for (let column = 0; column < inRow; column++) {
-      tables.push(tableAt(startX + column * pitchX, front + size.heightCm / 2 + row * pitchY, 0));
+      tables.push(
+        tableAt(size, startX + column * pitchX, front + size.heightCm / 2 + row * pitchY, 0),
+      );
     }
   }
 
@@ -225,8 +265,12 @@ function rowsTables(widthCm: number, heightCm: number, wanted: number): PresetOb
  * couloir de distance. C'est le double fer à cheval, et c'est bien plus fidèle
  * à ce qu'un professeur ferait que d'aller entasser des tables au milieu.
  */
-function uShapeTables(widthCm: number, heightCm: number, wanted: number): PresetObject[] {
-  const size = TABLE_SIZE;
+function uShapeTables(
+  widthCm: number,
+  heightCm: number,
+  wanted: number,
+  size: TableSize,
+): PresetObject[] {
   const front = frontClearanceCm(heightCm);
   const side = sideClearanceCm(heightCm);
   const tables: PresetObject[] = [];
@@ -269,15 +313,15 @@ function uShapeTables(widthCm: number, heightCm: number, wanted: number): Preset
     const baseWidth = base * size.widthCm;
     const baseStartX = (widthCm - baseWidth) / 2 + size.widthCm / 2;
     for (let index = 0; index < base; index++) {
-      tables.push(tableAt(baseStartX + index * size.widthCm, baseY, 0));
+      tables.push(tableAt(size, baseStartX + index * size.widthCm, baseY, 0));
     }
 
     // Les bras se remplissent depuis la base vers le tableau : ce sont les
     // tables du haut qui disparaissent quand la classe est plus petite.
     for (let index = 0; index < arm; index++) {
       const cy = armBottom - size.widthCm / 2 - index * size.widthCm;
-      tables.push(tableAt(armX, cy, 90));
-      tables.push(tableAt(widthCm - armX, cy, 90));
+      tables.push(tableAt(size, armX, cy, 90));
+      tables.push(tableAt(size, widthCm - armX, cy, 90));
     }
 
     remaining -= placed;
@@ -294,8 +338,12 @@ function uShapeTables(widthCm: number, heightCm: number, wanted: number): Preset
  * de meuble « îlot », qui n'aurait servi qu'ici et qu'il aurait fallu enseigner
  * au solveur comme au PDF.
  */
-function islandTables(widthCm: number, heightCm: number, wanted: number): PresetObject[] {
-  const size = TABLE_SIZE;
+function islandTables(
+  widthCm: number,
+  heightCm: number,
+  wanted: number,
+  size: TableSize,
+): PresetObject[] {
   const front = frontClearanceCm(heightCm);
   const islandHeight = size.heightCm * 2;
 
@@ -318,8 +366,8 @@ function islandTables(widthCm: number, heightCm: number, wanted: number): Preset
 
     for (let column = 0; column < inRow; column++) {
       const cx = startX + column * pitchX;
-      tables.push(tableAt(cx, topY + size.heightCm / 2, 0));
-      tables.push(tableAt(cx, topY + size.heightCm * 1.5, 0));
+      tables.push(tableAt(size, cx, topY + size.heightCm / 2, 0));
+      tables.push(tableAt(size, cx, topY + size.heightCm * 1.5, 0));
     }
   }
 
@@ -334,6 +382,13 @@ function islandTables(widthCm: number, heightCm: number, wanted: number): Preset
  * `seatTarget` est un SOUHAIT, pas une garantie : la salle a le dernier mot.
  * Le `shortfall` renvoyé permet à l'éditeur de le dire plutôt que de laisser
  * croire que tout le monde est assis.
+ *
+ * Les tables sont posées AUSSI LARGES QUE LA SALLE LE PERMET : on essaie les
+ * largeurs de la plus généreuse à la plus serrée et l'on garde la première qui
+ * loge la classe entière. Une table large écarte ses places, donc agrandit les
+ * étiquettes du plan de classe ; mais asseoir tout le monde passe avant la
+ * taille des noms. Faute de largeur suffisante, on retient celle qui offre le
+ * plus de places et l'on annonce le manque.
  */
 export function generatePresetLayout(
   preset: LayoutPresetId,
@@ -346,14 +401,44 @@ export function generatePresetLayout(
   );
   const wantedTables = Math.ceil(target / SEATS_PER_TABLE);
 
-  const tables =
-    preset === "ROWS"
-      ? rowsTables(room.widthCm, room.heightCm, wantedTables)
-      : preset === "U_SHAPE"
-        ? uShapeTables(room.widthCm, room.heightCm, wantedTables)
-        : islandTables(room.widthCm, room.heightCm, wantedTables);
+  let tables: PresetObject[] = [];
+  let seatCount = 0;
+  let chosen = false;
 
-  const seatCount = tables.reduce((total, table) => total + table.seatCount, 0);
+  for (const widthCm of TABLE_WIDTH_CHOICES) {
+    const size: TableSize = { widthCm, heightCm: TABLE_SIZE.heightCm };
+    const candidate =
+      preset === "ROWS"
+        ? rowsTables(room.widthCm, room.heightCm, wantedTables, size)
+        : preset === "U_SHAPE"
+          ? uShapeTables(room.widthCm, room.heightCm, wantedTables, size)
+          : islandTables(room.widthCm, room.heightCm, wantedTables, size);
+
+    const candidateSeats = candidate.reduce((total, table) => total + table.seatCount, 0);
+
+    // Les largeurs sont essayées de la plus grande à la plus petite : à égalité,
+    // c'est donc la table la plus large qui reste en place. Rétrécir sans rien
+    // gagner ne ferait que réduire les étiquettes du plan de classe.
+    //
+    // Deux critères, dans cet ordre : loger la classe, puis y employer le MOINS
+    // DE TABLES possible. Le second n'a d'effet que sur le U, seule disposition
+    // qui puisse dépasser la demande — elle emboîte un second fer à cheval dès
+    // que le premier ne suffit plus. Des tables plus fines y tiennent parfois
+    // en un seul U, ce qui vaut mieux qu'un double U aux tables larges.
+    if (
+      !chosen ||
+      (candidateSeats >= target
+        ? seatCount < target || candidate.length < tables.length
+        : candidateSeats > seatCount)
+    ) {
+      tables = candidate;
+      seatCount = candidateSeats;
+      chosen = true;
+    }
+
+    // Impossible de faire mieux qu'une table par paire d'élèves demandée.
+    if (seatCount >= target && tables.length <= wantedTables) break;
+  }
 
   return {
     tables,

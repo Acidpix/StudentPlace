@@ -118,11 +118,11 @@ function PaletteChoice({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        "material w-full rounded-card border bg-surface p-3 text-left",
-        "transition-[border-color,box-shadow,transform] duration-150",
+        "w-full rounded-card border bg-surface p-3 text-left",
+        "transition-[border-color,background-color] duration-150",
         selected
-          ? "border-primary shadow-lift"
-          : "border-border shadow-soft hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lift",
+          ? "border-primary"
+          : "border-border hover:border-primary/50 hover:bg-surface-muted/40",
       )}
     >
       <div className="flex items-center justify-between gap-2">

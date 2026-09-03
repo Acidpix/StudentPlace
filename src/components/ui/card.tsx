@@ -11,24 +11,32 @@ import { cn } from "@/lib/cn";
  * ment ; une chaîne de classes se compose partout avec `cn()`.
  */
 /**
- * `material` ajoute le dégradé vertical défini dans globals.css : il se pose
- * en `background-image` par-dessus la couleur de `bg-surface`, donc les deux se
- * cumulent au lieu de se remplacer.
+ * UNE CARTE EST UN APLAT, exactement comme un bouton (`button.tsx`).
+ *
+ * Deux choses ont été retirées et ne doivent pas revenir :
+ *
+ * - `material`, le dégradé vertical des surfaces. La classe n'existe plus dans
+ *   globals.css ; la remettre ici ne ferait plus rien.
+ * - `shadow-soft`, l'ombre nette décalée. Les jetons `--elev-*` valent `none`,
+ *   donc les utilitaires `shadow-*` sont eux aussi devenus muets.
+ *
+ * Ce qui détache une carte de la page est le FILET de `--border` et l'écart
+ * entre `bg-surface` et `bg-background`. Rien d'autre.
  */
-export const CARD = "material rounded-card border border-border bg-surface shadow-soft";
+export const CARD = "rounded-card border border-border bg-surface";
 
 /**
  * Réaction au survol des cartes cliquables. À combiner avec `CARD`.
  *
- * La carte S'ÉCARTE DE SON OMBRE plutôt que de simplement monter : elle glisse
- * de 2 px vers le haut ET vers la gauche, pendant que l'ombre nette passe de
- * 2 px (`shadow-soft`) à 4 px (`shadow-lift`). Le décalage double donc dans
- * l'axe de l'ombre — c'est le geste du modèle, et il rend le survol lisible
- * sans changer de couleur de fond.
+ * Elle se lisait à un DÉPLACEMENT : la carte s'écartait de son ombre de 2 px en
+ * diagonale pendant que celle-ci doublait. Sans ombre, le glissement n'était
+ * plus qu'un sursaut sans cause — il est parti avec elle. Le survol se lit
+ * désormais comme partout ailleurs dans l'application : la teinte change, le
+ * filet passe au corail et le fond au gris de surface.
  */
 export const CARD_INTERACTIVE =
-  "transition-[border-color,box-shadow,transform] duration-150 " +
-  "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lift";
+  "transition-[border-color,background-color] duration-150 " +
+  "hover:border-primary/50 hover:bg-surface-muted/40";
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   interactive?: boolean;

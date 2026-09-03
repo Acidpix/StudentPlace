@@ -8,10 +8,14 @@
 /* ---------------------------------------------------------------------------
    Palette « Atelier » — pop art atténué.
 
-   Papier chaud et encre brune plutôt que gris bleutés ; le relief se lit à une
-   OMBRE PORTÉE NETTE, décalée et sans flou (`--stamp`), et non plus à un halo
-   diffus. C'est le trait dominant du langage visuel : contours fins, aplats
-   crème, couleur en petites touches.
+   Papier chaud et encre brune plutôt que gris bleutés. Le langage visuel tient
+   en trois mots : CONTOURS FINS, APLATS CRÈME, COULEUR EN PETITES TOUCHES.
+
+   AUCUN EFFET DE VOLUME NULLE PART — ni ombre portée, ni dégradé de surface,
+   ni liseré de tranche, sur aucun élément. La règle valait déjà pour les
+   boutons ; elle vaut maintenant pour les cartes, les panneaux, les modales et
+   les étiquettes du plan. Ce qui sépare deux plans est le FILET et la teinte du
+   fond, jamais une élévation. Voir `--elev-*` plus bas.
 
    L'ACTION EST CORAIL, LE SIGNAL RÉSERVÉ EST BRIQUE. C'est le renversement de
    la règle précédente, qui interdisait toute couleur d'action approchant le
@@ -71,26 +75,30 @@
   --danger-border: oklch(0.82 0.08 22);
   --success: #0f6f5c;
 
-  /* Encre de l'ombre portée nette. Une seule variable pilote les trois
-     niveaux : changer d'intensité ne demande pas de les réécrire. */
+  /* Encre de l'ombre portée nette, ACTUELLEMENT INEMPLOYÉE — voir `--elev-*`
+     juste dessous. Conservée dans les dix palettes pour pouvoir revenir en
+     arrière sans les rouvrir une à une. */
   --stamp: rgb(34 32 31 / 0.13);
 
-  /* Ombres étagées. Chacune combine trois choses :
-     — le LISERÉ INTÉRIEUR clair sur la tranche haute, qui empêche la carte
-       d'être un aplat ;
-     — l'OMBRE NETTE décalée, sans flou, qui donne le trait « imprimé » ;
-     — à partir du niveau 2, un halo très dilué qui décolle la carte du papier.
-     Trois niveaux : posé, soulevé, flottant. */
-  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.6), 2px 2px 0 var(--stamp);
-  --elev-2:
-    inset 0 1px 0 rgb(255 255 255 / 0.6), 4px 4px 0 var(--stamp),
-    0 10px 24px rgb(34 32 31 / 0.07);
-  --elev-3:
-    inset 0 1px 0 rgb(255 255 255 / 0.6), 7px 7px 0 var(--stamp),
-    0 18px 40px rgb(34 32 31 / 0.1);
+  /* AUCUN EFFET DE VOLUME, NULLE PART. La règle du bouton — un aplat, pas de
+     dégradé de tranche, pas d'ombre portée — vaut désormais pour TOUTE
+     l'interface : cartes, panneaux, modales, étiquettes d'élèves.
 
-  /* Dégradé vertical des surfaces : quelques pour cent suffisent à ce qu'une
-     carte cesse d'être un aplat. */
+     Les trois niveaux restent DÉCLARÉS et branchés sur `--shadow-soft/lift/
+     float` : ils ne portent simplement plus rien. C'est le même parti que les
+     jetons `--*-glow` — un seul endroit à retoucher pour rétablir le relief,
+     sans avoir à recomposer dix palettes. Les valeurs d'origine (liseré
+     intérieur clair + ombre nette décalée de 2/4/7 px) sont dans l'historique.
+
+     Le RELIEF SE LIT DONC AU CONTOUR : filet de `--border`, et la teinte du
+     fond pour distinguer les plans. Ne pas rebrancher une élévation ici sans
+     le décider explicitement. */
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: none;
+
+  /* Dégradé vertical des surfaces, inemployé lui aussi depuis le retrait de
+     `.material` : c'était l'autre moitié du volume. */
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 32 31 / 0.025));
 
   /* Taches du dégradé de fond : corail, vert, ocre — les trois teintes de la
@@ -158,19 +166,14 @@
   --danger-border: oklch(0.42 0.11 18);
   --success: #34d399;
 
-  /* Sur fond sombre l'ombre nette doit être franchement noire : à la même
-     opacité que le thème clair, elle disparaîtrait dans le fond. */
+  /* Inemployée, comme en thème clair. */
   --stamp: rgb(0 0 0 / 0.55);
 
-  /* En thème sombre le liseré intérieur est à peine blanc : plus marqué, il
-     ferait ressortir un contour laiteux autour de chaque carte. */
-  --elev-1: inset 0 1px 0 rgb(255 255 255 / 0.05), 2px 2px 0 var(--stamp);
-  --elev-2:
-    inset 0 1px 0 rgb(255 255 255 / 0.06), 4px 4px 0 var(--stamp),
-    0 10px 24px rgb(0 0 0 / 0.4);
-  --elev-3:
-    inset 0 1px 0 rgb(255 255 255 / 0.07), 7px 7px 0 var(--stamp),
-    0 18px 44px rgb(0 0 0 / 0.5);
+  /* Redéclarés à `none` par symétrie : ce bloc ne doit jamais rendre à une
+     carte le relief que `:root` lui retire. */
+  --elev-1: none;
+  --elev-2: none;
+  --elev-3: none;
 
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
 
@@ -655,11 +658,14 @@
   --color-success: var(--success);
 
   /* Rayons resserrés d'un cran : le modèle dessine des cartes à 14 px et des
-     contrôles à 9-10 px. Au-delà, l'ombre nette décalée cesse de se lire comme
-     un décalage et devient une écharpe. */
+     contrôles à 9-10 px. */
   --radius-card: 0.875rem;
   --radius-control: 0.625rem;
 
+  /* Les trois utilitaires d'ombre restent branchés, mais leurs jetons valent
+     `none` : `shadow-soft` ne rend plus rien. Ils ne sont plus employés dans le
+     balisage — les y remettre serait sans effet, et les rebrancher demande de
+     redéfinir `--elev-*`. */
   --shadow-soft: var(--elev-1);
   --shadow-lift: var(--elev-2);
   --shadow-float: var(--elev-3);
@@ -731,12 +737,12 @@ body::after {
    sous le dégradé et le grain. Ces deux-là restent : ce sont eux la matière du
    thème. Le fichier `public/c.png` est parti avec. */
 
-/* Matière des surfaces.
-   `background-image` par-dessus la couleur de fond posée par `bg-surface` :
-   les deux se cumulent, donc la classe s'ajoute sans rien remplacer. */
-.material {
-  background-image: var(--surface-grad);
-}
+/* `.material` A ÉTÉ RETIRÉE, pour la même raison que `.sheen` ci-dessous et le
+   même jour : c'était le dégradé vertical des surfaces, le voile clair en haut
+   et sombre en bas des cartes, des panneaux et des modales. Avec l'ombre nette,
+   c'est lui qui faisait bomber les surfaces. Une carte est un APLAT cerné d'un
+   filet, comme un bouton. Ne pas la réintroduire : le jeton `--surface-grad`
+   reste défini dans les dix palettes, il suffirait à la rétablir. */
 
 /* `.sheen` A ÉTÉ RETIRÉE. C'était le voile clair en haut et sombre en bas des
    boutons pleins : c'est lui qui leur donnait l'air de galets bombés. Un bouton
@@ -848,21 +854,15 @@ body::after {
     display: none;
   }
 
-  .material,
   .halftone {
     background-image: none;
   }
 
-  /* L'ombre nette est de l'encre : à l'impression elle doublerait chaque
-     contour d'un aplat gris. Neutraliser `--stamp` suffit à l'éteindre dans
-     les trois niveaux d'élévation à la fois.
-
-     `!important` et non une sélection plus précise : les blocs de palette
-     pèsent (0,3,0) et l'emporteraient sinon, palette par palette. */
-  :root,
-  .dark {
-    --stamp: transparent !important;
-  }
+  /* Il n'y a plus rien à éteindre ici : l'ombre nette a quitté toute
+     l'interface (`--elev-*: none`) et `.material` a été retirée. La
+     neutralisation de `--stamp` à l'impression est donc partie avec. Si le
+     relief revenait un jour, elle devrait revenir aussi — et avec son
+     `!important`, les blocs de palette pesant (0,3,0). */
 }
 
 @media (prefers-reduced-motion: reduce) {

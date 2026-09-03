@@ -137,7 +137,7 @@ function StudentDialogForm({
       <header className="halftone flex items-center gap-3 border-b border-border p-4">
         <span
           aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-primary-soft text-sm font-bold text-primary shadow-soft"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-primary-soft text-sm font-bold text-primary"
         >
           {initials}
         </span>
@@ -168,7 +168,7 @@ function StudentDialogForm({
               aria-label="Nom de famille"
               placeholder="Nom"
               maxLength={60}
-              className="w-full min-w-0 rounded-[0.375rem] bg-transparent text-lg font-bold uppercase leading-tight outline-none transition-colors placeholder:font-normal placeholder:normal-case placeholder:text-muted hover:bg-surface/70 focus:bg-surface focus:ring-2 focus:ring-primary/30"
+              className="w-full min-w-0 rounded-[0.375rem] bg-transparent text-lg font-bold leading-tight outline-none transition-colors placeholder:font-normal placeholder:text-muted hover:bg-surface/70 focus:bg-surface focus:ring-2 focus:ring-primary/30"
             />
           </div>
 

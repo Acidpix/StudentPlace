@@ -74,15 +74,21 @@ export function seatMetrics(footprint: { widthCm: number; heightCm: number }, px
   // pixels ; en dessous, mieux vaut une seule ligne bien lisible que deux
   // illisibles.
   const twoLines = height >= 30 && width >= 46;
+
+  // La taille du texte suit les DEUX dimensions, et non la seule hauteur.
+  // Une carte basse et large gardait un texte minuscule alors qu'elle avait de
+  // la place ; une carte haute et étroite recevait au contraire un texte trop
+  // gros pour sa largeur, et `fitStudentLabel()` la faisait retomber sur les
+  // initiales là où un cran de moins aurait affiché le prénom entier.
   const font = twoLines
-    ? Math.max(7, Math.min(13, height * 0.3))
-    : Math.max(6, Math.min(13, height * 0.42));
+    ? Math.max(7, Math.min(15, height * 0.3, width * 0.22))
+    : Math.max(6, Math.min(15, height * 0.42, width * 0.3));
 
   return {
     width,
     height,
     font,
-    fontSmall: Math.max(6, font * 0.85),
+    fontSmall: Math.max(6, font * 0.82),
     // Un filet, pas un cadre : le cerclage de difficulté doit se lire sans
     // manger la place du nom.
     ring: Math.max(1, Math.min(2, height * 0.03)),
@@ -397,10 +403,13 @@ function SeatedStudent({
         // dessine à l'intérieur du cadre, donc il ne se dispute ni la bordure
         // (sélection, survol, conflit) ni l'`outline` (verrouillage), et les
         // trois restent lisibles ensemble.
-        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}, var(--elev-1)`,
+        // L'ombre portée qui accompagnait ce cerclage est partie : plus rien
+        // n'a de volume dans l'application, une étiquette moins que tout le
+        // reste — elles sont des dizaines côte à côte sur le plan.
+        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}`,
       }}
       className={cn(
-        "material relative flex h-full w-full items-center overflow-hidden border-2 transition-colors",
+        "relative flex h-full w-full items-center overflow-hidden border-2 transition-colors",
         conflicted
           ? "border-dashed border-danger bg-danger-soft"
           : selected
@@ -431,7 +440,7 @@ function SeatedStudent({
         {/* Ligne 2 : nom de famille. */}
         {secondary && (
           <span
-            className="w-full truncate uppercase tracking-wide text-muted"
+            className="w-full truncate tracking-wide text-muted"
             style={{ fontSize: metrics.fontSmall }}
           >
             {secondary}

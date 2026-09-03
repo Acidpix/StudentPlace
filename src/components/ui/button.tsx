@@ -24,9 +24,12 @@ export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
  *   touches — que la lettre du modèle.
  *
  * L'ÉTAT se lit donc uniquement à la teinte : la luminosité monte au survol,
- * et l'appui déplace d'un pixel. C'est aussi pourquoi les cartes gardent, elles,
- * l'ombre nette décalée du thème — le contraste entre les deux est ce qui garde
- * une barre d'outils calme au milieu de cartes très marquées.
+ * et l'appui déplace d'un pixel.
+ *
+ * La règle a depuis GAGNÉ TOUTE L'INTERFACE : les cartes, les panneaux et les
+ * modales ont perdu à leur tour le dégradé et l'ombre nette (`card.tsx`,
+ * `globals.css`). Il n'y a plus de contraste à ménager entre un bouton calme et
+ * une carte marquée — tout est aplat et filet.
  */
 const PRESS = "active:translate-y-px";
 
@@ -77,7 +80,7 @@ const SIZES: Record<ButtonSize, string> = {
 
 const BASE =
   "inline-flex items-center justify-center gap-2 rounded-control font-semibold " +
-  "transition-[background-color,border-color,filter,box-shadow,transform] duration-150 " +
+  "transition-[background-color,border-color,filter,transform] duration-150 " +
   "disabled:pointer-events-none disabled:opacity-50";
 
 /**

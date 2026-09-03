@@ -13,6 +13,10 @@ interface FurnitureStyle {
   stroke: string;
   textFill: string;
   dashed?: boolean;
+  /** Épaisseur du contour, en centimètres de salle. 2 par défaut. */
+  strokeWidth?: number;
+  /** Tirets du contour, en centimètres. Ignoré si `dashed` est faux. */
+  dash?: string;
   /** Rayures diagonales par-dessus l'aplat. Réservé au tableau. */
   hatched?: boolean;
 }
@@ -32,9 +36,25 @@ interface FurnitureStyle {
  *
  * Le bureau garde le violet : c'est un meuble petit, et une touche de la
  * couleur de marque au bon endroit vaut mieux qu'un aplat.
+ *
+ * La TABLE, elle, n'est plus qu'un LISERÉ POINTILLÉ — plus d'aplat, plus de
+ * trait plein. C'est le meuble le plus nombreux de la salle, et sur le plan de
+ * classe il est entièrement recouvert par les étiquettes d'élèves : son cadre
+ * plein doublait celui des cartes, et l'œil voyait deux rectangles imbriqués
+ * là où il n'y a qu'une information, le nom. Réduit à un pointillé clair, il
+ * dit toujours quelles places vont ensemble sans se disputer la lecture. C'est
+ * aussi ce qui distingue une table VIDE — un pointillé seul — d'une table
+ * occupée.
  */
 const STYLES: Record<ObjectKind, FurnitureStyle> = {
-  TABLE: { fill: "var(--surface-muted)", stroke: "var(--border)", textFill: "var(--muted)" },
+  TABLE: {
+    fill: "transparent",
+    stroke: "var(--border)",
+    textFill: "var(--muted)",
+    dashed: true,
+    dash: "8 7",
+    strokeWidth: 1.5,
+  },
   TEACHER_DESK: {
     fill: "var(--primary-soft)",
     stroke: "var(--primary)",
@@ -216,10 +236,13 @@ export function Furniture({
         width={object.widthCm}
         height={object.heightCm}
         rx={isBoard ? 4 : 6}
+        // `transparent` et non `none` : un remplissage transparent est PEINT,
+        // donc il reçoit le clic. Avec `fill="none"`, une table pointillée ne
+        // se saisirait plus que par son liseré dans l'éditeur de salle.
         fill={style.fill}
         stroke={selected ? "var(--primary)" : style.stroke}
-        strokeWidth={selected ? 4 : 2}
-        strokeDasharray={style.dashed ? "10 6" : undefined}
+        strokeWidth={selected ? 4 : (style.strokeWidth ?? 2)}
+        strokeDasharray={style.dashed && !selected ? (style.dash ?? "10 6") : undefined}
         style={interactive ? { cursor: "move" } : undefined}
       />
 

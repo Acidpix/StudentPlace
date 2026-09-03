@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 marque du modèle, et les deux ne doivent pas diverger. */}
             <span
               aria-hidden="true"
-              className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-bold text-primary-foreground shadow-lift"
+              className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
             >
               SP
             </span>

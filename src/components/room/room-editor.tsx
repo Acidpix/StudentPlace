@@ -346,6 +346,46 @@ export function RoomEditor({ room }: { room: RoomView }) {
     setPresetsOpen(false);
   }
 
+  /**
+   * Porte toutes les tables à la largeur type de leur nombre de places.
+   *
+   * Le barème `TABLE_WIDTH_BY_SEATS` ne s'applique qu'aux tables NOUVELLES :
+   * une salle déjà dessinée garde les siennes, sans quoi rouvrir l'éditeur
+   * déplacerait le mobilier sous les yeux du professeur. Il faut donc un geste
+   * explicite pour en profiter — et il vaut le coup, puisque c'est l'écartement
+   * des places qui plafonne la taille des étiquettes du plan de classe.
+   *
+   * Les places sont RECALCULÉES mais leurs identifiants sont conservés par
+   * `withSeats()` : les élèves déjà placés dans les plans de cette salle ne
+   * bougent pas. C'est toute la différence avec une disposition type, qui les
+   * recrée.
+   */
+  const widenTables = useCallback(() => {
+    commit({
+      ...layout,
+      objects: layout.objects.map((object) => {
+        if (object.kind !== "TABLE") return object;
+
+        const widthCm = tableWidthForSeats(object.seats.length);
+        if (widthCm <= object.widthCm) return object;
+
+        // La table grandit autour de son CENTRE : c'est le point que la
+        // rotation conserve, donc le seul qui ne fasse pas dériver une table
+        // pivotée d'un quart de tour.
+        const half = widthCm / 2;
+        return withSeats({
+          ...object,
+          widthCm,
+          x: clamp(snapToGrid(object.x - (widthCm - object.widthCm) / 2), -half, layout.widthCm - half),
+        });
+      }),
+    });
+  }, [commit, layout]);
+
+  const narrowTables = layout.objects.filter(
+    (object) => object.kind === "TABLE" && object.widthCm < tableWidthForSeats(object.seats.length),
+  ).length;
+
   const updateSelected = useCallback(
     (patch: Partial<EditorObject>, seatCountOverride?: number) => {
       if (!selectedKey) return;
@@ -564,6 +604,21 @@ export function RoomEditor({ room }: { room: RoomView }) {
             Dispositions types
           </Button>
 
+          {/* Voisin des dispositions types, et pour la même raison : c'est un
+              geste qui retouche la salle entière, pas un meuble. Il disparaît
+              quand toutes les tables sont déjà à la bonne largeur — un bouton
+              sans effet n'apprend rien. */}
+          {narrowTables > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={widenTables}
+              title="Porte chaque table à la largeur type de son nombre de places : les places s'écartent, les noms du plan de classe gagnent en lisibilité. Les élèves déjà placés ne bougent pas."
+            >
+              Élargir les tables ({narrowTables})
+            </Button>
+          )}
+
           {PALETTE.map((item) => (
             <Button
               key={item.label}
@@ -592,7 +647,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
             points. La salle, elle, est BLANCHE (`--room-floor`, posé par
             `RoomGrid`), ce qui la détache du cadre même quand elle ne le
             remplit pas entièrement. */}
-        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
+        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}

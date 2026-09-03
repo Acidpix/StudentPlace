@@ -122,29 +122,36 @@ async function main() {
 
   // -------------------------------------------------------------- la salle
   const room = await prisma.room.create({
-    data: { userId: user.id, name: ROOM_NAME, widthCm: 900, heightCm: 700 },
+    data: { userId: user.id, name: ROOM_NAME, widthCm: 1000, heightCm: 700 },
   });
 
   await prisma.roomObject.create({
-    data: { roomId: room.id, kind: "BOARD", x: 300, y: 10, widthCm: 300, heightCm: 12, rotation: 0 },
+    data: { roomId: room.id, kind: "BOARD", x: 350, y: 10, widthCm: 300, heightCm: 12, rotation: 0 },
   });
   await prisma.roomObject.create({
-    data: { roomId: room.id, kind: "TEACHER_DESK", x: 380, y: 60, widthCm: 140, heightCm: 70, rotation: 0 },
+    data: { roomId: room.id, kind: "TEACHER_DESK", x: 430, y: 60, widthCm: 140, heightCm: 70, rotation: 0 },
   });
   await prisma.roomObject.create({
     data: { roomId: room.id, kind: "DOOR", x: 40, y: 688, widthCm: 90, heightCm: 12, rotation: 0 },
   });
 
   // Quatre rangées de quatre tables doubles : 32 places pour 28 élèves.
-  // Deux places d'une même table sont à 65 cm — sous le seuil d'alerte de
-  // 120 cm — tandis que deux tables voisines sont à 145 cm : le solveur a donc
+  // Deux places d'une même table sont à 95 cm — sous le seuil d'alerte de
+  // 120 cm — tandis que deux tables voisines sont à 155 cm : le solveur a donc
   // de quoi séparer les élèves incompatibles.
-  const TABLE_WIDTH = 130;
+  //
+  // La table fait 190 cm, la largeur type d'une table à deux places : c'est
+  // l'écartement des places qui plafonne la taille des étiquettes du plan de
+  // classe, et la salle de démonstration doit montrer des noms lisibles. Le
+  // pas de 250 cm et la salle de 10 m suivent de là — à 210 cm, deux tables
+  // voisines se seraient touchées et leurs places seraient passées sous le
+  // seuil de proximité.
+  const TABLE_WIDTH = 190;
   const TABLE_HEIGHT = 50;
 
   for (let row = 0; row < 4; row++) {
     for (let column = 0; column < 4; column++) {
-      const x = 60 + column * 210;
+      const x = 30 + column * 250;
       const y = 200 + row * 120;
 
       const table = await prisma.roomObject.create({
