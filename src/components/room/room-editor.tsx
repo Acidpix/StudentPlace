@@ -131,16 +131,34 @@ function resizeForSeats(
 
 // -------------------------------- élargissement ------------------------------
 
+/** Écart laissé entre deux tables reflow, en centimètres — un simple souffle. */
+const WIDEN_CLEARANCE_CM = 20;
+
+/** Dégagement visé de part et d'autre d'une rangée. Souple : voir plus bas. */
+const WIDEN_ROW_MARGIN_CM = 10;
+
+/** Au-delà, deux tables ne sont plus considérées sur le même rang. */
+const WIDEN_ROW_TOLERANCE_CM = 40;
+
 /**
- * Passage minimal laissé entre deux meubles élargis, en centimètres.
+ * Rapport largeur / hauteur au-delà duquel élargir la salle COÛTE de la
+ * hauteur aux cartes — et donc ce que ce bouton s'interdit.
  *
- * Volontairement mince : ce n'est pas un couloir de circulation, seulement de
- * quoi voir que deux tables sont deux tables. Tout ce qu'on ne laisse pas là,
- * on le donne à l'écartement des places, donc à la taille des noms — et une
- * table n'est plus dessinée que d'un liseré pointillé, qui sépare bien mieux
- * qu'un aplat.
+ * Le plan de classe affiche la salle à une échelle UNIQUE (`pxPerCm`), commune
+ * aux deux axes : la salle ne doit jamais s'afficher déformée. Tant qu'elle
+ * est plus proche du carré que de ce rapport, l'élargir ne coûte rien — c'est
+ * la HAUTEUR qui borne l'échelle, la largeur a du mou. Au-delà, c'est la
+ * LARGEUR qui borne à son tour : chaque centimètre ajouté RÉDUIT l'échelle et
+ * donc RÉTRÉCIT LA HAUTEUR des cartes en pixels — l'inverse de ce qui est
+ * demandé. 1,35 est une hypothèse prudente sur la fenêtre de plan la plus
+ * étroite qu'un usage de bureau raisonnable présente ; se tromper vers le bas
+ * ne coûte qu'un peu de largeur gagnée en moins, jamais un pixel de hauteur.
  */
-const WIDEN_CLEARANCE_CM = 10;
+const SAFE_ROOM_ASPECT_RATIO = 1.35;
+
+function isUprightRotation(rotation: number): boolean {
+  return ((rotation % 180) + 180) % 180 === 0;
+}
 
 /** Une table est « à élargir » tant qu'elle n'a pas la largeur de son barème. */
 function isNarrow(object: EditorObject): boolean {
@@ -148,83 +166,111 @@ function isNarrow(object: EditorObject): boolean {
 }
 
 /**
- * Emprise d'un meuble sur les AXES DE L'ÉCRAN, rotation comprise, une fois
- * élargi s'il doit l'être.
- *
- * Un quart de tour échange largeur et profondeur : une table pivotée s'élargit
- * vers le haut et le bas, pas vers la gauche et la droite. Raisonner en axes
- * d'écran est la seule façon de comparer deux meubles d'orientations
- * différentes.
+ * Largeur d'une table à un `level` entre 0 (sa largeur ACTUELLE, jamais moins)
+ * et 1 (son barème plein). Un curseur continu plutôt qu'un tout-ou-rien : ce
+ * qui coince, c'est toujours UNE rangée précise contre le plafond de sécurité
+ * — les autres doivent pouvoir grandir presque jusqu'au barème quand même.
  */
-function targetSpan(object: EditorObject) {
-  const upright = ((object.rotation % 180) + 180) % 180 === 0;
-  const widthCm = isNarrow(object) ? tableWidthForSeats(object.seats.length) : object.widthCm;
-
-  return {
-    center: centerOf(object),
-    upright,
-    halfX: (upright ? widthCm : object.heightCm) / 2,
-    halfY: (upright ? object.heightCm : widthCm) / 2,
-  };
+function steppedTableWidth(table: EditorObject, level: number): number {
+  const barème = tableWidthForSeats(table.seats.length);
+  if (barème <= table.widthCm) return table.widthCm;
+  return Math.max(table.widthCm, snapToGrid(table.widthCm + (barème - table.widthCm) * level));
 }
 
 /**
- * Largeur commune à laquelle on peut porter toutes les tables trop étroites
- * SANS qu'aucune n'en touche une autre.
+ * Regroupe les tables DROITES (non pivotées) en rangées, par proximité
+ * verticale, chaque rangée triée de gauche à droite.
  *
- * Le barème est un souhait, pas une fatalité : une salle dessinée à la main a
- * son propre pas, souvent plus serré. Élargir aveuglément y ferait chevaucher
- * deux tables voisines — d'où cette mesure préalable, qui prend le minimum sur
- * toute la salle pour que les tables restent d'une largeur UNIFORME.
- *
- * Deux cas pour une paire :
- *  - deux tables qui grandissent toutes deux le long du même axe se partagent
- *    l'écart : chacune peut prendre `Δ − passage` ;
- *  - face à un meuble qui ne bouge pas — un obstacle, le bureau, une table déjà
- *    large, une table pivotée qui grandit dans l'autre sens — on retranche son
- *    emprise entière.
+ * Seules les tables droites sont concernées : une table pivotée d'un quart de
+ * tour grandirait vers le HAUT et le BAS si on la traitait pareil — ce
+ * qu'« élargir » exclut désormais, la consigne portant sur la largeur SEULE.
+ * Une table pivotée (le bras d'un U, par exemple) garde donc sa largeur.
  */
-function widenTargetWidth(layout: Layout): number {
-  const narrow = layout.objects.filter(isNarrow);
-  if (narrow.length === 0) return 0;
+function groupTableRows(objects: EditorObject[]): EditorObject[][] {
+  const upright = objects
+    .filter((object) => object.kind === "TABLE" && isUprightRotation(object.rotation))
+    .slice()
+    .sort((a, b) => centerOf(a).y - centerOf(b).y);
 
-  let width = Math.max(...narrow.map((table) => tableWidthForSeats(table.seats.length)));
+  const rows: EditorObject[][] = [];
+  for (const table of upright) {
+    const y = centerOf(table).y;
+    const row = rows[rows.length - 1];
+    if (row && Math.abs(y - centerOf(row[0]).y) <= WIDEN_ROW_TOLERANCE_CM) row.push(table);
+    else rows.push([table]);
+  }
 
-  for (const table of narrow) {
-    const self = targetSpan(table);
+  for (const row of rows) row.sort((a, b) => a.x - b.x);
+  return rows;
+}
 
-    // Rester dans la salle : le mur est un voisin comme un autre.
-    const toWall = self.upright
-      ? Math.min(self.center.x, layout.widthCm - self.center.x)
-      : Math.min(self.center.y, layout.heightCm - self.center.y);
-    width = Math.min(width, 2 * toWall);
+/** Largeur totale qu'occuperait une rangée à ce `level`. */
+function reflowedRowSpan(row: EditorObject[], level: number): number {
+  return row.reduce((sum, table) => sum + steppedTableWidth(table, level), 0) + (row.length - 1) * WIDEN_CLEARANCE_CM;
+}
 
-    for (const other of layout.objects) {
-      if (other.key === table.key) continue;
+/**
+ * Le plus grand `level` (0 à 1) auquel TOUTES les rangées tiennent dans
+ * `maxWidthCm`. Une recherche linéaire à pas fin suffit : quelques rangées,
+ * un calcul de somme immédiat.
+ *
+ * `level = 0` doit TOUJOURS convenir : c'est la largeur actuelle des tables,
+ * qui par définition tenait déjà quelque part. C'est ce filet qui garantit que
+ * le bouton ne peut jamais échouer à produire un agencement valide.
+ */
+function widestFittingLevel(rows: EditorObject[][], maxWidthCm: number): number {
+  const STEPS = 40;
+  for (let step = STEPS; step >= 0; step--) {
+    const level = step / STEPS;
+    if (rows.every((row) => reflowedRowSpan(row, level) + 2 * WIDEN_ROW_MARGIN_CM <= maxWidthCm)) return level;
+  }
+  return 0;
+}
 
-      const span = targetSpan(other);
-      const alongSelf = self.upright ? "x" : "y";
-      const gapAlong = Math.abs(self.center[alongSelf] - span.center[alongSelf]);
-      const gapAcross = self.upright
-        ? Math.abs(self.center.y - span.center.y)
-        : Math.abs(self.center.x - span.center.x);
+interface WidenPlan {
+  newWidthCm: number;
+  /** Largeur et abscisse cibles, par clé de table. */
+  placements: Map<string, { widthCm: number; x: number }>;
+}
 
-      // Deux meubles qui ne se croisent pas sur l'autre axe ne se gêneront
-      // jamais, quelle que soit la largeur retenue.
-      const acrossReach = self.upright ? self.halfY + span.halfY : self.halfX + span.halfX;
-      if (gapAcross >= acrossReach) continue;
+/**
+ * Calcule le plan d'élargissement : le `level` le plus généreux qui tienne
+ * dans le plafond SÛR pour la hauteur (`SAFE_ROOM_ASPECT_RATIO`), puis la
+ * position de chaque table dans la salle résultante, rangée par rangée,
+ * centrée.
+ *
+ * `maxWidthCm` ne descend JAMAIS sous la largeur actuelle : ce plan n'implique
+ * jamais de RÉTRÉCIR la salle. Le dégagement de rangée (`WIDEN_ROW_MARGIN_CM`)
+ * n'est volontairement PAS ajouté à `newWidthCm` telle quelle mais inclus dans
+ * la recherche elle-même : l'exiger en plus, après coup, avait déjà fait
+ * dépasser de 10 cm le plafond sûr sur une salle dont l'agencement existant
+ * était plus serré que ce dégagement — un comfort cosmétique qui coûtait un
+ * pixel de hauteur, l'inverse du but.
+ */
+function computeWidenPlan(layout: Layout): WidenPlan | null {
+  const rows = groupTableRows(layout.objects);
+  if (rows.length === 0) return null;
 
-      const grows = isNarrow(other) && span.upright === self.upright;
-      width = Math.min(
-        width,
-        grows
-          ? gapAlong - WIDEN_CLEARANCE_CM
-          : 2 * (gapAlong - WIDEN_CLEARANCE_CM - (self.upright ? span.halfX : span.halfY)),
-      );
+  const safeWidthCm = Math.round(layout.heightCm * SAFE_ROOM_ASPECT_RATIO);
+  const maxWidthCm = Math.min(ROOM_MAX_CM, Math.max(layout.widthCm, safeWidthCm));
+  const level = widestFittingLevel(rows, maxWidthCm);
+
+  const newWidthCm = Math.min(
+    ROOM_MAX_CM,
+    Math.max(layout.widthCm, ...rows.map((row) => reflowedRowSpan(row, level) + 2 * WIDEN_ROW_MARGIN_CM)),
+  );
+
+  const placements = new Map<string, { widthCm: number; x: number }>();
+  for (const row of rows) {
+    let cursor = (newWidthCm - reflowedRowSpan(row, level)) / 2;
+    for (const table of row) {
+      const widthCm = steppedTableWidth(table, level);
+      placements.set(table.key, { widthCm, x: snapToGrid(cursor) });
+      cursor += widthCm + WIDEN_CLEARANCE_CM;
     }
   }
 
-  return Math.max(0, Math.floor(width / GRID_CM) * GRID_CM);
+  return { newWidthCm, placements };
 }
 
 function toLayout(room: RoomView): Layout {
@@ -453,18 +499,23 @@ export function RoomEditor({ room }: { room: RoomView }) {
   }
 
   /**
-   * Élargit les tables autant que la salle le permet.
+   * Élargit VRAIMENT les tables : au lieu de les faire grandir SUR PLACE — ce
+   * qui plafonnait vite sur une salle dessinée avec un pas serré, une table ne
+   * pouvant jamais toucher sa voisine —, ce bouton REPOSITIONNE chaque rangée
+   * de tables droites, centrée, et AGRANDIT LA SALLE d'autant si elle n'a pas
+   * la place — jusqu'à `SAFE_ROOM_ASPECT_RATIO`, jamais plus (voir
+   * `computeWidenPlan`) : au-delà, l'agrandissement se retournerait contre son
+   * propre but en rétrécissant la HAUTEUR des cartes à l'écran.
    *
-   * Le barème `TABLE_WIDTH_BY_SEATS` ne s'applique qu'aux tables NOUVELLES :
-   * une salle déjà dessinée garde les siennes, sans quoi rouvrir l'éditeur
-   * déplacerait le mobilier sous les yeux du professeur. Il faut donc un geste
-   * explicite pour en profiter — et il vaut le coup, puisque c'est l'écartement
-   * des places qui plafonne la taille des étiquettes du plan de classe.
+   * Seule la LARGEUR de la salle bouge — jamais sa HAUTEUR, pas plus que
+   * l'ordonnée des rangées, qui gardent leur y. La salle s'élargit
+   * SYMÉTRIQUEMENT : tout ce qui n'est pas une table droite — tableau, bureau,
+   * porte, fenêtres, tables pivotées, obstacles — se décale de la moitié de
+   * l'agrandissement, pour garder sa position RELATIVE dans la salle plutôt
+   * que de se retrouver plaqué contre un mur qui a reculé.
    *
-   * La largeur retenue est celle que `widenTargetWidth()` a mesurée sur toute
-   * la salle : le barème si la place le permet, le pas réel des tables sinon.
-   * Une table déjà plus large que cette valeur n'est jamais RÉTRÉCIE — on
-   * n'enlève rien à quelqu'un qui avait réglé sa salle à la main.
+   * Les tables PIVOTÉES (les bras d'un U, par exemple) ne sont pas reflow :
+   * les élargir grandirait la salle en HAUTEUR, ce que ce bouton exclut.
    *
    * Les places sont RECALCULÉES mais leurs identifiants sont conservés par
    * `withSeats()` : les élèves déjà placés dans les plans de cette salle ne
@@ -472,39 +523,36 @@ export function RoomEditor({ room }: { room: RoomView }) {
    * recrée.
    */
   const widenTables = useCallback(() => {
-    const target = widenTargetWidth(layout);
-    if (target <= 0) return;
+    const plan = computeWidenPlan(layout);
+    if (!plan) return;
+
+    const deltaX = plan.newWidthCm - layout.widthCm;
 
     commit({
       ...layout,
+      widthCm: plan.newWidthCm,
       objects: layout.objects.map((object) => {
-        if (!isNarrow(object)) return object;
+        const placement = plan.placements.get(object.key);
+        if (placement) return withSeats({ ...object, widthCm: placement.widthCm, x: placement.x });
+        if (deltaX === 0) return object;
 
-        const widthCm = Math.min(target, tableWidthForSeats(object.seats.length));
-        if (widthCm <= object.widthCm) return object;
-
-        // La table grandit autour de son CENTRE : c'est le point que la
-        // rotation conserve, donc le seul qui ne fasse pas dériver une table
-        // pivotée d'un quart de tour.
-        const half = widthCm / 2;
-        return withSeats({
-          ...object,
-          widthCm,
-          x: clamp(snapToGrid(object.x - (widthCm - object.widthCm) / 2), -half, layout.widthCm - half),
-        });
+        // Tout le reste garde sa place RELATIVE : la salle a grandi des deux
+        // côtés à la fois.
+        const half = object.widthCm / 2;
+        return { ...object, x: clamp(snapToGrid(object.x + deltaX / 2), -half, plan.newWidthCm - half) };
       }),
     });
   }, [commit, layout]);
 
   /**
-   * Combien de tables gagneraient à être élargies. Zéro fait disparaître le
-   * bouton : une salle déjà au large, ou trop serrée pour gagner un seul
-   * centimètre, n'a rien à en attendre.
+   * Combien de tables droites gagneraient à être élargies. Zéro fait
+   * disparaître le bouton : une salle déjà au barème, ou déjà à la largeur
+   * sûre, n'a rien à en attendre.
    */
-  const widenTarget = widenTargetWidth(layout);
   const narrowTables = layout.objects.filter(
-    (object) => isNarrow(object) && Math.min(widenTarget, tableWidthForSeats(object.seats.length)) > object.widthCm,
+    (object) => object.kind === "TABLE" && isUprightRotation(object.rotation) && isNarrow(object),
   ).length;
+  const widenPreviewWidthCm = narrowTables > 0 ? (computeWidenPlan(layout)?.newWidthCm ?? layout.widthCm) : layout.widthCm;
 
   const updateSelected = useCallback(
     (patch: Partial<EditorObject>, seatCountOverride?: number) => {
@@ -726,14 +774,14 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
           {/* Voisin des dispositions types, et pour la même raison : c'est un
               geste qui retouche la salle entière, pas un meuble. Il disparaît
-              quand toutes les tables sont déjà à la bonne largeur — un bouton
+              quand toutes les tables droites sont déjà au barème — un bouton
               sans effet n'apprend rien. */}
           {narrowTables > 0 && (
             <Button
               variant="secondary"
               size="sm"
               onClick={widenTables}
-              title={`Porte chaque table à ${widenTarget} cm : les places s'écartent, les noms du plan de classe gagnent d'autant en lisibilité. Les élèves déjà placés ne bougent pas.`}
+              title={`Repositionne les tables à la largeur de leur barème et porte la salle à ${widenPreviewWidthCm} cm de large si besoin — sa hauteur ne change jamais. Les élèves déjà placés ne bougent pas.`}
             >
               Élargir les tables ({narrowTables})
             </Button>
@@ -767,7 +815,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
             points. La salle, elle, est BLANCHE (`--room-floor`, posé par
             `RoomGrid`), ce qui la détache du cadre même quand elle ne le
             remplit pas entièrement. */}
-        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2">
+        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}

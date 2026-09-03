@@ -72,9 +72,7 @@ export function Modal({
     >
       <div
         className={cn(
-          // Aplat et filet, comme une carte : c'est le VOILE de `::backdrop`
-          // qui détache la modale de la page, pas une ombre portée.
-          "w-full max-w-md overflow-hidden rounded-card border border-border bg-surface",
+          "w-full max-w-md overflow-hidden rounded-card border border-border bg-surface shadow-float",
           className,
         )}
       >

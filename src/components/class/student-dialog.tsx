@@ -137,7 +137,7 @@ function StudentDialogForm({
       <header className="halftone flex items-center gap-3 border-b border-border p-4">
         <span
           aria-hidden="true"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-primary-soft text-sm font-bold text-primary"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-primary-soft text-sm font-bold text-primary shadow-soft"
         >
           {initials}
         </span>

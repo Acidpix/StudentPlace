@@ -588,7 +588,7 @@ export function PlanEditor({
             élève dans la colonne de gauche, on le pose au centre, on ajuste à
             droite.
             ================================================================ */}
-        <div className="overflow-hidden rounded-card border border-border bg-surface">
+        <div className="overflow-hidden rounded-card border border-border bg-surface shadow-lift">
           {/* ------------------------------------------ barre supérieure */}
           <div className="print-hidden flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
             <InlinePlanName name={name} onRename={setName} />
@@ -698,7 +698,7 @@ export function PlanEditor({
                   */}
               <div
                 ref={planRef}
-                className="overflow-hidden rounded-control border border-border"
+                className="overflow-hidden rounded-control border border-border shadow-soft"
               >
                 {/* `maxHeight` seul, jamais `height` : une hauteur fixe forçait
                     ce conteneur à occuper `planHeight` même quand la salle,
@@ -960,7 +960,7 @@ export function PlanEditor({
         <div className="print-hidden grid gap-4 md:grid-cols-2">
           <ExportPdfPanel planId={plan.id} mirrored={mirrored} />
 
-          <div className="flex flex-col rounded-card border border-border bg-surface p-3">
+          <div className="flex flex-col rounded-card border border-border bg-surface p-3 shadow-soft">
             <h2 className="eyebrow">Repartir de zéro</h2>
             <p className="mt-2 text-sm text-muted">
               Retire tous les élèves du plan de classe. Les places verrouillées sont conservées.
@@ -982,10 +982,7 @@ export function PlanEditor({
       {/* L'aperçu qui suit le pointeur pendant le déplacement. */}
       <DragOverlay dropAnimation={null}>
         {draggedStudent && (
-          // L'aperçu ne « flotte » plus par une ombre — plus rien n'en porte
-          // dans l'application. C'est le FILET CORAIL DE 2 px qui le désigne
-          // comme détaché du plan.
-          <div className="flex h-11 w-24 items-center rounded-control border-2 border-primary bg-surface px-1.5 text-[11px]">
+          <div className="flex h-11 w-24 items-center rounded-control border-2 border-primary bg-surface px-1.5 text-[11px] shadow-float">
             <StudentLabel student={draggedStudent} />
           </div>
         )}

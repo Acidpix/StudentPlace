@@ -62,7 +62,7 @@ export function NewPlanDialog({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`w-full max-w-md ${CARD} p-4`}
+      className={`w-full max-w-md ${CARD} p-4 shadow-lift`}
     >
       <h2 className="eyebrow mb-3">Nouveau plan de classe</h2>
 

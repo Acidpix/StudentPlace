@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
+import { FONT_INIT_SCRIPT, FontProvider } from "@/components/font-provider";
 import { PALETTE_INIT_SCRIPT, PaletteProvider } from "@/components/palette-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -35,17 +36,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* PREMIER ENFANT DU `<body>`, et non dans un `<head>` écrit à la main :
             c'est là que next-themes place le sien, et le routeur d'applications
             déconseille de composer soi-même le `<head>` de la mise en page
-            racine. Le script est synchrone, donc il pose `data-palette` avant
-            le premier rendu — sans lui, une page en palette « Prune » naîtrait
-            corail le temps de l'hydratation. */}
+            racine. Les scripts sont synchrones, donc ils posent `data-palette`
+            et `data-font` avant le premier rendu — sans eux, une page en
+            palette « Prune » ou en police « Nunito » naîtrait dans les réglages
+            par défaut le temps de l'hydratation. */}
         <script dangerouslySetInnerHTML={{ __html: PALETTE_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: FONT_INIT_SCRIPT }} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <PaletteProvider>{children}</PaletteProvider>
+          <PaletteProvider>
+            <FontProvider>{children}</FontProvider>
+          </PaletteProvider>
         </ThemeProvider>
       </body>
     </html>

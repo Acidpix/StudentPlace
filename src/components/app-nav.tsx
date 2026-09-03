@@ -43,16 +43,14 @@ export function AppNav({ userName }: { userName: string }) {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
         {/* Pastille RONDE et non plus carrée : c'est la marque du modèle, et un
             disque se distingue au premier coup d'œil des pavés rectangulaires
-            qui remplissent le reste de l'écran — cartes, boutons, places.
-            Elle est d'un CORAIL PLEIN : le dégradé corail → vert qu'elle
-            portait était le dernier volume de la barre. */}
+            qui remplissent le reste de l'écran — cartes, boutons, places. */}
         <Link
           href="/tableau-de-bord"
           className="flex items-center gap-2 font-bold tracking-tight"
         >
           <span
             aria-hidden="true"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-soft"
           >
             SP
           </span>

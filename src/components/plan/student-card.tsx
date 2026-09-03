@@ -66,13 +66,13 @@ export function StudentCard({
   ].filter((label): label is string => label !== null);
 
   return (
-    <section className="overflow-hidden rounded-card border border-border bg-surface">
+    <section className="overflow-hidden rounded-card border border-border bg-surface shadow-soft">
       {/* En-tête sur trame de points, comme dans la maquette : c'est ce qui le
           détache du corps de la fiche sans y poser une couleur de plus. */}
       <header className="halftone flex items-center gap-3 border-b border-border p-3">
         <span
           aria-hidden="true"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-sm font-bold"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-sm font-bold shadow-soft"
         >
           {initials(student)}
         </span>

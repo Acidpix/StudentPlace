@@ -3,11 +3,13 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { useFont } from "@/components/font-provider";
 import { usePalette } from "@/components/palette-provider";
 import { CARD } from "@/components/ui/card";
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/icons";
 import { Segment, Track } from "@/components/ui/segmented";
 import { cn } from "@/lib/cn";
+import { FONTS, type FontInfo } from "@/lib/fonts";
 import { PALETTES, type PaletteInfo, type PaletteSwatch } from "@/lib/palettes";
 
 /**
@@ -32,15 +34,16 @@ const MODES = [
 export function AppearanceSection() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { palette, setPalette, mounted: paletteMounted } = usePalette();
+  const { font, setFont, mounted: fontMounted } = useFont();
   const [themeMounted, setThemeMounted] = useState(false);
 
-  // Ni le thème ni la palette ne sont connus avant l'hydratation : le rendu
-  // serveur ne sait pas ce qu'il y a dans le `localStorage` du visiteur.
-  // Cocher une case trop tôt afficherait le mauvais réglage puis le corrigerait
-  // sous les yeux.
+  // Ni le thème ni la palette ni la police ne sont connus avant l'hydratation :
+  // le rendu serveur ne sait pas ce qu'il y a dans le `localStorage` du
+  // visiteur. Cocher une case trop tôt afficherait le mauvais réglage puis le
+  // corrigerait sous les yeux.
   useEffect(() => setThemeMounted(true), []);
 
-  const ready = themeMounted && paletteMounted;
+  const ready = themeMounted && paletteMounted && fontMounted;
   const dark = resolvedTheme === "dark";
 
   return (
@@ -95,6 +98,23 @@ export function AppearanceSection() {
           ))}
         </div>
       </div>
+
+      <div className="mt-5">
+        <h3 className="eyebrow">Police</h3>
+        {/* Même vocabulaire que la palette juste au-dessus : un groupe de
+            boutons à bascule, pas un `role="radiogroup"` — voir le commentaire
+            sur `PaletteChoice`, valable mot pour mot ici. */}
+        <div role="group" aria-label="Police de caractères" className="mt-2 grid gap-2 sm:grid-cols-2">
+          {FONTS.map((info) => (
+            <FontChoice
+              key={info.id}
+              info={info}
+              selected={ready && font === info.id}
+              onSelect={() => setFont(info.id)}
+            />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -119,10 +139,10 @@ function PaletteChoice({
       onClick={onSelect}
       className={cn(
         "w-full rounded-card border bg-surface p-3 text-left",
-        "transition-[border-color,background-color] duration-150",
+        "transition-[border-color,box-shadow,transform] duration-150",
         selected
-          ? "border-primary"
-          : "border-border hover:border-primary/50 hover:bg-surface-muted/40",
+          ? "border-primary shadow-lift"
+          : "border-border shadow-soft hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lift",
       )}
     >
       <div className="flex items-center justify-between gap-2">
@@ -134,6 +154,52 @@ function PaletteChoice({
       </div>
       <SwatchStrip swatch={swatch} />
       <p className="mt-2 text-xs text-muted">{info.description}</p>
+    </button>
+  );
+}
+
+/**
+ * Une police au choix : nom rendu DANS la police elle-même, comme le fait la
+ * plupart des sélecteurs de fonte. C'est ce qui remplace la bande de teintes de
+ * `PaletteChoice` — l'aperçu utile ici n'est pas une couleur mais un dessin de
+ * lettres, donc autant montrer le nom directement dans le corps annoncé par
+ * `metrics.font` ailleurs dans l'app plutôt qu'un rectangle muet.
+ *
+ * `previewFamily` charge le fichier .woff2 correspondant dès que cette vignette
+ * s'affiche — les six coexistent sur cette seule page, avant même d'être
+ * choisies, exactement comme les couleurs de `SwatchStrip` s'affichent avant
+ * d'être appliquées.
+ */
+function FontChoice({
+  info,
+  selected,
+  onSelect,
+}: {
+  info: FontInfo;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={cn(
+        "w-full rounded-card border bg-surface p-3 text-left",
+        "transition-[border-color,box-shadow,transform] duration-150",
+        selected
+          ? "border-primary shadow-lift"
+          : "border-border shadow-soft hover:-translate-x-0.5 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-lift",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold">{info.label}</span>
+        {selected ? <CheckIcon className="text-primary" /> : null}
+      </div>
+      <p className="mt-2 truncate text-lg" style={{ fontFamily: info.previewFamily }}>
+        Camille Martin
+      </p>
+      <p className="mt-1 text-xs text-muted">{info.description}</p>
     </button>
   );
 }

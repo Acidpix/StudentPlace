@@ -495,11 +495,9 @@ function SeatedStudent({
         // Le cerclage de difficulté est posé en ombre INTÉRIEURE : il se
         // dessine à l'intérieur du cadre, donc il ne se dispute ni la bordure
         // (sélection, survol, conflit) ni l'`outline` (verrouillage), et les
-        // trois restent lisibles ensemble.
-        // L'ombre portée qui accompagnait ce cerclage est partie : plus rien
-        // n'a de volume dans l'application, une étiquette moins que tout le
-        // reste — elles sont des dizaines côte à côte sur le plan.
-        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}`,
+        // trois restent lisibles ensemble. `--elev-1` s'ajoute par-dessus pour
+        // l'ombre nette décalée, comme sur toutes les autres surfaces.
+        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}, var(--elev-1)`,
       }}
       className={cn(
         "relative flex h-full w-full items-center overflow-hidden border-2 transition-colors",
