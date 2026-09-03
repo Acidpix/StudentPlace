@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
 import { toDifficulty, type ObjectKind } from "@/lib/domain";
-import { renderPlanPdf, type PlanPdfOptions } from "@/lib/pdf/plan-document";
+import { renderPlanPdf, type PlanPdfAssignment, type PlanPdfOptions } from "@/lib/pdf/plan-document";
 import { getCurrentUser } from "@/lib/session";
 import type { RoomView, StudentView } from "@/lib/view-models";
 
@@ -62,6 +62,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     includeComments: query.get("commentaires") === "1",
     includeDifficulty: query.get("difficulte") === "1",
     includeRoster: query.get("liste") !== "0",
+    // Les cases de participation ne portent aucune donnée : elles sont vides
+    // par définition. Elles restent néanmoins décochées par défaut, un plan
+    // servant d'abord à situer les élèves.
+    includeParticipation: query.get("participation") === "1",
     mirrored: query.get("miroir") === "1",
   };
 
@@ -109,8 +113,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       teacherName: user.name,
       room,
       students,
+      // Le verrouillage suit jusqu'au PDF : à l'écran il se lit à un cerclage
+      // rouge permanent, et le document doit montrer la même chose.
       assignments: new Map(
-        plan.assignments.map((a): [string, string] => [a.seatId, a.studentId]),
+        plan.assignments.map((a): [string, PlanPdfAssignment] => [
+          a.seatId,
+          { studentId: a.studentId, pinned: a.pinned },
+        ]),
       ),
     },
     options,

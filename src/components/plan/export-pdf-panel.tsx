@@ -18,11 +18,13 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
   const [includeComments, setIncludeComments] = useState(false);
   const [includeDifficulty, setIncludeDifficulty] = useState(false);
   const [includeRoster, setIncludeRoster] = useState(true);
+  const [includeParticipation, setIncludeParticipation] = useState(false);
 
   const params = new URLSearchParams({
     commentaires: includeComments ? "1" : "0",
     difficulte: includeDifficulty ? "1" : "0",
     liste: includeRoster ? "1" : "0",
+    participation: includeParticipation ? "1" : "0",
     miroir: mirrored ? "1" : "0",
   });
 
@@ -41,6 +43,20 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
             onChange={(event) => setIncludeRoster(event.target.checked)}
           />
           Ajouter la liste alphabétique
+        </label>
+        {/* Les cases de participation ne portent AUCUNE donnée sur les élèves :
+            elles sortent vides de l'imprimante. Elles voisinent malgré tout les
+            deux cases sensibles, parce que ce sont toutes des options du même
+            document — et elles restent décochées par défaut, un plan servant
+            d'abord à situer les élèves. */}
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="accent-primary"
+            checked={includeParticipation}
+            onChange={(event) => setIncludeParticipation(event.target.checked)}
+          />
+          Ajouter 5 cases de participation
         </label>
         <label className="flex items-center gap-2">
           <input
@@ -65,6 +81,13 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
       {sensitive && (
         <p className="mt-2 rounded-control border border-danger-border bg-danger-soft p-2 text-xs text-danger">
           Ce PDF contiendra des appréciations sur des élèves. Ne le laissez pas circuler.
+        </p>
+      )}
+
+      {includeParticipation && includeComments && (
+        <p className="mt-2 text-xs text-muted">
+          Les cases occupent le bas des étiquettes : les commentaires ne figureront que dans la
+          liste alphabétique.
         </p>
       )}
 

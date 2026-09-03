@@ -24,8 +24,6 @@ import {
   TrayStudent,
   parseDraggableId,
   parseSeatDroppableId,
-  planLabelStyle,
-  seatMetrics,
 } from "@/components/plan/plan-pieces";
 import { StudentCard, type StudentCardRelation } from "@/components/plan/student-card";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
@@ -48,6 +46,7 @@ import { Segment, Track } from "@/components/ui/segmented";
 import { cn } from "@/lib/cn";
 import { conflictingSeatIds, findProximityConflicts } from "@/lib/placement/conflicts";
 import { seatFootprintCm } from "@/lib/placement/geometry";
+import { planLabelStyle, seatMetrics } from "@/lib/plan-labels";
 import { runSolver } from "@/lib/placement/run-solver";
 import { seedFromId } from "@/lib/placement/seed";
 import type { Violation } from "@/lib/placement/types";
@@ -592,7 +591,18 @@ export function PlanEditor({
         <div className="overflow-hidden rounded-card border border-border bg-surface shadow-lift">
           {/* ------------------------------------------ barre supérieure */}
           <div className="print-hidden flex flex-wrap items-center gap-2 border-b border-border px-3 py-2.5">
-            <InlinePlanName name={name} onRename={setName} />
+            {/* Le renommage est une mutation comme une autre : il DOIT poser
+                `pending` lui-même. `setName` seul ne déclenchait rien —
+                l'anti-rebond ne part que sur cet état — et le nouveau nom
+                restait dans l'état local jusqu'au prochain geste enregistré,
+                voire se perdait au rechargement. */}
+            <InlinePlanName
+              name={name}
+              onRename={(next) => {
+                setName(next);
+                setSaveState("pending");
+              }}
+            />
 
             <PlanSwitcher
               currentId={plan.id}
