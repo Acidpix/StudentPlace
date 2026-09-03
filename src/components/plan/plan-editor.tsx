@@ -200,6 +200,17 @@ export function PlanEditor({
   );
   const metrics = useMemo(() => seatMetrics(footprint, pxPerCm), [footprint, pxPerCm]);
 
+  /**
+   * La salle bride-t-elle les étiquettes ?
+   *
+   * On compare l'emprise obtenue au plafond : en dessous des trois quarts, ce
+   * n'est pas l'écran qui manque mais l'écartement des places, et c'est dans
+   * l'éditeur de salle que cela se corrige. Le seuil porte sur des CENTIMÈTRES
+   * et non sur des pixels : il ne doit pas dépendre de la taille de la fenêtre,
+   * sans quoi le message clignoterait au redimensionnement.
+   */
+  const cramped = seats.length > 0 && footprint.widthCm < SEAT_CARD_MAX_WIDTH_CM * 0.75;
+
   const incompatibles = useMemo(
     () =>
       relations
@@ -689,7 +700,7 @@ export function PlanEditor({
                     vide se creusait alors avant la légende. En laissant le
                     conteneur se réduire à son contenu, il ne défile que si la
                     salle dépasse réellement le budget de hauteur. */}
-                <div className="overflow-auto" style={{ maxHeight: planHeight || "68vh" }}>
+                <div className="overflow-auto" style={{ maxHeight: planHeight || "80vh" }}>
                   <div
                     className="relative mx-auto"
                     style={{
@@ -834,6 +845,22 @@ export function PlanEditor({
                 Cerclage intérieur : difficulté. Cadre rouge plein : place verrouillée. Pointillé
                 rouge : incompatibilité non respectée.
               </p>
+
+              {/* La taille des noms se joue dans l'ÉDITEUR DE SALLE, pas ici :
+                  une étiquette ne peut pas dépasser l'écartement des places,
+                  sous peine d'en recouvrir une autre. Le dire là où le défaut
+                  se voit — sur le plan, en petits caractères — est le seul
+                  moyen que le professeur fasse le rapprochement ; le bouton
+                  qui règle le problème est à deux pages d'ici. */}
+              {cramped && (
+                <p className="print-hidden text-xs leading-snug text-muted">
+                  Les noms sont à l&apos;étroit : les tables de cette salle sont serrées.{" "}
+                  <Link href={`/salles/${room.id}`} className="text-primary hover:underline">
+                    Élargissez-les
+                  </Link>{" "}
+                  pour écarter les places — les élèves déjà placés ne bougent pas.
+                </p>
+              )}
             </div>
 
             {/* ------------------------- droite : fiche, relations, réglages */}
@@ -1064,7 +1091,7 @@ function InlinePlanName({
  *
  * Elle reprend la forme de la maquette : des pistes segmentées à gauche —
  * un fond creux, des segments dont un seul est allumé — et le compteur de
- * places à droite, en capitales à chasse fixe.
+ * places à droite, en petites capitales (`.eyebrow`).
  *
  * L'orientation était un bouton à bascule dont le libellé changeait ; elle est
  * maintenant un choix à DEUX SEGMENTS. Un bouton qui dit « Vue du dessus » ne

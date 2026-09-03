@@ -2,8 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/** Hauteur par défaut de la fenêtre de plan, en part de la hauteur d'écran. */
-export const DEFAULT_VIEWPORT_SHARE = 0.68;
+/**
+ * Hauteur par défaut de la fenêtre de plan, en part de la hauteur d'écran.
+ *
+ * 80 % et non 68 % : c'est ELLE qui fixe l'échelle du plan, donc la taille des
+ * noms. Une salle plus large que profonde — le cas courant — est ajustée sur sa
+ * HAUTEUR, si bien qu'à 68 % le plan laissait une bande vide à droite tout en
+ * écrivant les noms trop petit. À 80 %, la largeur disponible redevient la
+ * contrainte pour une salle de proportions ordinaires : plus rien n'est gâché,
+ * et chaque centimètre de salle vaut environ 16 % de pixels de plus.
+ */
+export const DEFAULT_VIEWPORT_SHARE = 0.8;
 
 /** Hauteur de la fenêtre de plan pour l'écran courant. */
 export function defaultPlanHeight(): number {

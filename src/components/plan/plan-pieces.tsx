@@ -51,8 +51,10 @@ export interface SeatMetrics {
 /**
  * Corps de texte le plus grand qu'on s'autorise sur une place, en pixels.
  * Au-delà, une salle affichée en grand donnerait des étiquettes criardes.
+ * 20 px, soit un cran au-dessus du texte courant de l'interface : sur le plan
+ * de classe, le nom d'un élève EST le contenu.
  */
-const SEAT_FONT_MAX_PX = 16;
+const SEAT_FONT_MAX_PX = 20;
 
 /**
  * Traduit l'emprise disponible en dimensions d'étiquette.
@@ -101,14 +103,32 @@ function studentInitials(student: StudentView): string {
 }
 
 /**
- * Largeur moyenne d'un caractère, en fraction de la taille de police.
+ * Largeur estimée d'un texte, en multiples de la taille de police.
  *
  * Approximation assumée : mesurer chaque nom au `canvas` donnerait la valeur
- * exacte mais coûterait une mesure par élève à chaque redimensionnement. 0,55
- * majore légèrement une sans-serif en casse mixte, donc l'étiquette choisie est
- * au pire un cran trop courte — jamais tronquée.
+ * exacte mais coûterait une mesure par élève à chaque redimensionnement.
+ *
+ * La moyenne unique de 0,55 qui tenait ce rôle était trop pessimiste d'un bon
+ * cinquième — « Camille M. » vaut en réalité 4,4 fois sa taille de police, pas
+ * 5,5 — et ce cinquième était perdu en corps de texte, sur toutes les cartes.
+ * Distinguer quatre familles de caractères suffit à récupérer l'essentiel :
+ * les capitales sont larges, les jambages fins ne valent qu'un tiers, et « m »
+ * et « w » sont des cas à part. Le compte reste LÉGÈREMENT MAJORÉ, pour que
+ * l'étiquette soit au pire un cran trop petite — jamais tronquée.
  */
-const AVG_CHAR_RATIO = 0.55;
+function textWidthRatio(text: string): number {
+  let total = 0;
+
+  for (const char of text) {
+    if (" .,'-".includes(char)) total += 0.28;
+    else if ("iIjlt".includes(char)) total += 0.32;
+    else if ("mw".includes(char)) total += 0.82;
+    else if (char !== char.toLowerCase()) total += 0.68;
+    else total += 0.52;
+  }
+
+  return total;
+}
 
 export interface SeatLabel {
   /** Ce qui s'affiche : « Camille M. », ou un repli plus court. */
@@ -118,14 +138,36 @@ export interface SeatLabel {
 }
 
 /**
- * En deçà, un nom cesse d'être lisible : le repli vaut mieux que la loupe.
+ * Planchers de lisibilité, en pixels.
+ *
+ * Un nom écrit à 8 px n'est pas lu, il est deviné : plutôt que de rétrécir
+ * indéfiniment « Camille M. », on préfère à ce stade écrire « Camille » en
+ * grand. D'où DEUX seuils — le nom en toutes lettres se retire à 10 px, les
+ * initiales tiennent jusqu'à 7,5 px parce qu'à ce point elles sont tout ce qui
+ * reste avant la carte muette.
  */
-const MIN_LABEL_PX = 7.5;
+const MIN_NAME_PX = 10;
+const MIN_INITIALS_PX = 7.5;
+
+/**
+ * Rembourrage horizontal de l'étiquette, de part et d'autre du texte.
+ *
+ * Réduit au strict nécessaire : sur une carte de cent pixels, chaque pixel rendu
+ * au texte est un pixel de corps de police en plus. Le cerclage de difficulté
+ * s'y ajoute, lui, parce qu'il est peint À L'INTÉRIEUR du cadre.
+ */
+const LABEL_PADDING_PX = 2;
+
+/** Largeur réellement offerte au texte : la carte, moins bordures et marges. */
+function textRoomPx(metrics: SeatMetrics): number {
+  // Bordures (2 × 2 px), rembourrage, puis le cerclage intérieur.
+  return metrics.width - 4 - 2 * LABEL_PADDING_PX - 2 * metrics.ring;
+}
 
 /** Corps auquel `text` remplit exactement `room`, sans dépasser `cap`. */
 function fittedSize(text: string, cap: number, room: number): number {
-  if (text.length === 0) return cap;
-  return Math.min(cap, room / (text.length * AVG_CHAR_RATIO));
+  const ratio = textWidthRatio(text);
+  return ratio <= 0 ? cap : Math.min(cap, room / ratio);
 }
 
 /**
@@ -143,7 +185,8 @@ function fittedSize(text: string, cap: number, room: number): number {
  * et dans cet ordre :
  *
  *  1. « Camille M. » ;
- *  2. le prénom seul — l'initiale du nom coûte trois caractères ;
+ *  2. le prénom seul — l'initiale du nom coûte trois caractères, et à ce stade
+ *     mieux vaut « Camille » en grand que « Camille M. » à la loupe ;
  *  3. les initiales ;
  *  4. rien — le cerclage de difficulté reste la seule information.
  *
@@ -152,18 +195,17 @@ function fittedSize(text: string, cap: number, room: number): number {
  * R. » s'affiche en grand là où « Jean-Baptiste V. » s'affiche en petit.
  */
 export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): SeatLabel {
-  // Rembourrage (2 × 3 px), bordures (2 × 2 px) et cerclage intérieur.
-  const inner = metrics.width - 10 - metrics.ring * 2;
+  const inner = textRoomPx(metrics);
 
-  const candidates = [
-    studentShortName(student),
-    student.firstName,
-    studentInitials(student),
+  const candidates: Array<[string, number]> = [
+    [studentShortName(student), MIN_NAME_PX],
+    [student.firstName, MIN_NAME_PX],
+    [studentInitials(student), MIN_INITIALS_PX],
   ];
 
-  for (const text of candidates) {
+  for (const [text, floor] of candidates) {
     const font = fittedSize(text, metrics.font, inner);
-    if (font >= MIN_LABEL_PX) return { text, font };
+    if (font >= floor) return { text, font };
   }
 
   return { text: null, font: metrics.font };
@@ -347,7 +389,7 @@ export function SeatSpot({
             borderRadius: metrics.radius,
             // Même ajustement que pour un nom : « Condamnée » est deux fois plus
             // long que « Libre » et débordait de la carte, rogné des deux côtés.
-            fontSize: fittedSize(emptySeatLabel(seat), metrics.font, metrics.width - 8),
+            fontSize: fittedSize(emptySeatLabel(seat), metrics.font, textRoomPx(metrics)),
           }}
           className={cn(
             "flex h-full w-full items-center justify-center overflow-hidden border-2 border-dashed",
@@ -453,7 +495,7 @@ function SeatedStudent({
         {...attributes}
         onClick={onSelect}
         title={title}
-        style={{ paddingInline: metrics.ring + 3 }}
+        style={{ paddingInline: metrics.ring + LABEL_PADDING_PX }}
         className="flex h-full w-full cursor-grab flex-col items-center justify-center overflow-hidden text-center leading-tight active:cursor-grabbing"
       >
         {/* « Camille M. », sur toute la largeur. Le corps vient de

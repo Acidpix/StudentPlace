@@ -383,6 +383,18 @@ function islandTables(
 // -------------------------------- Génération ---------------------------------
 
 /**
+ * Nombre de fers à cheval EMBOÎTÉS dans une disposition en U.
+ *
+ * Se lit sur les tables de base — celles qui ne sont pas pivotées : un U n'en a
+ * qu'une rangée, un double U en a deux, à des profondeurs différentes. Sert à
+ * préférer le U simple, plus fidèle à ce qu'un professeur dessinerait, quand
+ * une largeur de table plus fine permet d'y loger toute la classe.
+ */
+function ringCount(tables: PresetObject[]): number {
+  return new Set(tables.filter((table) => table.rotation === 0).map((table) => table.y)).size;
+}
+
+/**
  * Produit le mobilier d'une disposition type.
  *
  * `seatTarget` est un SOUHAIT, pas une garantie : la salle a le dernier mot.
@@ -409,6 +421,7 @@ export function generatePresetLayout(
 
   let tables: PresetObject[] = [];
   let seatCount = 0;
+  let rings = 0;
   let chosen = false;
 
   for (const widthCm of TABLE_WIDTH_CHOICES) {
@@ -421,29 +434,35 @@ export function generatePresetLayout(
           : islandTables(room.widthCm, room.heightCm, wantedTables, size);
 
     const candidateSeats = candidate.reduce((total, table) => total + table.seatCount, 0);
+    // Les rangées et les îlots n'ont pas d'anneaux : la question ne se pose que
+    // pour le U, qui s'emboîte.
+    const candidateRings = preset === "U_SHAPE" ? ringCount(candidate) : 1;
 
     // Les largeurs sont essayées de la plus grande à la plus petite : à égalité,
     // c'est donc la table la plus large qui reste en place. Rétrécir sans rien
     // gagner ne ferait que réduire les étiquettes du plan de classe.
     //
-    // Deux critères, dans cet ordre : loger la classe, puis y employer le MOINS
-    // DE TABLES possible. Le second n'a d'effet que sur le U, seule disposition
-    // qui puisse dépasser la demande — elle emboîte un second fer à cheval dès
-    // que le premier ne suffit plus. Des tables plus fines y tiennent parfois
-    // en un seul U, ce qui vaut mieux qu'un double U aux tables larges.
-    if (
-      !chosen ||
-      (candidateSeats >= target
-        ? seatCount < target || candidate.length < tables.length
-        : candidateSeats > seatCount)
-    ) {
+    // Trois critères, dans cet ordre : loger la classe, puis employer le moins
+    // de FERS À CHEVAL possible, puis le moins de TABLES possible. Les deux
+    // derniers ne concernent que le U — seule disposition qui puisse dépasser
+    // la demande. Un double U aux tables larges est un moins bon plan de classe
+    // qu'un U simple aux tables un peu plus fines : la maquette du professeur,
+    // c'est un fer à cheval.
+    const better = !chosen
+      ? true
+      : candidateSeats >= target
+        ? seatCount < target || candidateRings < rings || (candidateRings === rings && candidate.length < tables.length)
+        : candidateSeats > seatCount;
+
+    if (better) {
       tables = candidate;
       seatCount = candidateSeats;
+      rings = candidateRings;
       chosen = true;
     }
 
-    // Impossible de faire mieux qu'une table par paire d'élèves demandée.
-    if (seatCount >= target && tables.length <= wantedTables) break;
+    // Impossible de faire mieux qu'un seul U et une table par paire d'élèves.
+    if (seatCount >= target && rings === 1 && tables.length <= wantedTables) break;
   }
 
   return {

@@ -685,10 +685,11 @@
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", sans-serif;
 
-  /* Le modèle réserve une CHASSE FIXE aux libellés de section et aux chiffres
-     de contexte — c'est ce qui donne sa rigueur au reste. On la prend dans les
-     polices du système : le projet ne télécharge aucune fonte, ni au build ni
-     à l'exécution (voir `--font-sans`). */
+  /* La CHASSE FIXE ne sert plus qu'aux données brutes — la zone de collage de
+     l'import d'élèves, où l'alignement des colonnes se voit. Les libellés de
+     section l'employaient et l'ont quittée (voir `.eyebrow`). On la prend dans
+     les polices du système : le projet ne télécharge aucune fonte, ni au build
+     ni à l'exécution (voir `--font-sans`). */
   --font-mono:
     ui-monospace, "Cascadia Mono", "Segoe UI Mono", "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
@@ -758,10 +759,18 @@ body::after {
   background-size: 11px 11px;
 }
 
-/* Libellé de section : capitales à chasse fixe, très espacées.
-   Le modèle s'en sert pour tout ce qui n'est pas du contenu — intitulés de
-   panneau, compteurs, horodatages. C'est ce qui laisse les noms d'élèves seuls
-   en casse normale, donc immédiatement repérables.
+/* Libellé de section : petites capitales de la police du site.
+   Employé pour tout ce qui n'est pas du contenu — intitulés de panneau,
+   compteurs, horodatages. C'est ce qui laisse les noms d'élèves seuls en casse
+   normale, donc immédiatement repérables.
+
+   LA CHASSE FIXE A ÉTÉ RETIRÉE. Le modèle réservait aux libellés une police
+   monospace en 10 px espacée de 0,1 em ; à cette taille elle se lisait comme un
+   corps étranger, surtout dans la fiche élève où elle titre quatre sections
+   d'affilée. La HIÉRARCHIE ne tenait pas à la police mais à la CASSE : on garde
+   donc les capitales, en `--font-sans`, un peu plus grandes et bien moins
+   espacées. Ne pas rebrancher `--font-mono` ici — il reste employé là où il sert
+   vraiment, la zone de collage de l'import d'élèves.
 
    DANS `@layer components`, contrairement aux utilitaires voisins : c'est la
    seule de ces classes qui pose une `color`, et une règle hors couche
@@ -770,10 +779,10 @@ body::after {
    `components`, qui précède `utilities`, elle se laisse surcharger. */
 @layer components {
   .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--muted);
   }

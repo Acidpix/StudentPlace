@@ -51,8 +51,8 @@ export function Card({ interactive = false, className, ...props }: CardProps) {
  * En-tête de section : un titre discret en capitales, une action facultative.
  * Sert à séparer les blocs d'une page sans concurrencer le `<h1>`.
  *
- * Le titre passe par `.eyebrow` (globals.css) : capitales à chasse fixe très
- * espacées. Tout ce qui n'est pas du contenu porte cette même signature, ce
+ * Le titre passe par `.eyebrow` (globals.css) : petites capitales de la police
+ * du site. Tout ce qui n'est pas du contenu porte cette même signature, ce
  * qui laisse les noms d'élèves seuls en casse normale.
  */
 export function SectionHeader({

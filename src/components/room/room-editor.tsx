@@ -30,7 +30,7 @@ import {
   tableWidthForSeats,
   type ObjectKind,
 } from "@/lib/domain";
-import { clamp, generateSeatPositions, snapToGrid } from "@/lib/placement/geometry";
+import { centerOf, clamp, generateSeatPositions, snapToGrid } from "@/lib/placement/geometry";
 import { generatePresetLayout, type LayoutPresetId } from "@/lib/placement/layout-presets";
 import { useHistory } from "@/lib/use-history";
 import type { RoomView } from "@/lib/view-models";
@@ -127,6 +127,104 @@ function resizeForSeats(
 
   const widthCm = TABLE_WIDTH_BY_SEATS[seatCount];
   return widthCm === undefined ? patch : { ...patch, widthCm };
+}
+
+// -------------------------------- élargissement ------------------------------
+
+/**
+ * Passage minimal laissé entre deux meubles élargis, en centimètres.
+ *
+ * Volontairement mince : ce n'est pas un couloir de circulation, seulement de
+ * quoi voir que deux tables sont deux tables. Tout ce qu'on ne laisse pas là,
+ * on le donne à l'écartement des places, donc à la taille des noms — et une
+ * table n'est plus dessinée que d'un liseré pointillé, qui sépare bien mieux
+ * qu'un aplat.
+ */
+const WIDEN_CLEARANCE_CM = 10;
+
+/** Une table est « à élargir » tant qu'elle n'a pas la largeur de son barème. */
+function isNarrow(object: EditorObject): boolean {
+  return object.kind === "TABLE" && object.widthCm < tableWidthForSeats(object.seats.length);
+}
+
+/**
+ * Emprise d'un meuble sur les AXES DE L'ÉCRAN, rotation comprise, une fois
+ * élargi s'il doit l'être.
+ *
+ * Un quart de tour échange largeur et profondeur : une table pivotée s'élargit
+ * vers le haut et le bas, pas vers la gauche et la droite. Raisonner en axes
+ * d'écran est la seule façon de comparer deux meubles d'orientations
+ * différentes.
+ */
+function targetSpan(object: EditorObject) {
+  const upright = ((object.rotation % 180) + 180) % 180 === 0;
+  const widthCm = isNarrow(object) ? tableWidthForSeats(object.seats.length) : object.widthCm;
+
+  return {
+    center: centerOf(object),
+    upright,
+    halfX: (upright ? widthCm : object.heightCm) / 2,
+    halfY: (upright ? object.heightCm : widthCm) / 2,
+  };
+}
+
+/**
+ * Largeur commune à laquelle on peut porter toutes les tables trop étroites
+ * SANS qu'aucune n'en touche une autre.
+ *
+ * Le barème est un souhait, pas une fatalité : une salle dessinée à la main a
+ * son propre pas, souvent plus serré. Élargir aveuglément y ferait chevaucher
+ * deux tables voisines — d'où cette mesure préalable, qui prend le minimum sur
+ * toute la salle pour que les tables restent d'une largeur UNIFORME.
+ *
+ * Deux cas pour une paire :
+ *  - deux tables qui grandissent toutes deux le long du même axe se partagent
+ *    l'écart : chacune peut prendre `Δ − passage` ;
+ *  - face à un meuble qui ne bouge pas — un obstacle, le bureau, une table déjà
+ *    large, une table pivotée qui grandit dans l'autre sens — on retranche son
+ *    emprise entière.
+ */
+function widenTargetWidth(layout: Layout): number {
+  const narrow = layout.objects.filter(isNarrow);
+  if (narrow.length === 0) return 0;
+
+  let width = Math.max(...narrow.map((table) => tableWidthForSeats(table.seats.length)));
+
+  for (const table of narrow) {
+    const self = targetSpan(table);
+
+    // Rester dans la salle : le mur est un voisin comme un autre.
+    const toWall = self.upright
+      ? Math.min(self.center.x, layout.widthCm - self.center.x)
+      : Math.min(self.center.y, layout.heightCm - self.center.y);
+    width = Math.min(width, 2 * toWall);
+
+    for (const other of layout.objects) {
+      if (other.key === table.key) continue;
+
+      const span = targetSpan(other);
+      const alongSelf = self.upright ? "x" : "y";
+      const gapAlong = Math.abs(self.center[alongSelf] - span.center[alongSelf]);
+      const gapAcross = self.upright
+        ? Math.abs(self.center.y - span.center.y)
+        : Math.abs(self.center.x - span.center.x);
+
+      // Deux meubles qui ne se croisent pas sur l'autre axe ne se gêneront
+      // jamais, quelle que soit la largeur retenue.
+      const acrossReach = self.upright ? self.halfY + span.halfY : self.halfX + span.halfX;
+      if (gapAcross >= acrossReach) continue;
+
+      const grows = isNarrow(other) && span.upright === self.upright;
+      width = Math.min(
+        width,
+        grows
+          ? gapAlong - WIDEN_CLEARANCE_CM
+          : 2 * (gapAlong - WIDEN_CLEARANCE_CM - (self.upright ? span.halfX : span.halfY)),
+      );
+    }
+  }
+
+  return Math.max(0, Math.floor(width / GRID_CM) * GRID_CM);
 }
 
 function toLayout(room: RoomView): Layout {
@@ -276,10 +374,18 @@ export function RoomEditor({ room }: { room: RoomView }) {
         ? { x: Math.round((layout.widthCm - size.widthCm) / 2), y: 10 }
         : kind === "TEACHER_DESK"
           ? { x: Math.round((layout.widthCm - size.widthCm) / 2), y: 60 }
-          : {
-              x: 80 + (index % 5) * 160,
-              y: 200 + Math.floor(index / 5) * 130,
-            };
+          : (() => {
+              // Le pas de dépose suit la TAILLE du meuble : à pas fixe, deux
+              // tables du barème (230 cm) se recouvraient à moitié dès la
+              // deuxième, et il fallait les séparer à la main avant de pouvoir
+              // les saisir.
+              const pitchX = size.widthCm + 40;
+              const perRow = Math.max(1, Math.floor((layout.widthCm - 80) / pitchX));
+              return {
+                x: 40 + (index % perRow) * pitchX,
+                y: 200 + Math.floor(index / perRow) * (size.heightCm + 75),
+              };
+            })();
 
     const base: EditorObject = {
       key: localKey("obj"),
@@ -347,7 +453,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
   }
 
   /**
-   * Porte toutes les tables à la largeur type de leur nombre de places.
+   * Élargit les tables autant que la salle le permet.
    *
    * Le barème `TABLE_WIDTH_BY_SEATS` ne s'applique qu'aux tables NOUVELLES :
    * une salle déjà dessinée garde les siennes, sans quoi rouvrir l'éditeur
@@ -355,18 +461,26 @@ export function RoomEditor({ room }: { room: RoomView }) {
    * explicite pour en profiter — et il vaut le coup, puisque c'est l'écartement
    * des places qui plafonne la taille des étiquettes du plan de classe.
    *
+   * La largeur retenue est celle que `widenTargetWidth()` a mesurée sur toute
+   * la salle : le barème si la place le permet, le pas réel des tables sinon.
+   * Une table déjà plus large que cette valeur n'est jamais RÉTRÉCIE — on
+   * n'enlève rien à quelqu'un qui avait réglé sa salle à la main.
+   *
    * Les places sont RECALCULÉES mais leurs identifiants sont conservés par
    * `withSeats()` : les élèves déjà placés dans les plans de cette salle ne
    * bougent pas. C'est toute la différence avec une disposition type, qui les
    * recrée.
    */
   const widenTables = useCallback(() => {
+    const target = widenTargetWidth(layout);
+    if (target <= 0) return;
+
     commit({
       ...layout,
       objects: layout.objects.map((object) => {
-        if (object.kind !== "TABLE") return object;
+        if (!isNarrow(object)) return object;
 
-        const widthCm = tableWidthForSeats(object.seats.length);
+        const widthCm = Math.min(target, tableWidthForSeats(object.seats.length));
         if (widthCm <= object.widthCm) return object;
 
         // La table grandit autour de son CENTRE : c'est le point que la
@@ -382,8 +496,14 @@ export function RoomEditor({ room }: { room: RoomView }) {
     });
   }, [commit, layout]);
 
+  /**
+   * Combien de tables gagneraient à être élargies. Zéro fait disparaître le
+   * bouton : une salle déjà au large, ou trop serrée pour gagner un seul
+   * centimètre, n'a rien à en attendre.
+   */
+  const widenTarget = widenTargetWidth(layout);
   const narrowTables = layout.objects.filter(
-    (object) => object.kind === "TABLE" && object.widthCm < tableWidthForSeats(object.seats.length),
+    (object) => isNarrow(object) && Math.min(widenTarget, tableWidthForSeats(object.seats.length)) > object.widthCm,
   ).length;
 
   const updateSelected = useCallback(
@@ -613,7 +733,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
               variant="secondary"
               size="sm"
               onClick={widenTables}
-              title="Porte chaque table à la largeur type de son nombre de places : les places s'écartent, les noms du plan de classe gagnent en lisibilité. Les élèves déjà placés ne bougent pas."
+              title={`Porte chaque table à ${widenTarget} cm : les places s'écartent, les noms du plan de classe gagnent d'autant en lisibilité. Les élèves déjà placés ne bougent pas.`}
             >
               Élargir les tables ({narrowTables})
             </Button>

@@ -50,7 +50,7 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
 /**
  * Dimensions par défaut du mobilier, en centimètres.
  *
- * La table fait 190 cm et non les 130 d'origine : l'écartement des places en
+ * La table fait 230 cm et non les 130 d'origine : l'écartement des places en
  * découle directement (largeur ÷ nombre de places), et c'est lui qui plafonne
  * la taille des étiquettes du plan de classe. À 130 cm, deux places d'une même
  * table n'étaient distantes que de 65 cm et les noms devenaient illisibles.
@@ -67,7 +67,7 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
  * places, le cas courant, et sert de repli.
  */
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
-  TABLE: { widthCm: 190, heightCm: 55 },
+  TABLE: { widthCm: 230, heightCm: 55 },
   TEACHER_DESK: { widthCm: 140, heightCm: 70 },
   BOARD: { widthCm: 300, heightCm: 35 },
   DOOR: { widthCm: 90, heightCm: 35 },
@@ -78,22 +78,24 @@ export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm
 /**
  * Largeur d'une table selon son nombre de places, en centimètres.
  *
- * L'écartement des places vaut largeur ÷ nombre de places : on garde donc un
- * pas d'environ 95 cm par élève, ce qui laisse aux étiquettes du plan de quoi
- * afficher un prénom et un NOM DE FAMILLE ENTIER sans se recouvrir. Le pas
- * était de 80 cm ; à cette taille « Ambre GIRARD » passait tout juste et
- * « Raphaël BERTRAND » perdait son nom. La table à une place est volontairement
- * plus large que le pas — c'est une table d'écolier, pas une demi-table.
+ * L'écartement des places vaut largeur ÷ nombre de places : on vise donc un pas
+ * d'environ 115 cm par élève. C'est la SEULE façon d'agrandir vraiment les noms
+ * sur le plan de classe — l'étiquette ne peut jamais dépasser l'écartement des
+ * places, sous peine de recouvrir sa voisine. Le pas est passé de 80 à 95 puis
+ * à 115 cm : à 80, il ne restait la place que pour des initiales.
  *
- * Ces cotes ne prétendent plus au réalisme : elles sont réglées sur la
- * LISIBILITÉ des étiquettes. Une salle en devient un peu plus dense à
- * l'affichage, ce qui est sans conséquence — les couloirs des dispositions
- * types sont recalculés à partir de ces largeurs.
+ * 230 cm pour deux élèves, c'est une table qui n'existe pas. C'est ASSUMÉ : le
+ * plan de classe est un outil de lecture, pas un plan d'architecte. La borne
+ * haute n'est pas le réalisme mais la CAPACITÉ de la salle — au-delà de 230, une
+ * salle de 9 m perd sa troisième colonne de tables.
+ *
+ * La table à une place est volontairement plus large que le pas : c'est une
+ * table d'écolier, pas une demi-table.
  */
 export const TABLE_WIDTH_BY_SEATS: Record<number, number> = {
-  1: 130,
-  2: 190,
-  3: 280,
+  1: 150,
+  2: 230,
+  3: 330,
 };
 
 /** Largeur d'une table à `count` places ; repli sur la table à deux places. */
@@ -183,13 +185,13 @@ export const ROOM_MAX_CM = 3000;
  *
  * La LARGEUR est généreuse à dessein — l'étiquette porte « Camille M. » en un
  * seul mot d'un bout à l'autre, et c'est elle qui décide de la taille du texte.
- * Elle a été relevée en même temps que la largeur des tables : à 86 cm, le
- * plafond aurait rogné les 89 cm que rend désormais une table à deux places, et
- * l'élargissement n'aurait servi à rien.
+ * Elle est relevée à chaque fois que les tables s'élargissent, faute de quoi le
+ * plafond rognerait le gain et l'élargissement n'aurait servi à rien : une
+ * table de 230 cm à deux places rend des cartes de 108 cm.
  *
- * La HAUTEUR, elle, a BAISSÉ : l'étiquette ne tient plus que sur une ligne, et
- * une carte haute n'y ajoutait que du vide. Plus basse, elle dégage aussi
- * l'espace entre deux rangs, où le regard a besoin de respirer.
+ * La HAUTEUR reste bien plus basse que la largeur : l'étiquette ne tient que
+ * sur une ligne, et une carte haute n'y ajouterait que du vide tout en
+ * rapprochant deux rangs voisins.
  */
-export const SEAT_CARD_MAX_WIDTH_CM = 104;
-export const SEAT_CARD_MAX_HEIGHT_CM = 44;
+export const SEAT_CARD_MAX_WIDTH_CM = 120;
+export const SEAT_CARD_MAX_HEIGHT_CM = 48;

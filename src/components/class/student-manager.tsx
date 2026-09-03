@@ -18,7 +18,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input } from "@/components/ui/field";
 import {
   EmptyClassArt,
-  PencilIcon,
   PlusIcon,
   SearchIcon,
   TrashIcon,
@@ -227,13 +226,25 @@ export function StudentManager({
  * - le commentaire tient sur UNE ligne tronquée, le texte entier restant dans
  *   l'infobulle. Il est de toute façon visible en entier dans le popup.
  *
- * Les deux commandes sont TOUJOURS VISIBLES, ET À PLEINE OPACITÉ. Elles sont
- * passées par deux états rejetés : effacées au repos (introuvables, et jamais
- * révélées sur un écran tactile, où il n'y a pas de survol), puis simplement
- * atténuées — un `ghost` en `text-muted` à 60 % d'opacité, soit une icône de
- * 16 px presque effacée sur la trame. Ce sont désormais des boutons
- * SECONDAIRES, donc bordés : c'est le filet, plus que l'icône, qui les fait
- * lire comme cliquables dans une grille dense.
+ * **LA CARTE ENTIÈRE OUVRE LA FICHE.** Le crayon a disparu : dans une grille
+ * dense, il ajoutait une cible de 28 px là où la carte tout entière en est une,
+ * et l'œil devait le chercher sur chaque vignette. Il ne reste qu'une commande
+ * visible, la suppression — un bouton SECONDAIRE, donc bordé : c'est le filet,
+ * plus que l'icône, qui la fait lire comme cliquable.
+ *
+ * L'ouverture tient en DEUX MORCEAUX, et il ne faut pas les confondre :
+ *
+ * - un bouton TRANSPARENT ÉTIRÉ sur la carte (`absolute inset-0`) apporte le
+ *   focus clavier, l'anneau de focus et le libellé de lecteur d'écran. Il ne
+ *   porte PAS de gestionnaire : le clic qu'il produit — souris, Entrée ou
+ *   Espace — remonte jusqu'à la carte ;
+ * - le `onClick` est posé sur la `<div>`, ce qui rattrape les clics tombant sur
+ *   les rares éléments passés AU-DESSUS du calque pour garder leur infobulle.
+ *
+ * On ne pouvait pas faire de la carte elle-même un `<button>` : le bouton
+ * « Supprimer » s'y serait imbriqué, ce qu'HTML interdit. Il est simplement
+ * repassé en `relative` — donc au-dessus du calque — et arrête la propagation
+ * pour ne pas ouvrir la fiche en même temps que la confirmation.
  */
 function StudentTile({
   student,
@@ -252,7 +263,19 @@ function StudentTile({
   ].filter((need): need is { key: string; short: string; label: string } => need !== null);
 
   return (
-    <div className={`flex flex-col gap-1.5 p-2 ${CARD} ${CARD_INTERACTIVE}`}>
+    <div
+      onClick={onEdit}
+      className={`relative flex flex-col gap-1.5 p-2 ${CARD} ${CARD_INTERACTIVE} cursor-pointer`}
+    >
+      {/* Le calque n'a PAS de `onClick` : le clic — souris comme Entrée ou
+          Espace au clavier — remonte jusqu'à la `<div>`, qui est seule à porter
+          l'ouverture. Deux gestionnaires se déclencheraient tous les deux. */}
+      <button
+        type="button"
+        aria-label={`Modifier ${student.firstName} ${student.lastName}`}
+        className="absolute inset-0 cursor-pointer rounded-card"
+      />
+
       <div className="flex items-center gap-2">
         <DifficultyBadge difficulty={student.difficulty} size="sm" />
 
@@ -265,40 +288,43 @@ function StudentTile({
           <span
             key={need.key}
             title={need.label}
-            className="shrink-0 rounded bg-primary-soft px-1 text-[10px] font-bold text-primary"
+            className="relative shrink-0 rounded bg-primary-soft px-1 text-[10px] font-bold text-primary"
           >
             {need.short}
           </span>
         ))}
 
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="secondary"
-            onClick={onEdit}
-            size="icon-sm"
-            title="Modifier"
-            aria-label={`Modifier ${student.firstName} ${student.lastName}`}
-          >
-            <PencilIcon />
-          </Button>
-          <Button
-            variant="secondary"
-            disabled={disabled}
-            onClick={onDelete}
-            size="icon-sm"
-            title="Supprimer"
-            aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
-            className="text-danger hover:border-danger/50 hover:text-danger"
-          >
-            <TrashIcon />
-          </Button>
-        </div>
+        {/* `relative` place le bouton au-dessus du calque, et l'arrêt de
+            propagation l'empêche d'ouvrir AUSSI la fiche : sans lui, demander
+            une suppression ouvrirait la boîte de confirmation par-dessous le
+            popup d'édition. */}
+        <Button
+          variant="secondary"
+          disabled={disabled}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          size="icon-sm"
+          title="Supprimer"
+          aria-label={`Supprimer ${student.firstName} ${student.lastName}`}
+          className="relative shrink-0 text-danger hover:border-danger/50 hover:text-danger"
+        >
+          <TrashIcon />
+        </Button>
       </div>
 
       <DifficultyMeter difficulty={student.difficulty} compact />
 
+      {/* `relative` sur les deux porteurs d'infobulle — jeton de besoin et
+          commentaire tronqué : un calque posé par-dessus les priverait de leur
+          survol, et c'est l'infobulle qui porte ici le texte entier. Le clic y
+          remonte quand même jusqu'à la carte. */}
       {student.comment && (
-        <p className="truncate text-[11px] leading-snug text-muted" title={student.comment}>
+        <p
+          className="relative truncate text-[11px] leading-snug text-muted"
+          title={student.comment}
+        >
           {student.comment}
         </p>
       )}
