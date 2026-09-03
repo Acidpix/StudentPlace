@@ -322,6 +322,22 @@ export const UShapeLayoutArt = (p: ArtProps) => (
   </Art>
 );
 
+/** U ouvert vers le tableau, avec un îlot de quatre au centre. */
+export const UShapeIslandLayoutArt = (p: ArtProps) => (
+  <Art {...p}>
+    <rect x="42" y="9" width="28" height="3" rx="1.5" />
+    {[24, 39].map((y) => (
+      <g key={y}>
+        <rect x="16" y={y} width="7" height="13" rx="2" />
+        <rect x="89" y={y} width="7" height="13" rx="2" />
+      </g>
+    ))}
+    {[28, 47, 66].map((x) => <rect key={x} x={x} y="56" width="17" height="7" rx="2" />)}
+    <rect x="46" y="26" width="20" height="6" rx="2" />
+    <rect x="46" y="32" width="20" height="6" rx="2" />
+  </Art>
+);
+
 /** Îlots de quatre, deux tables jointes. */
 export const IslandsLayoutArt = (p: ArtProps) => (
   <Art {...p}>

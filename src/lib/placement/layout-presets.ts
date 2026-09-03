@@ -5,10 +5,10 @@ import { snapToGrid } from "./geometry";
  * Dispositions types de salle.
  *
  * Dessiner une salle table par table est le geste le plus long de
- * l'application, alors que trois agencements couvrent l'essentiel des salles
- * réelles : rangées face au tableau, U ouvert vers le tableau, îlots de quatre.
- * Ce module produit le mobilier correspondant à partir des SEULES dimensions de
- * la salle et d'un nombre de places souhaité.
+ * l'application, alors que quatre agencements couvrent l'essentiel des salles
+ * réelles : rangées face au tableau, U ouvert vers le tableau, U avec un îlot
+ * central, îlots de quatre. Ce module produit le mobilier correspondant à
+ * partir des SEULES dimensions de la salle et d'un nombre de places souhaité.
  *
  * Deux règles gouvernent tout ce qui suit :
  *
@@ -27,7 +27,7 @@ import { snapToGrid } from "./geometry";
  * Des tables serrées donnent des noms illisibles.
  */
 
-export const LAYOUT_PRESET_IDS = ["ROWS", "U_SHAPE", "ISLANDS"] as const;
+export const LAYOUT_PRESET_IDS = ["ROWS", "U_SHAPE", "U_SHAPE_ISLAND", "ISLANDS"] as const;
 export type LayoutPresetId = (typeof LAYOUT_PRESET_IDS)[number];
 
 export const LAYOUT_PRESETS: Record<LayoutPresetId, { label: string; description: string }> = {
@@ -38,6 +38,10 @@ export const LAYOUT_PRESETS: Record<LayoutPresetId, { label: string; description
   U_SHAPE: {
     label: "En U",
     description: "Tables accolées le long des murs, le U ouvert vers le tableau.",
+  },
+  U_SHAPE_ISLAND: {
+    label: "En U avec îlot",
+    description: "Un U le long des murs, un îlot de quatre au centre.",
   },
   ISLANDS: {
     label: "En îlots",
@@ -330,6 +334,102 @@ function uShapeTables(
   return tables;
 }
 
+// ------------------------------ U avec îlot ---------------------------------
+
+/**
+ * Le même U que `uShapeTables`, mais à un SEUL rang — jamais emboîté, faute de
+ * quoi il n'y aurait plus d'ouverture pour l'îlot — et un îlot de quatre posé
+ * au centre, dans l'ouverture. `wanted` compte des TABLES, comme dans
+ * `uShapeTables` : chacune porte `SEATS_PER_TABLE` places.
+ *
+ * L'îlot — deux tables jointes — est réservé sur ce budget AVANT de
+ * dimensionner le U, base et bras cédant leurs dernières tables à l'îlot
+ * plutôt que l'inverse : c'est lui qui distingue cette disposition d'un U
+ * simple.
+ *
+ * Si le rectangle central n'est pas assez large ET assez profond pour deux
+ * tables jointes, l'îlot disparaît plutôt que de chevaucher un bras — un U
+ * simple vaut mieux qu'un meuble mal posé.
+ */
+function uShapeIslandTables(
+  widthCm: number,
+  heightCm: number,
+  wanted: number,
+  size: TableSize,
+): PresetObject[] {
+  const front = frontClearanceCm(heightCm);
+  const side = sideClearanceCm(heightCm);
+
+  const inset = WALL_MARGIN_CM;
+  const armX = inset + size.heightCm / 2;
+  const baseY = heightCm - inset - size.heightCm / 2;
+  const baseCapacity = countAlong(widthCm - 2 * inset, size.widthCm, 0);
+  const armTop = Math.max(front, side);
+  const armBottom = baseY - size.heightCm / 2 - CORNER_GAP_CM;
+  const armCapacity = countAlong(armBottom - armTop, size.widthCm, 0);
+
+  // Une base et deux bras sont le minimum d'un U ; sans eux, pas d'ouverture
+  // où loger un îlot.
+  if (baseCapacity < 2 || armCapacity < 1) return [];
+
+  const ISLAND_TABLES = 2;
+  const islandTablesWanted = Math.min(ISLAND_TABLES, wanted);
+  const uWanted = wanted - islandTablesWanted;
+
+  const ringCapacity = baseCapacity + 2 * armCapacity;
+  let base = baseCapacity;
+  let arm = armCapacity;
+  let placed = ringCapacity;
+  while (placed > uWanted) {
+    if (base > 2) {
+      base -= 1;
+      placed -= 1;
+    } else if (arm > 1 && placed - 2 >= uWanted) {
+      arm -= 1;
+      placed -= 2;
+    } else break;
+  }
+
+  const tables: PresetObject[] = [];
+
+  const baseWidth = base * size.widthCm;
+  const baseStartX = (widthCm - baseWidth) / 2 + size.widthCm / 2;
+  for (let index = 0; index < base; index++) {
+    tables.push(tableAt(size, baseStartX + index * size.widthCm, baseY, 0));
+  }
+
+  for (let index = 0; index < arm; index++) {
+    const cy = armBottom - size.widthCm / 2 - index * size.widthCm;
+    tables.push(tableAt(size, armX, cy, 90));
+    tables.push(tableAt(size, widthCm - armX, cy, 90));
+  }
+
+  // L'îlot tient dans le rectangle bordé par les deux bras et par la base,
+  // avec le même jeu qu'aux coins du U.
+  const centerLeft = armX + size.heightCm / 2 + CORNER_GAP_CM;
+  const centerRight = widthCm - armX - size.heightCm / 2 - CORNER_GAP_CM;
+  const centerTop = armTop;
+  const centerBottom = armBottom;
+  const islandHeight = size.heightCm * 2;
+
+  if (
+    islandTablesWanted > 0 &&
+    centerRight - centerLeft >= size.widthCm &&
+    centerBottom - centerTop >= islandHeight
+  ) {
+    const cx = (centerLeft + centerRight) / 2;
+    const blockTop = centerTop + (centerBottom - centerTop - islandHeight) / 2;
+
+    // Même geste que dans `islandTables` : la table du bas se pose à partir
+    // de celle du haut, déjà aimantée, pour que les deux SE TOUCHENT.
+    const top = tableAt(size, cx, blockTop + size.heightCm / 2, 0);
+    tables.push(top);
+    if (islandTablesWanted > 1) tables.push({ ...top, y: top.y + size.heightCm });
+  }
+
+  return tables;
+}
+
 // --------------------------------- Îlots ------------------------------------
 
 /**
@@ -368,7 +468,7 @@ function islandTables(
       const cx = startX + column * pitchX;
 
       // La table du bas est posée à partir de la table du haut DÉJÀ AIMANTÉE,
-      // et non calculée puis aimantée à son tour : une profondeur de 55 cm
+      // et non calculée puis aimantée à son tour : une profondeur de 45 cm
       // n'est pas un multiple du pas de 10, si bien que les deux aimantations
       // séparées laissaient entre les deux tables un jour de 5 cm. Un îlot,
       // c'est deux tables qui SE TOUCHENT.
@@ -431,12 +531,14 @@ export function generatePresetLayout(
         ? rowsTables(room.widthCm, room.heightCm, wantedTables, size)
         : preset === "U_SHAPE"
           ? uShapeTables(room.widthCm, room.heightCm, wantedTables, size)
-          : islandTables(room.widthCm, room.heightCm, wantedTables, size);
+          : preset === "U_SHAPE_ISLAND"
+            ? uShapeIslandTables(room.widthCm, room.heightCm, wantedTables, size)
+            : islandTables(room.widthCm, room.heightCm, wantedTables, size);
 
     const candidateSeats = candidate.reduce((total, table) => total + table.seatCount, 0);
     // Les rangées et les îlots n'ont pas d'anneaux : la question ne se pose que
-    // pour le U, qui s'emboîte.
-    const candidateRings = preset === "U_SHAPE" ? ringCount(candidate) : 1;
+    // pour le U — simple ou avec îlot central —, qui peut s'emboîter.
+    const candidateRings = preset === "U_SHAPE" || preset === "U_SHAPE_ISLAND" ? ringCount(candidate) : 1;
 
     // Les largeurs sont essayées de la plus grande à la plus petite : à égalité,
     // c'est donc la table la plus large qui reste en place. Rétrécir sans rien

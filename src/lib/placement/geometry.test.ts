@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { centerOf, distanceCm, generateSeatPositions, localToAbsolute, snapToGrid } from "./geometry";
+import { OBJECT_DEFAULT_SIZE, TABLE_WIDTH_PER_SEAT_CM } from "@/lib/domain";
+import { centerOf, distanceCm, generateSeatPositions, localToAbsolute, seatFootprintCm, snapToGrid } from "./geometry";
 
 const table = { x: 0, y: 0, widthCm: 120, heightCm: 40, rotation: 0 };
 
@@ -66,5 +67,32 @@ describe("géométrie", () => {
   it("aimante sur la grille", () => {
     expect(snapToGrid(47, 10)).toBe(50);
     expect(snapToGrid(44, 10)).toBe(40);
+  });
+
+  it("donne à l'étiquette le pas d'une place et la hauteur de la table", () => {
+    const footprint = seatFootprintCm([{ widthCm: 340, heightCm: 45, seatCount: 2 }]);
+    expect(footprint.widthCm).toBe(170);
+    expect(footprint.heightCm).toBe(45);
+  });
+
+  it("retient le pas et la hauteur les plus petits parmi les tables occupées", () => {
+    const footprint = seatFootprintCm([
+      { widthCm: 340, heightCm: 45, seatCount: 2 },
+      { widthCm: 220, heightCm: 40, seatCount: 2 },
+    ]);
+    expect(footprint.widthCm).toBe(110);
+    expect(footprint.heightCm).toBe(40);
+  });
+
+  it("ignore les tables sans place", () => {
+    const footprint = seatFootprintCm([{ widthCm: 100, heightCm: 20, seatCount: 0 }]);
+    expect(footprint.widthCm).toBe(TABLE_WIDTH_PER_SEAT_CM);
+    expect(footprint.heightCm).toBe(OBJECT_DEFAULT_SIZE.TABLE.heightCm);
+  });
+
+  it("retombe sur le pas et la hauteur par défaut en l'absence de table", () => {
+    const footprint = seatFootprintCm([]);
+    expect(footprint.widthCm).toBe(TABLE_WIDTH_PER_SEAT_CM);
+    expect(footprint.heightCm).toBe(OBJECT_DEFAULT_SIZE.TABLE.heightCm);
   });
 });

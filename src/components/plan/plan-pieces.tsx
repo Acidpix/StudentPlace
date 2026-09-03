@@ -365,6 +365,7 @@ export function SeatSpot({
   selected,
   leftPercent,
   topPercent,
+  sideways,
   metrics,
   labels,
   onSelect,
@@ -376,6 +377,8 @@ export function SeatSpot({
   selected: boolean;
   leftPercent: number;
   topPercent: number;
+  /** La table de cette place est pivotée d'un quart de tour : l'étiquette tourne avec elle. */
+  sideways: boolean;
   metrics: SeatMetrics;
   /** Forme et corps communs à toutes les étiquettes du plan. */
   labels: PlanLabelStyle;
@@ -391,8 +394,9 @@ export function SeatSpot({
         top: `${topPercent}%`,
         width: metrics.width,
         height: metrics.height,
+        transform: `translate(-50%, -50%)${sideways ? " rotate(90deg)" : ""}`,
       }}
-      className="absolute -translate-x-1/2 -translate-y-1/2"
+      className="absolute"
     >
       {student ? (
         <SeatedStudent

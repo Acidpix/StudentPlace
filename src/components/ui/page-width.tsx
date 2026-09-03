@@ -14,8 +14,10 @@ import { cn } from "@/lib/cn";
  *
  * - par défaut, 72 rem (1152 px) — la mesure de lecture confortable, celle de
  *   toutes les pages de gestion ;
- * - `wide`, 100 rem (1600 px) — pour l'éditeur de plan de classe, dont les deux
- *   colonnes latérales mangeaient la moitié de la largeur utile.
+ * - `wide`, 100 rem (1600 px) — pour les deux ÉDITEURS. L'éditeur de plan de
+ *   classe, dont les deux colonnes latérales mangeaient la moitié de la largeur
+ *   utile ; l'éditeur de salle, qui ne déclarait aucune largeur du tout et
+ *   s'étalait donc sur la fenêtre entière.
  *
  * La barre de navigation, elle, garde la largeur par défaut : c'est le contenu
  * qui s'élargit, pas le chrome.

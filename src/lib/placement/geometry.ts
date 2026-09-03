@@ -1,4 +1,4 @@
-import { ADJACENCY_CM, GRID_CM } from "@/lib/domain";
+import { ADJACENCY_CM, GRID_CM, OBJECT_DEFAULT_SIZE, TABLE_WIDTH_PER_SEAT_CM } from "@/lib/domain";
 
 /**
  * Géométrie de la salle.
@@ -97,83 +97,45 @@ export function generateSeatPositions(
   });
 }
 
+/** Ce qu'il faut d'une table pour en déduire l'emprise de ses étiquettes. */
+export interface SeatedTable {
+  widthCm: number;
+  heightCm: number;
+  seatCount: number;
+}
+
 /**
- * Emprise que peut prendre l'étiquette d'un élève sans jamais en recouvrir une
- * autre, déduite de l'écartement RÉEL des places de la salle.
+ * Emprise de l'étiquette d'un élève sur le plan, en centimètres.
  *
- * Un plafond fixe ne peut pas convenir : deux places d'une table de 130 cm sont
- * à 65 cm l'une de l'autre, celles d'une table de 190 cm à 95 cm. Mesurer
- * plutôt que supposer permet aux étiquettes d'être aussi grandes — donc aussi
- * lisibles — que la salle le permet, et pas davantage.
+ * Elle ne se mesure plus : elle se DÉDUIT directement de la table, sans marge
+ * ni plafond. La LARGEUR est le pas des places — largeur de la table ÷ nombre
+ * de places, exactement l'écart que pose `generateSeatPositions()` entre deux
+ * places voisines — et la HAUTEUR est la profondeur de la table. Une étiquette
+ * a donc TOUJOURS la largeur d'une place et la hauteur de sa table, jamais
+ * moins, jamais plus.
  *
- * Le calcul se fait EN DEUX TEMPS, la hauteur d'abord, et c'est important. Deux
- * cartes centrées sur leurs places se recouvrent si et seulement si leurs
- * écarts sont INFÉRIEURS aux deux dimensions À LA FOIS : une place située
- * au-dessus d'une autre ne limite donc en rien la LARGEUR, dès lors que les
- * hauteurs, elles, ne se rejoignent pas.
+ * Toutes les étiquettes du plan partagent une seule emprise (voir
+ * `planLabelStyle()`) : on retient donc le plus petit pas et la plus petite
+ * profondeur parmi les tables occupées, pour qu'aucune étiquette n'en
+ * recouvre jamais une autre, même si les tables de la salle diffèrent.
  *
- *  1. La hauteur suit le plus petit écart VERTICAL entre deux places d'une même
- *     colonne, avec 25 % de jeu — un rang de plus loin se lit mal quand les
- *     cartes s'empilent bord à bord.
- *  2. La largeur suit alors le plus petit écart HORIZONTAL parmi les SEULES
- *     paires de places dont les bandes verticales se chevauchent, avec 4 % de
- *     jeu pour que deux étiquettes voisines ne se touchent pas tout à fait.
- *     Ce jeu est mince à dessein : chaque centimètre laissé là est un
- *     centimètre de moins pour le nom, et les cartes ont un cadre qui les
- *     sépare déjà.
- *
- * La version précédente prenait en plus la plus petite distance tous azimuts,
- * ce qui bridait toute la salle au voisin le plus proche quelle que soit sa
- * direction : dans une disposition en ÎLOTS, deux tables face à face à 60 cm
- * ramenaient les étiquettes à 56 cm de large alors qu'elles disposaient de
- * 95 cm à l'horizontale. Le quinconce que cette distance servait à rattraper
- * est mieux traité par la règle ci-dessus, qui est exacte.
- *
- * En l'absence de repère — une place unique, par exemple — on rend les
- * plafonds tels quels.
+ * Une table sans place n'y contribue pas. En l'absence de toute table
+ * occupée, on rend le pas et la profondeur par défaut d'une table neuve.
  */
-export function seatFootprintCm(
-  seats: Point[],
-  maxWidthCm: number,
-  maxHeightCm: number,
-): { widthCm: number; heightCm: number } {
-  /** Au-delà, deux places ne sont plus considérées sur la même colonne. */
-  const ALIGNMENT_TOLERANCE_CM = 45;
+export function seatFootprintCm(tables: SeatedTable[]): { widthCm: number; heightCm: number } {
+  let widthCm = Number.POSITIVE_INFINITY;
+  let heightCm = Number.POSITIVE_INFINITY;
 
-  let minColumnGap = Number.POSITIVE_INFINITY;
-
-  for (let i = 0; i < seats.length; i++) {
-    for (let j = i + 1; j < seats.length; j++) {
-      const dx = Math.abs(seats[i].x - seats[j].x);
-      const dy = Math.abs(seats[i].y - seats[j].y);
-      if (dy > 0 && dx <= ALIGNMENT_TOLERANCE_CM) minColumnGap = Math.min(minColumnGap, dy);
-    }
+  for (const table of tables) {
+    if (table.seatCount <= 0) continue;
+    widthCm = Math.min(widthCm, table.widthCm / table.seatCount);
+    heightCm = Math.min(heightCm, table.heightCm);
   }
 
-  const heightCm = Math.min(
-    maxHeightCm,
-    Number.isFinite(minColumnGap) ? minColumnGap * 0.75 : maxHeightCm,
-  );
-
-  let minRowGap = Number.POSITIVE_INFINITY;
-
-  for (let i = 0; i < seats.length; i++) {
-    for (let j = i + 1; j < seats.length; j++) {
-      const dx = Math.abs(seats[i].x - seats[j].x);
-      const dy = Math.abs(seats[i].y - seats[j].y);
-      // Deux places à la même abscisse ne peuvent pas gêner : leur écart
-      // vertical vaut au moins `minColumnGap`, donc plus que la hauteur
-      // retenue. La largeur ne peut donc pas tomber à zéro.
-      if (dx > 0 && dy < heightCm) minRowGap = Math.min(minRowGap, dx);
-    }
-  }
-
-  const widthCm = Math.min(
-    maxWidthCm,
-    Number.isFinite(minRowGap) ? minRowGap * 0.96 : maxWidthCm,
-  );
-
-  return { widthCm, heightCm };
+  return {
+    widthCm: Number.isFinite(widthCm) ? widthCm : TABLE_WIDTH_PER_SEAT_CM,
+    heightCm: Number.isFinite(heightCm) ? heightCm : OBJECT_DEFAULT_SIZE.TABLE.heightCm,
+  };
 }
 
 /**

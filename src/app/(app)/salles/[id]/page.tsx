@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { RoomEditor } from "@/components/room/room-editor";
+import { PageWidth } from "@/components/ui/page-width";
 import { prisma } from "@/lib/db";
 import type { ObjectKind } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
@@ -45,5 +46,12 @@ export default async function RoomDetailPage({ params }: { params: Promise<{ id:
     })),
   };
 
-  return <RoomEditor room={view} />;
+  // Même largeur que l'éditeur de plan de classe : les deux éditeurs se
+  // ressemblent, et cette page n'en déclarait aucune — elle s'étalait donc sur
+  // toute la fenêtre.
+  return (
+    <PageWidth wide>
+      <RoomEditor room={view} />
+    </PageWidth>
+  );
 }

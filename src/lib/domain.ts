@@ -50,26 +50,14 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
 /**
  * Dimensions par défaut du mobilier, en centimètres.
  *
- * La table fait 340 cm et non les 130 d'origine : l'écartement des places en
- * découle directement (largeur ÷ nombre de places), et c'est lui qui plafonne
- * la taille des étiquettes du plan de classe. À 130 cm, deux places d'une même
- * table n'étaient distantes que de 65 cm et les noms devenaient illisibles.
- * Les salles déjà dessinées gardent leurs tables : le bouton « Élargir les
- * tables » de l'éditeur de salle est ce qui leur rendra de la place.
- *
- * La cote n'est plus celle d'une vraie table d'écolier — 340 cm pour deux, cela
- * n'existe pas dans le commerce. C'est ASSUMÉ : le plan de classe est un outil
- * de lecture, pas un plan d'architecte, et un nom lisible vaut mieux qu'une
- * échelle exacte. Seule la LARGEUR grandit : la profondeur (55 cm) ne bouge
- * pas, donc les cartes s'élargissent sans jamais s'alourdir en hauteur, et une
- * rangée de tables n'empiète pas sur la suivante.
- *
- * La largeur d'une table dépend en réalité de son nombre de places : voir
- * `TABLE_WIDTH_BY_SEATS`. La valeur ci-dessous est celle de la table à deux
- * places, le cas courant, et sert de repli.
+ * La table n'a plus de largeur propre : elle suit `TABLE_WIDTH_PER_SEAT_CM`
+ * (voir `tableWidthForSeats`). Sa profondeur, elle, est fixe — 45 cm, quel
+ * que soit le nombre de places — et c'est délibérément aussi la hauteur de
+ * l'étiquette d'élève sur le plan de classe : voir `seatFootprintCm()`
+ * (`placement/geometry.ts`).
  */
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
-  TABLE: { widthCm: 340, heightCm: 55 },
+  TABLE: { widthCm: 340, heightCm: 45 },
   TEACHER_DESK: { widthCm: 140, heightCm: 70 },
   BOARD: { widthCm: 300, heightCm: 35 },
   DOOR: { widthCm: 90, heightCm: 35 },
@@ -78,36 +66,20 @@ export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm
 };
 
 /**
- * Largeur d'une table selon son nombre de places, en centimètres.
+ * Largeur d'une table par place, en centimètres. Une table à `count` places
+ * fait `count * TABLE_WIDTH_PER_SEAT_CM` de large : une place, 170 cm ; deux,
+ * 340 ; trois, 510.
  *
- * L'écartement des places vaut largeur ÷ nombre de places : on vise donc un pas
- * d'environ 170 cm par élève. C'est la SEULE façon d'agrandir vraiment les
- * cartes du plan de classe — une étiquette ne peut jamais dépasser l'écartement
- * des places, sous peine de recouvrir sa voisine. Le pas est passé de 80 à 95,
- * puis 115, puis 170 cm : à chaque palier précédent, il restait encore de la
- * marge avant que le plafond de carte (`SEAT_CARD_MAX_WIDTH_CM`) ne devienne
- * lui-même la contrainte.
- *
- * 340 cm pour deux élèves, c'est une table qui n'existe pas. C'est ASSUMÉ : le
- * plan de classe est un outil de lecture, pas un plan d'architecte, et la carte
- * prime sur la vraisemblance du mobilier. La borne haute n'est pas le réalisme
- * mais la CAPACITÉ de la salle — au-delà de 340, une salle de 9 m ne loge plus
- * que deux colonnes de tables ; le repli vers des tables plus fines
- * (`generatePresetLayout`, `TABLE_WIDTH_CHOICES`) reste nécessaire pour les
- * classes nombreuses.
- *
- * La table à une place est volontairement plus large que le pas : c'est une
- * table d'écolier, pas une demi-table.
+ * Ce n'est pas la cote d'une vraie table d'écolier, et c'est ASSUMÉ : le plan
+ * de classe est un outil de lecture, pas un plan d'architecte, et l'écartement
+ * qui en résulte est ce qui fixe la largeur — donc la lisibilité — de
+ * l'étiquette d'un élève (`seatFootprintCm()`).
  */
-export const TABLE_WIDTH_BY_SEATS: Record<number, number> = {
-  1: 220,
-  2: 340,
-  3: 480,
-};
+export const TABLE_WIDTH_PER_SEAT_CM = 170;
 
-/** Largeur d'une table à `count` places ; repli sur la table à deux places. */
+/** Largeur d'une table à `count` places. */
 export function tableWidthForSeats(count: number): number {
-  return TABLE_WIDTH_BY_SEATS[count] ?? OBJECT_DEFAULT_SIZE.TABLE.widthCm;
+  return count * TABLE_WIDTH_PER_SEAT_CM;
 }
 
 // -------------------------------- Difficulté --------------------------------
@@ -181,27 +153,3 @@ export const ADJACENCY_CM = 90;
 export const ROOM_MIN_CM = 300;
 export const ROOM_MAX_CM = 3000;
 
-/**
- * Emprise MAXIMALE d'une étiquette d'élève sur le plan, en centimètres.
- *
- * L'emprise réelle est plus petite si les places de la salle sont serrées :
- * `seatFootprintCm()` (voir `placement/geometry.ts`) la déduit de l'écartement
- * effectivement mesuré entre places. C'est la clé du non-chevauchement — les
- * cartes étaient auparavant dimensionnées en pixels fixes, donc bien plus
- * larges que l'écartement réel dès que la salle était grande.
- *
- * La LARGEUR est TRÈS généreuse à dessein — l'étiquette porte « Camille M. » en
- * un seul mot d'un bout à l'autre, et c'est elle qui décide de la taille du
- * texte. Elle est relevée à chaque fois que les tables s'élargissent, faute de
- * quoi le plafond rognerait le gain et l'élargissement n'aurait servi à rien :
- * une table de 340 cm à deux places rend des cartes de 163 cm.
- *
- * La HAUTEUR, elle, NE BOUGE PAS avec la largeur — c'est délibéré. L'étiquette
- * ne tient que sur une ligne, et une carte plus haute n'y ajouterait que du
- * vide tout en rapprochant deux rangs voisins ; c'est la profondeur de table
- * (`OBJECT_DEFAULT_SIZE.TABLE.heightCm`, 55 cm, inchangée) qui la borne de
- * toute façon. Élargir les tables agrandit donc les cartes SANS jamais les
- * épaissir : c'est la seule dimension qui compte pour un prénom.
- */
-export const SEAT_CARD_MAX_WIDTH_CM = 220;
-export const SEAT_CARD_MAX_HEIGHT_CM = 62;

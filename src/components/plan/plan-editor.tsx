@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/icons";
 import { Segment, Track } from "@/components/ui/segmented";
 import { cn } from "@/lib/cn";
-import { SEAT_CARD_MAX_HEIGHT_CM, SEAT_CARD_MAX_WIDTH_CM } from "@/lib/domain";
 import { conflictingSeatIds, findProximityConflicts } from "@/lib/placement/conflicts";
 import { seatFootprintCm } from "@/lib/placement/geometry";
 import { runSolver } from "@/lib/placement/run-solver";
@@ -180,7 +179,16 @@ export function PlanEditor({
   // déclenche un glisser involontaire.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const seats = useMemo(() => room.objects.flatMap((object) => object.seats), [room.objects]);
+  // `sideways` : la table de cette place est pivotée d'un quart de tour (le
+  // bras d'un U, par exemple) — son pas de places, donc l'étiquette, suit
+  // alors l'axe vertical de la salle et non l'horizontal.
+  const seats = useMemo(
+    () =>
+      room.objects.flatMap((object) =>
+        object.seats.map((seat) => ({ ...seat, sideways: object.rotation % 180 !== 0 })),
+      ),
+    [room.objects],
+  );
   const studentById = useMemo(
     () => new Map(students.map((s): [string, StudentView] => [s.id, s])),
     [students],
@@ -192,30 +200,23 @@ export function PlanEditor({
     pxPerCm,
   } = usePlanScale(room.widthCm, room.heightCm, zoom, planHeight);
 
-  // L'emprise d'une étiquette dépend de l'écartement réel des places de CETTE
-  // salle : des tables larges autorisent des noms complets, des tables serrées
-  // imposent des étiquettes plus petites. Mesuré une fois par agencement.
-  const footprint = useMemo(
-    () => seatFootprintCm(seats, SEAT_CARD_MAX_WIDTH_CM, SEAT_CARD_MAX_HEIGHT_CM),
-    [seats],
+  // L'emprise d'une étiquette est celle de sa table : le pas de ses places en
+  // largeur, sa profondeur en hauteur (`seatFootprintCm`). Commune à tout le
+  // plan, donc la plus petite parmi les tables occupées de la salle.
+  const tableSpans = useMemo(
+    () =>
+      room.objects
+        .filter((object) => object.kind === "TABLE")
+        .map((object) => ({ widthCm: object.widthCm, heightCm: object.heightCm, seatCount: object.seats.length })),
+    [room.objects],
   );
+  const footprint = useMemo(() => seatFootprintCm(tableSpans), [tableSpans]);
   const metrics = useMemo(() => seatMetrics(footprint, pxPerCm), [footprint, pxPerCm]);
 
   // Forme et corps de texte COMMUNS à toute la classe : c'est le nom le plus
   // long qui les fixe, pour qu'aucun ne soit coupé et qu'aucun ne s'affiche
   // plus gros qu'un autre. Se recalcule quand la fenêtre change d'échelle.
   const labels = useMemo(() => planLabelStyle(students, metrics), [students, metrics]);
-
-  /**
-   * La salle bride-t-elle les étiquettes ?
-   *
-   * On compare l'emprise obtenue au plafond : en dessous des trois quarts, ce
-   * n'est pas l'écran qui manque mais l'écartement des places, et c'est dans
-   * l'éditeur de salle que cela se corrige. Le seuil porte sur des CENTIMÈTRES
-   * et non sur des pixels : il ne doit pas dépendre de la taille de la fenêtre,
-   * sans quoi le message clignoterait au redimensionnement.
-   */
-  const cramped = seats.length > 0 && footprint.widthCm < SEAT_CARD_MAX_WIDTH_CM * 0.75;
 
   const incompatibles = useMemo(
     () =>
@@ -772,6 +773,7 @@ export function PlanEditor({
                             selected={selectedStudentId === student?.id}
                             leftPercent={(flipX(seat.x) / room.widthCm) * 100}
                             topPercent={(flipY(seat.y) / room.heightCm) * 100}
+                            sideways={seat.sideways}
                             metrics={metrics}
                             labels={labels}
                             onSelect={() => setSelectedStudentId(student?.id ?? null)}
@@ -852,22 +854,6 @@ export function PlanEditor({
                 Cerclage intérieur : difficulté. Cadre rouge plein : place verrouillée. Pointillé
                 rouge : incompatibilité non respectée.
               </p>
-
-              {/* La taille des noms se joue dans l'ÉDITEUR DE SALLE, pas ici :
-                  une étiquette ne peut pas dépasser l'écartement des places,
-                  sous peine d'en recouvrir une autre. Le dire là où le défaut
-                  se voit — sur le plan, en petits caractères — est le seul
-                  moyen que le professeur fasse le rapprochement ; le bouton
-                  qui règle le problème est à deux pages d'ici. */}
-              {cramped && (
-                <p className="print-hidden text-xs leading-snug text-muted">
-                  Les noms sont à l&apos;étroit : les tables de cette salle sont serrées.{" "}
-                  <Link href={`/salles/${room.id}`} className="text-primary hover:underline">
-                    Élargissez-les
-                  </Link>{" "}
-                  pour écarter les places — les élèves déjà placés ne bougent pas.
-                </p>
-              )}
             </div>
 
             {/* ------------------------- droite : fiche, relations, réglages */}

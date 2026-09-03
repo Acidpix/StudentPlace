@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  SEAT_CARD_MAX_HEIGHT_CM,
-  SEAT_CARD_MAX_WIDTH_CM,
-  tableWidthForSeats,
-} from "@/lib/domain";
-import { generateSeatPositions, seatFootprintCm } from "./geometry";
+import { tableWidthForSeats } from "@/lib/domain";
+import { seatFootprintCm } from "./geometry";
 import {
   generatePresetLayout,
   LAYOUT_PRESET_IDS,
@@ -29,8 +25,11 @@ function boundsOf(object: PresetObject) {
   return { left: cx - halfWidth, right: cx + halfWidth, top: cy - halfHeight, bottom: cy + halfHeight };
 }
 
-function seatsOf(tables: PresetObject[]) {
-  return tables.flatMap((table) => generateSeatPositions(table, table.seatCount));
+/** Ce que `seatFootprintCm` attend d'une table : sa taille et son occupation. */
+function tableSpansOf(tables: PresetObject[]) {
+  return tables
+    .filter((table) => table.seatCount > 0)
+    .map((table) => ({ widthCm: table.widthCm, heightCm: table.heightCm, seatCount: table.seatCount }));
 }
 
 describe("dispositions types", () => {
@@ -60,14 +59,10 @@ describe("dispositions types", () => {
   });
 
   it.each(LAYOUT_PRESET_IDS)("laisse aux étiquettes de quoi rester lisibles (%s)", (preset) => {
-    // L'écartement des places décide de la taille des noms sur le plan de
-    // classe. On mesure donc l'emprise RÉELLE d'une étiquette, celle que
-    // calcule l'éditeur, et non une distance minimale entre places : en îlots,
-    // deux tables face à face sont volontairement jointes, et leurs places à
-    // 55 cm l'une de l'autre — ce qui ne coûte rien à la LARGEUR des cartes,
-    // seule dimension dont dépend la lisibilité d'un nom.
-    const seats = seatsOf(generatePresetLayout(preset, ROOM, 30).tables);
-    const footprint = seatFootprintCm(seats, SEAT_CARD_MAX_WIDTH_CM, SEAT_CARD_MAX_HEIGHT_CM);
+    // L'étiquette a toujours la largeur d'une place — largeur de la table ÷
+    // nombre de places — et la hauteur de sa table. Le pas le plus serré
+    // essayé par `generatePresetLayout` reste lisible.
+    const footprint = seatFootprintCm(tableSpansOf(generatePresetLayout(preset, ROOM, 30).tables));
 
     expect(footprint.widthCm).toBeGreaterThanOrEqual(70);
     expect(footprint.heightCm).toBeGreaterThanOrEqual(30);
@@ -122,6 +117,24 @@ describe("dispositions types", () => {
     const base = tables.filter((table) => table.rotation === 0);
     const deepestArm = Math.max(...arms.map((table) => boundsOf(table).bottom));
     expect(Math.min(...base.map((table) => boundsOf(table).top))).toBeGreaterThan(deepestArm);
+  });
+
+  it("pose un îlot distinct de la base, au centre du U", () => {
+    const { tables } = generatePresetLayout("U_SHAPE_ISLAND", ROOM, 12);
+
+    // Les tables droites (non pivotées) sont soit la base du U, soit l'îlot :
+    // deux rangs distincts signalent que l'îlot a bien été posé à part.
+    const straightRows = new Set(tables.filter((table) => table.rotation === 0).map((table) => table.y));
+    expect(straightRows.size).toBeGreaterThanOrEqual(2);
+
+    // Toujours joint quand il compte deux tables.
+    const island = tables.filter(
+      (table) => table.rotation === 0 && table.y !== Math.max(...[...straightRows]),
+    );
+    if (island.length === 2) {
+      expect(island[0].x).toBe(island[1].x);
+      expect(Math.abs(island[1].y - island[0].y)).toBe(island[0].heightCm);
+    }
   });
 
   it("emboîte un second U quand la classe déborde du premier", () => {

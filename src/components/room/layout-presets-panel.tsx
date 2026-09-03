@@ -8,6 +8,7 @@ import { Hint, Input, Label } from "@/components/ui/field";
 import {
   IslandsLayoutArt,
   RowsLayoutArt,
+  UShapeIslandLayoutArt,
   UShapeLayoutArt,
   WarningIcon,
   XIcon,
@@ -25,6 +26,7 @@ import {
 const THUMBNAILS: Record<LayoutPresetId, ComponentType<{ className?: string }>> = {
   ROWS: RowsLayoutArt,
   U_SHAPE: UShapeLayoutArt,
+  U_SHAPE_ISLAND: UShapeIslandLayoutArt,
   ISLANDS: IslandsLayoutArt,
 };
 
@@ -80,7 +82,7 @@ export function LayoutPresetsPanel({
         </Button>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {LAYOUT_PRESET_IDS.map((id) => {
           const Thumbnail = THUMBNAILS[id];
           const preview = previews[id];
