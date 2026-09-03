@@ -39,61 +39,58 @@ export function parseSeatDroppableId(id: string): string | null {
 export interface SeatMetrics {
   width: number;
   height: number;
-  /** Taille du prénom, ligne principale. */
+  /** Corps MAXIMAL de l'étiquette. Un nom long en recevra moins. */
   font: number;
-  /** Taille du nom de famille, ligne secondaire. */
-  fontSmall: number;
   /** Épaisseur du cerclage intérieur qui porte la difficulté. */
   ring: number;
   radius: number;
-  /** Assez haute pour deux lignes : prénom au-dessus, nom en dessous. */
-  twoLines: boolean;
   /** Trop étroite pour le moindre mot : « Libre » et consorts sont masqués. */
   tiny: boolean;
 }
 
 /**
+ * Corps de texte le plus grand qu'on s'autorise sur une place, en pixels.
+ * Au-delà, une salle affichée en grand donnerait des étiquettes criardes.
+ */
+const SEAT_FONT_MAX_PX = 16;
+
+/**
  * Traduit l'emprise disponible en dimensions d'étiquette.
  *
- * L'étiquette est sur DEUX LIGNES — prénom, puis nom de famille — et non plus
- * sur une seule : c'est ce qui rend les deux lisibles. Sur une ligne unique, la
- * pastille de difficulté et l'espace séparateur mangeaient un tiers de la
- * largeur, et il ne restait la place que pour « Prénom N. ». Empilées, les deux
- * lignes disposent chacune de presque toute la largeur.
+ * L'étiquette tient sur UNE SEULE LIGNE : « Camille M. », le prénom suivi de
+ * l'initiale du nom. C'est la forme de la maquette, et c'est aussi la seule
+ * qui garde un texte GRAND — deux lignes empilées obligeaient à diviser la
+ * hauteur par deux, donc à écrire deux fois plus petit, pour un nom de famille
+ * que le professeur connaît déjà. L'initiale suffit à départager deux
+ * prénoms identiques, seul cas où le nom entier servait vraiment ; il reste
+ * dans l'infobulle, dans le panneau latéral et pour les lecteurs d'écran.
  *
- * La difficulté ne se lit plus à une pastille posée dans l'étiquette mais à un
- * CERCLAGE INTÉRIEUR de la carte : le nom récupère toute la largeur et se
- * centre, et la couleur reste visible même sur une étiquette minuscule où la
- * pastille devenait un point indéchiffrable.
+ * Le corps rendu ici est un PLAFOND : `fitStudentLabel()` le réduit nom par
+ * nom si la largeur ne suffit pas. C'est ce qui rend l'affichage stable quand
+ * la fenêtre rétrécit ou que la salle est grande — le texte se resserre au
+ * lieu de disparaître d'un coup.
+ *
+ * La difficulté ne se lit pas dans l'étiquette mais à un CERCLAGE INTÉRIEUR de
+ * la carte : le nom dispose de toute la largeur et se centre, et la couleur
+ * reste visible même sur une étiquette minuscule où une pastille deviendrait
+ * un point indéchiffrable.
  */
 export function seatMetrics(footprint: { widthCm: number; heightCm: number }, pxPerCm: number): SeatMetrics {
   const width = footprint.widthCm * pxPerCm;
   const height = footprint.heightCm * pxPerCm;
 
-  // Deux lignes de texte plus le rembourrage demandent une trentaine de
-  // pixels ; en dessous, mieux vaut une seule ligne bien lisible que deux
-  // illisibles.
-  const twoLines = height >= 30 && width >= 46;
-
-  // La taille du texte suit les DEUX dimensions, et non la seule hauteur.
-  // Une carte basse et large gardait un texte minuscule alors qu'elle avait de
-  // la place ; une carte haute et étroite recevait au contraire un texte trop
-  // gros pour sa largeur, et `fitStudentLabel()` la faisait retomber sur les
-  // initiales là où un cran de moins aurait affiché le prénom entier.
-  const font = twoLines
-    ? Math.max(7, Math.min(15, height * 0.3, width * 0.22))
-    : Math.max(6, Math.min(15, height * 0.42, width * 0.3));
-
   return {
     width,
     height,
-    font,
-    fontSmall: Math.max(6, font * 0.82),
+    // Le texte suit les DEUX dimensions. La hauteur d'abord — une ligne unique
+    // peut prendre près de la moitié de la carte —, la largeur ensuite, pour
+    // qu'une carte basse et large ne reçoive pas un corps que ses noms ne
+    // pourraient jamais employer.
+    font: Math.max(6, Math.min(SEAT_FONT_MAX_PX, height * 0.46, width * 0.3)),
     // Un filet, pas un cadre : le cerclage de difficulté doit se lire sans
     // manger la place du nom.
     ring: Math.max(1, Math.min(2, height * 0.03)),
     radius: Math.max(4, Math.min(10, height * 0.18)),
-    twoLines,
     tiny: width < 44,
   };
 }
@@ -114,43 +111,62 @@ function studentInitials(student: StudentView): string {
 const AVG_CHAR_RATIO = 0.55;
 
 export interface SeatLabel {
-  /** Ligne principale : prénom, ou repli plus court. */
-  primary: string | null;
-  /** Ligne secondaire : nom de famille. Absente sur une étiquette basse. */
-  secondary: string | null;
+  /** Ce qui s'affiche : « Camille M. », ou un repli plus court. */
+  text: string | null;
+  /** Corps retenu POUR CE TEXTE-LÀ, au plus `metrics.font`. */
+  font: number;
+}
+
+/**
+ * En deçà, un nom cesse d'être lisible : le repli vaut mieux que la loupe.
+ */
+const MIN_LABEL_PX = 7.5;
+
+/** Corps auquel `text` remplit exactement `room`, sans dépasser `cap`. */
+function fittedSize(text: string, cap: number, room: number): number {
+  if (text.length === 0) return cap;
+  return Math.min(cap, room / (text.length * AVG_CHAR_RATIO));
 }
 
 /**
  * Choisit ce qu'affiche l'étiquette, selon la place dont elle dispose.
  *
- * Par ordre de préférence : prénom sur une ligne et nom sur la suivante, puis
- * le prénom seul, puis les initiales, puis rien — le cerclage de difficulté
- * reste alors la seule information, et le nom complet demeure dans l'infobulle
- * et dans le panneau latéral. Le calcul est fait PAR ÉLÈVE : « Léa Roy » tient
- * là où « Maximilien Descheveaux » ne tient pas.
+ * La forme de référence est TOUJOURS « Camille M. » — prénom, puis initiale du
+ * nom de famille. Elle ne dépend ni de la taille de la carte ni de la longueur
+ * du nom : une même classe s'écrit partout de la même façon, ce qui rend le
+ * plan lisible d'un coup d'œil au lieu de le faire alterner entre trois
+ * présentations.
  *
- * Les deux lignes disposent maintenant de TOUTE la largeur : la pastille de
- * difficulté ne mange plus la première.
+ * Ce qui s'adapte, c'est le CORPS DU TEXTE, calculé nom par nom : le texte se
+ * resserre à mesure que la carte rétrécit, au lieu de disparaître d'un coup.
+ * On ne renonce à quelque chose qu'une fois le plancher de lisibilité atteint,
+ * et dans cet ordre :
+ *
+ *  1. « Camille M. » ;
+ *  2. le prénom seul — l'initiale du nom coûte trois caractères ;
+ *  3. les initiales ;
+ *  4. rien — le cerclage de difficulté reste la seule information.
+ *
+ * Le nom complet demeure de toute façon dans l'infobulle, dans le panneau
+ * latéral et pour les lecteurs d'écran. Le calcul est fait PAR ÉLÈVE : « Léa
+ * R. » s'affiche en grand là où « Jean-Baptiste V. » s'affiche en petit.
  */
 export function fitStudentLabel(student: StudentView, metrics: SeatMetrics): SeatLabel {
   // Rembourrage (2 × 3 px), bordures (2 × 2 px) et cerclage intérieur.
   const inner = metrics.width - 10 - metrics.ring * 2;
-  const fits = (text: string, size: number, room: number) =>
-    text.length * size * AVG_CHAR_RATIO <= room;
 
-  if (metrics.twoLines && fits(student.firstName, metrics.font, inner)) {
-    return {
-      primary: student.firstName,
-      secondary: fits(student.lastName, metrics.fontSmall, inner) ? student.lastName : null,
-    };
+  const candidates = [
+    studentShortName(student),
+    student.firstName,
+    studentInitials(student),
+  ];
+
+  for (const text of candidates) {
+    const font = fittedSize(text, metrics.font, inner);
+    if (font >= MIN_LABEL_PX) return { text, font };
   }
 
-  const primary =
-    [student.firstName, studentInitials(student)].find((text) =>
-      fits(text, metrics.font, inner),
-    ) ?? null;
-
-  return { primary, secondary: null };
+  return { text: null, font: metrics.font };
 }
 
 // ------------------------------------------------------------------ étiquette
@@ -276,6 +292,11 @@ export function TrayColumn({
 
 // ----------------------------------------------------------------- place
 
+/** Ce qu'affiche une place sans élève. */
+function emptySeatLabel(seat: SeatView): string {
+  return seat.disabled ? "Condamnée" : "Libre";
+}
+
 export function SeatSpot({
   seat,
   student,
@@ -322,7 +343,12 @@ export function SeatSpot({
         />
       ) : (
         <div
-          style={{ borderRadius: metrics.radius, fontSize: metrics.font }}
+          style={{
+            borderRadius: metrics.radius,
+            // Même ajustement que pour un nom : « Condamnée » est deux fois plus
+            // long que « Libre » et débordait de la carte, rogné des deux côtés.
+            fontSize: fittedSize(emptySeatLabel(seat), metrics.font, metrics.width - 8),
+          }}
           className={cn(
             "flex h-full w-full items-center justify-center overflow-hidden border-2 border-dashed",
             seat.disabled
@@ -333,7 +359,7 @@ export function SeatSpot({
           )}
           title={seat.disabled ? "Place condamnée" : "Place libre"}
         >
-          {metrics.tiny ? "" : seat.disabled ? "Condamnée" : "Libre"}
+          {metrics.tiny ? "" : emptySeatLabel(seat)}
         </div>
       )}
     </div>
@@ -372,7 +398,7 @@ function SeatedStudent({
     .filter(Boolean)
     .join(" — ");
 
-  const { primary, secondary } = fitStudentLabel(student, metrics);
+  const label = fitStudentLabel(student, metrics);
 
   /**
    * Le verrouillage se lit à un CERCLAGE ROUGE PERMANENT.
@@ -430,20 +456,12 @@ function SeatedStudent({
         style={{ paddingInline: metrics.ring + 3 }}
         className="flex h-full w-full cursor-grab flex-col items-center justify-center overflow-hidden text-center leading-tight active:cursor-grabbing"
       >
-        {/* Ligne 1 : prénom, sur toute la largeur. */}
-        {primary && (
-          <span className="w-full truncate font-medium" style={{ fontSize: metrics.font }}>
-            {primary}
-          </span>
-        )}
-
-        {/* Ligne 2 : nom de famille. */}
-        {secondary && (
-          <span
-            className="w-full truncate tracking-wide text-muted"
-            style={{ fontSize: metrics.fontSmall }}
-          >
-            {secondary}
+        {/* « Camille M. », sur toute la largeur. Le corps vient de
+            `fitStudentLabel()` et non de `metrics` : il est ajusté à CE nom-là,
+            dans CETTE carte. */}
+        {label.text && (
+          <span className="w-full truncate font-medium" style={{ fontSize: label.font }}>
+            {label.text}
           </span>
         )}
 

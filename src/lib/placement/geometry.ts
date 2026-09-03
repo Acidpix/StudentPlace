@@ -102,15 +102,29 @@ export function generateSeatPositions(
  * autre, déduite de l'écartement RÉEL des places de la salle.
  *
  * Un plafond fixe ne peut pas convenir : deux places d'une table de 130 cm sont
- * à 65 cm l'une de l'autre, celles d'une table de 180 cm à 90 cm. Mesurer
+ * à 65 cm l'une de l'autre, celles d'une table de 190 cm à 95 cm. Mesurer
  * plutôt que supposer permet aux étiquettes d'être aussi grandes — donc aussi
  * lisibles — que la salle le permet, et pas davantage.
  *
- * Trois distances sont regardées :
- *  - le plus petit écart HORIZONTAL entre deux places d'un même rang,
- *  - le plus petit écart VERTICAL entre deux places d'une même colonne,
- *  - la plus petite distance tous azimuts, qui rattrape les dispositions en
- *    quinconce où ni l'un ni l'autre des deux premiers cas ne se présente.
+ * Le calcul se fait EN DEUX TEMPS, la hauteur d'abord, et c'est important. Deux
+ * cartes centrées sur leurs places se recouvrent si et seulement si leurs
+ * écarts sont INFÉRIEURS aux deux dimensions À LA FOIS : une place située
+ * au-dessus d'une autre ne limite donc en rien la LARGEUR, dès lors que les
+ * hauteurs, elles, ne se rejoignent pas.
+ *
+ *  1. La hauteur suit le plus petit écart VERTICAL entre deux places d'une même
+ *     colonne, avec 25 % de jeu — un rang de plus loin se lit mal quand les
+ *     cartes s'empilent bord à bord.
+ *  2. La largeur suit alors le plus petit écart HORIZONTAL parmi les SEULES
+ *     paires de places dont les bandes verticales se chevauchent, avec 6 % de
+ *     jeu pour que deux étiquettes voisines ne se touchent pas tout à fait.
+ *
+ * La version précédente prenait en plus la plus petite distance tous azimuts,
+ * ce qui bridait toute la salle au voisin le plus proche quelle que soit sa
+ * direction : dans une disposition en ÎLOTS, deux tables face à face à 60 cm
+ * ramenaient les étiquettes à 56 cm de large alors qu'elles disposaient de
+ * 95 cm à l'horizontale. Le quinconce que cette distance servait à rattraper
+ * est mieux traité par la règle ci-dessus, qui est exacte.
  *
  * En l'absence de repère — une place unique, par exemple — on rend les
  * plafonds tels quels.
@@ -120,40 +134,43 @@ export function seatFootprintCm(
   maxWidthCm: number,
   maxHeightCm: number,
 ): { widthCm: number; heightCm: number } {
-  /** Au-delà, deux places ne sont plus considérées sur la même ligne/colonne. */
+  /** Au-delà, deux places ne sont plus considérées sur la même colonne. */
   const ALIGNMENT_TOLERANCE_CM = 45;
 
-  let minRowGap = Number.POSITIVE_INFINITY;
   let minColumnGap = Number.POSITIVE_INFINITY;
-  let minDistance = Number.POSITIVE_INFINITY;
 
   for (let i = 0; i < seats.length; i++) {
     for (let j = i + 1; j < seats.length; j++) {
       const dx = Math.abs(seats[i].x - seats[j].x);
       const dy = Math.abs(seats[i].y - seats[j].y);
-
-      if (dx > 0 && dy <= ALIGNMENT_TOLERANCE_CM) minRowGap = Math.min(minRowGap, dx);
       if (dy > 0 && dx <= ALIGNMENT_TOLERANCE_CM) minColumnGap = Math.min(minColumnGap, dy);
-
-      const distance = Math.hypot(dx, dy);
-      if (distance > 0) minDistance = Math.min(minDistance, distance);
     }
   }
 
-  // 6 % de jeu horizontal pour que deux étiquettes voisines ne se touchent pas
-  // tout à fait ; 25 % de jeu vertical, plus généreux car un rang de plus loin
-  // se lit mal quand les cartes s'empilent bord à bord.
-  const width = Math.min(
-    maxWidthCm,
-    Number.isFinite(minRowGap) ? minRowGap * 0.94 : maxWidthCm,
-    Number.isFinite(minDistance) ? minDistance * 0.94 : maxWidthCm,
-  );
-  const height = Math.min(
+  const heightCm = Math.min(
     maxHeightCm,
     Number.isFinite(minColumnGap) ? minColumnGap * 0.75 : maxHeightCm,
   );
 
-  return { widthCm: width, heightCm: height };
+  let minRowGap = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < seats.length; i++) {
+    for (let j = i + 1; j < seats.length; j++) {
+      const dx = Math.abs(seats[i].x - seats[j].x);
+      const dy = Math.abs(seats[i].y - seats[j].y);
+      // Deux places à la même abscisse ne peuvent pas gêner : leur écart
+      // vertical vaut au moins `minColumnGap`, donc plus que la hauteur
+      // retenue. La largeur ne peut donc pas tomber à zéro.
+      if (dx > 0 && dy < heightCm) minRowGap = Math.min(minRowGap, dx);
+    }
+  }
+
+  const widthCm = Math.min(
+    maxWidthCm,
+    Number.isFinite(minRowGap) ? minRowGap * 0.94 : maxWidthCm,
+  );
+
+  return { widthCm, heightCm };
 }
 
 /**

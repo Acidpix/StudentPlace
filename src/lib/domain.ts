@@ -181,13 +181,15 @@ export const ROOM_MAX_CM = 3000;
  * cartes étaient auparavant dimensionnées en pixels fixes, donc bien plus
  * larges que l'écartement réel dès que la salle était grande.
  *
- * Ces plafonds sont généreux à dessein : c'est une étiquette sur DEUX LIGNES,
- * prénom puis nom, et elle doit rester lisible. Une salle aux tables trop
- * étroites bridera d'elle-même.
- *
- * Ils ont été relevés en même temps que la largeur des tables : à 86 cm, le
+ * La LARGEUR est généreuse à dessein — l'étiquette porte « Camille M. » en un
+ * seul mot d'un bout à l'autre, et c'est elle qui décide de la taille du texte.
+ * Elle a été relevée en même temps que la largeur des tables : à 86 cm, le
  * plafond aurait rogné les 89 cm que rend désormais une table à deux places, et
  * l'élargissement n'aurait servi à rien.
+ *
+ * La HAUTEUR, elle, a BAISSÉ : l'étiquette ne tient plus que sur une ligne, et
+ * une carte haute n'y ajoutait que du vide. Plus basse, elle dégage aussi
+ * l'espace entre deux rangs, où le regard a besoin de respirer.
  */
 export const SEAT_CARD_MAX_WIDTH_CM = 104;
-export const SEAT_CARD_MAX_HEIGHT_CM = 56;
+export const SEAT_CARD_MAX_HEIGHT_CM = 44;

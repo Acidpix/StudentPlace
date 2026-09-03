@@ -366,8 +366,14 @@ function islandTables(
 
     for (let column = 0; column < inRow; column++) {
       const cx = startX + column * pitchX;
-      tables.push(tableAt(size, cx, topY + size.heightCm / 2, 0));
-      tables.push(tableAt(size, cx, topY + size.heightCm * 1.5, 0));
+
+      // La table du bas est posée à partir de la table du haut DÉJÀ AIMANTÉE,
+      // et non calculée puis aimantée à son tour : une profondeur de 55 cm
+      // n'est pas un multiple du pas de 10, si bien que les deux aimantations
+      // séparées laissaient entre les deux tables un jour de 5 cm. Un îlot,
+      // c'est deux tables qui SE TOUCHENT.
+      const top = tableAt(size, cx, topY + size.heightCm / 2, 0);
+      tables.push(top, { ...top, y: top.y + size.heightCm });
     }
   }
 

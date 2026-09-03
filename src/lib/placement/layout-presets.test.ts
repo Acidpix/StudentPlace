@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { distanceCm, generateSeatPositions } from "./geometry";
+import {
+  SEAT_CARD_MAX_HEIGHT_CM,
+  SEAT_CARD_MAX_WIDTH_CM,
+  tableWidthForSeats,
+} from "@/lib/domain";
+import { generateSeatPositions, seatFootprintCm } from "./geometry";
 import {
   generatePresetLayout,
   LAYOUT_PRESET_IDS,
@@ -56,14 +61,29 @@ describe("dispositions types", () => {
 
   it.each(LAYOUT_PRESET_IDS)("laisse aux étiquettes de quoi rester lisibles (%s)", (preset) => {
     // L'écartement des places décide de la taille des noms sur le plan de
-    // classe : deux places à moins de 70 cm rendraient les cartes illisibles.
+    // classe. On mesure donc l'emprise RÉELLE d'une étiquette, celle que
+    // calcule l'éditeur, et non une distance minimale entre places : en îlots,
+    // deux tables face à face sont volontairement jointes, et leurs places à
+    // 55 cm l'une de l'autre — ce qui ne coûte rien à la LARGEUR des cartes,
+    // seule dimension dont dépend la lisibilité d'un nom.
     const seats = seatsOf(generatePresetLayout(preset, ROOM, 30).tables);
+    const footprint = seatFootprintCm(seats, SEAT_CARD_MAX_WIDTH_CM, SEAT_CARD_MAX_HEIGHT_CM);
 
-    for (let i = 0; i < seats.length; i++) {
-      for (let j = i + 1; j < seats.length; j++) {
-        expect(distanceCm(seats[i], seats[j])).toBeGreaterThanOrEqual(70);
-      }
-    }
+    expect(footprint.widthCm).toBeGreaterThanOrEqual(70);
+    expect(footprint.heightCm).toBeGreaterThanOrEqual(30);
+  });
+
+  it("pose les tables aussi larges que la salle le permet", () => {
+    // Une classe de 24 tient en trois colonnes de tables larges ; à trente, il
+    // faut en passer par des tables plus fines pour asseoir tout le monde.
+    const large = generatePresetLayout("ROWS", ROOM, 24);
+    const dense = generatePresetLayout("ROWS", ROOM, 30);
+
+    expect(large.tables[0].widthCm).toBe(tableWidthForSeats(2));
+    expect(large.shortfall).toBe(0);
+
+    expect(dense.tables[0].widthCm).toBeLessThan(tableWidthForSeats(2));
+    expect(dense.shortfall).toBe(0);
   });
 
   it("remplit les rangées jusqu'au nombre de places demandé", () => {
