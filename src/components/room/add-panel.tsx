@@ -33,39 +33,16 @@ export function itemSizeCm(item: PaletteItem): { widthCm: number; heightCm: numb
 }
 
 /**
- * L'aperçu d'une carte est un simple rectangle au RAPPORT du meuble.
+ * Une carte ne porte QUE son libellé.
  *
- * On ne réutilise pas `Furniture` : les hachures du tableau viennent d'un motif
- * SVG défini dans le `<defs>` de `RoomGrid`, et un `Furniture` rendu hors de ce
- * `<svg>`-là perdrait ses rayures. L'aperçu dit la PROPORTION — c'est ce qu'on
- * regarde pour choisir entre une table de deux et une de trois — et le dessin
- * exact se voit une fraction de seconde plus tard, dans la salle.
+ * Elle a montré un temps un aperçu du meuble — un rectangle à sa proportion —
+ * et ses cotes en centimètres. Les deux ont été retirés : l'aperçu d'une table
+ * de deux places et celui d'une table de trois sont deux rectangles plats qu'on
+ * ne distingue qu'en les comparant, et le vrai meuble apparaît de toute façon
+ * dans la salle dès qu'on commence à tirer la carte. Quant aux cotes, elles
+ * découlent du barème et ne se règlent pas ici : les afficher ajoutait un
+ * chiffre par carte sans jamais servir à choisir.
  */
-function ItemPreview({ item }: { item: PaletteItem }) {
-  const { widthCm, heightCm } = itemSizeCm(item);
-
-  return (
-    <svg
-      viewBox={`0 0 ${widthCm} ${heightCm}`}
-      preserveAspectRatio="xMidYMid meet"
-      className="h-6 w-full text-muted"
-      aria-hidden="true"
-    >
-      <rect
-        x={1}
-        y={1}
-        width={widthCm - 2}
-        height={heightCm - 2}
-        rx={4}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={3}
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
 function ItemCard({
   item,
   onPointerDown,
@@ -75,8 +52,6 @@ function ItemCard({
   onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, item: PaletteItem) => void;
   onClick: (item: PaletteItem) => void;
 }) {
-  const { widthCm, heightCm } = itemSizeCm(item);
-
   return (
     <button
       type="button"
@@ -85,13 +60,9 @@ function ItemCard({
       // `touch-none` sans quoi le navigateur interprète le glisser comme un
       // défilement de page et vole les événements de pointeur au bout de
       // quelques pixels.
-      className="no-select cursor-grab touch-none rounded-card border border-border bg-surface p-2 text-left transition-[border-color,background-color] duration-150 hover:border-primary/50 hover:bg-surface-muted focus-visible:border-primary focus-visible:outline-none active:cursor-grabbing"
+      className="no-select cursor-grab touch-none rounded-card border border-border bg-surface px-2.5 py-2 text-left text-xs font-medium leading-tight text-foreground transition-[border-color,background-color] duration-150 hover:border-primary/50 hover:bg-surface-muted focus-visible:border-primary focus-visible:outline-none active:cursor-grabbing"
     >
-      <ItemPreview item={item} />
-      <p className="mt-1.5 text-xs font-medium leading-tight text-foreground">{item.label}</p>
-      <p className="text-[0.65rem] text-muted">
-        {widthCm} × {heightCm}
-      </p>
+      {item.label}
     </button>
   );
 }

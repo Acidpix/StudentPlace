@@ -49,6 +49,7 @@ export function Segment({
   active,
   disabled = false,
   title,
+  tone = "surface",
   className,
   onClick,
   children,
@@ -62,6 +63,19 @@ export function Segment({
   active?: boolean;
   disabled?: boolean;
   title?: string;
+  /**
+   * Couleur du segment ALLUMÉ. `surface` par défaut — une pastille discrète,
+   * ce qu'il faut d'une barre d'outils qui doit se faire oublier. `primary`
+   * pour une piste d'ONGLETS, où le segment allumé ne dit pas un réglage mais
+   * ce qu'on est en train de regarder : il doit se voir d'un coup d'œil.
+   *
+   * C'est une prop et non une classe passée de l'extérieur : `bg-surface` et
+   * `bg-primary` cohabiteraient dans l'attribut à spécificité égale, `cn()`
+   * étant une simple concaténation sans `tailwind-merge`, et c'est l'ordre de
+   * la feuille générée qui trancherait. Même raison que pour la variante `ink`
+   * des boutons.
+   */
+  tone?: "surface" | "primary";
   /**
    * Ajouts de mise en page seulement — `flex-1`, `justify-center` pour une
    * piste d'ONGLETS qui occupe toute la largeur de sa colonne. Ni l'un ni
@@ -87,7 +101,9 @@ export function Segment({
         // serait deux pixels plus petit que le segment allumé, et la piste
         // sauterait à chaque bascule.
         active
-          ? "border border-border bg-surface text-foreground"
+          ? tone === "primary"
+            ? "border border-primary bg-primary text-primary-foreground"
+            : "border border-border bg-surface text-foreground"
           : "border border-transparent text-muted hover:bg-surface/70 hover:text-foreground",
         className,
       )}

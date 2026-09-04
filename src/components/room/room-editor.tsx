@@ -780,6 +780,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
             <Segment
               active={panelTab === "add"}
               onClick={() => showTab("add")}
+              tone="primary"
               className="flex-1 justify-center"
             >
               <PlusIcon />
@@ -788,6 +789,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
             <Segment
               active={panelTab === "presets"}
               onClick={() => showTab("presets")}
+              tone="primary"
               className="flex-1 justify-center"
             >
               <LayoutIcon />
