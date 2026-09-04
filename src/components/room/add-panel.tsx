@@ -60,7 +60,13 @@ function ItemCard({
       // `touch-none` sans quoi le navigateur interprète le glisser comme un
       // défilement de page et vole les événements de pointeur au bout de
       // quelques pixels.
-      className="no-select cursor-grab touch-none rounded-card border border-border bg-surface px-2.5 py-2 text-left text-xs font-medium leading-tight text-foreground transition-[border-color,background-color] duration-150 hover:border-primary/50 hover:bg-surface-muted focus-visible:border-primary focus-visible:outline-none active:cursor-grabbing"
+      //
+      // La carte s'ENFONCE à l'appui — `active:scale-95` — plutôt que de
+      // descendre d'un pixel comme les boutons du site : ce n'est pas un bouton
+      // qu'on presse mais un objet qu'on saisit, et le geste suivant est un
+      // glisser. Le meuble posé, lui, gonfle une fois dans la salle (`.drop-in`,
+      // `globals.css`), ce qui indique où il est tombé.
+      className="no-select cursor-grab touch-none rounded-card border border-border bg-surface px-2.5 py-2 text-left text-xs font-medium leading-tight text-foreground transition-[border-color,background-color,transform] duration-150 hover:border-primary/50 hover:bg-surface-muted focus-visible:border-primary focus-visible:outline-none active:scale-95 active:cursor-grabbing"
     >
       {item.label}
     </button>

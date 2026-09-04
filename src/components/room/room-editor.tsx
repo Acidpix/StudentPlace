@@ -10,6 +10,7 @@ import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { LayoutPresetsPanel } from "@/components/room/layout-presets-panel";
 import { Button } from "@/components/ui/button";
 import { CARD } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldError, Hint, Input, Label, Select } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
@@ -204,11 +205,24 @@ export function RoomEditor({ room }: { room: RoomView }) {
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  // Le meuble qu'on est en train de tirer depuis le bac, et l'endroit où il
-  // tomberait. `dropGhost` vaut `null` tant que le curseur n'est pas entré dans
-  // la salle : c'est ce qui permet d'annuler en relâchant à côté.
+  // Le meuble qu'on est en train de tirer depuis le bac, l'endroit où il
+  // tomberait, et où se trouve le curseur. `dropGhost` vaut `null` tant que
+  // celui-ci n'est pas entré dans la salle : c'est ce qui permet d'annuler en
+  // relâchant à côté. `dragPointer`, lui, existe pendant TOUT le geste — c'est
+  // la carte qu'on tient, et elle doit se voir même au-dessus du bac.
   const [adding, setAdding] = useState<PaletteItem | null>(null);
   const [dropGhost, setDropGhost] = useState<{ x: number; y: number } | null>(null);
+  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null);
+
+  // Le meuble tout juste posé, le temps d'une animation d'apparition. On ne le
+  // remet jamais à zéro : la clé est unique, donc le `<g>` ne se remonte plus,
+  // et l'animation ne rejoue que si un Ctrl+Z suivi d'un Ctrl+Y le fait
+  // réapparaître — ce qui est justement le moment de le signaler.
+  const [flashKey, setFlashKey] = useState<string | null>(null);
+
+  // Effacement en bloc, soumis à confirmation. Une seule boîte pour les deux
+  // portées : elles ne diffèrent que par leur texte.
+  const [clearing, setClearing] = useState<"tables" | "all" | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<{ key: string; pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
@@ -385,6 +399,27 @@ export function RoomEditor({ room }: { room: RoomView }) {
     };
 
     commit({ ...layout, objects: [...layout.objects, withSeats(base, count)] });
+    setFlashKey(base.key);
+  }
+
+  /**
+   * Vide la salle, en tout ou en partie.
+   *
+   * Retirer les TABLES seules laisse ce qui décrit la salle — tableau, bureau,
+   * porte, fenêtres, obstacles —, exactement la frontière que trace déjà
+   * `applyPreset`. C'est ce qu'on veut avant de repartir d'une disposition
+   * type. Le mode `all` ne garde rien.
+   *
+   * Les deux passent par `commit`, donc restent annulables par Ctrl+Z tant que
+   * l'agencement n'est pas enregistré.
+   */
+  function clearObjects(scope: "tables" | "all") {
+    commit({
+      ...layout,
+      objects: scope === "tables" ? layout.objects.filter((o) => o.kind !== "TABLE") : [],
+    });
+    setSelectedKey(null);
+    setClearing(null);
   }
 
   /**
@@ -447,6 +482,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
         start.moved = true;
       }
 
+      setDragPointer({ x: event.clientX, y: event.clientY });
       setDropGhost(dropPositionAt(event.clientX, event.clientY, adding));
     }
 
@@ -455,6 +491,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
       addStartRef.current = null;
       setAdding(null);
       setDropGhost(null);
+      setDragPointer(null);
 
       if (!start?.moved || !adding) return;
 
@@ -725,7 +762,11 @@ export function RoomEditor({ room }: { room: RoomView }) {
               <RoomGrid widthCm={layout.widthCm} heightCm={layout.heightCm} />
 
               {layout.objects.map((object) => (
-                <g key={object.key} onPointerDown={(event) => handleObjectPointerDown(event, object)}>
+                <g
+                  key={object.key}
+                  onPointerDown={(event) => handleObjectPointerDown(event, object)}
+                  className={object.key === flashKey ? "drop-in" : undefined}
+                >
                   <Furniture object={{ ...object, id: object.key }} selected={object.key === selectedKey} interactive />
                 </g>
               ))}
@@ -868,6 +909,51 @@ export function RoomEditor({ room }: { room: RoomView }) {
             </p>
           </div>
 
+          {/* Zone dangereuse, comme en pied de page d'une classe : rouge, dans
+              un encadré rouge, tout en bas. Ces deux boutons emportent d'un
+              coup un travail de plusieurs minutes — et, une fois enregistrés,
+              les élèves déjà placés dans les plans qui utilisent cette salle.
+              Le rouge est ici pleinement légitime. */}
+          <div className="mt-3 rounded-card border border-danger-border bg-danger-soft p-3">
+            {/* La boîte est déclarée ICI, dans un bloc ordinaire, et non parmi
+                les enfants du conteneur en `space-y-4` : celui-ci poserait une
+                marge sur le `<dialog>`, dont le positionnement en `inset: 0`
+                est déjà sur-contraint. Même emplacement que dans la zone
+                dangereuse d'une classe. */}
+            <ConfirmDialog
+              open={clearing !== null}
+              onClose={() => setClearing(null)}
+              onConfirm={() => clearObjects(clearing ?? "tables")}
+              title={clearing === "all" ? "Vider la salle ?" : "Retirer toutes les tables ?"}
+              description={
+                clearing === "all"
+                  ? "Tout le mobilier sera effacé, tableau et bureau compris, avec les places qu'il portait. Ctrl+Z annule tant que vous n'avez pas enregistré."
+                  : `Les ${tableCount} tables et leurs places seront effacées — et avec elles les élèves déjà placés dans les plans qui utilisent cette salle. Le tableau, le bureau, la porte et les fenêtres restent. Ctrl+Z annule tant que vous n'avez pas enregistré.`
+              }
+              confirmLabel={clearing === "all" ? "Vider la salle" : "Retirer les tables"}
+            />
+
+            <h2 className="eyebrow text-danger">Zone dangereuse</h2>
+            <div className="mt-2 grid gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setClearing("tables")}
+                disabled={tableCount === 0}
+              >
+                Retirer les tables
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setClearing("all")}
+                disabled={layout.objects.length === 0}
+              >
+                Vider la salle
+              </Button>
+            </div>
+          </div>
+
           <Hint>
             <kbd className="rounded-control border border-border bg-surface-muted px-1">Suppr</kbd>{" "}
             efface le meuble sélectionné,{" "}
@@ -877,6 +963,25 @@ export function RoomEditor({ room }: { room: RoomView }) {
           </Hint>
         </aside>
       </div>
+
+      {/* La carte qu'on TIENT, accrochée au curseur pendant tout le geste.
+          Sans elle, un glisser commencé hors de la salle ne se voyait nulle
+          part : le fantôme du meuble n'apparaît qu'une fois le curseur entré
+          dans le plan, et l'on croyait le glisser cassé. Elle suit avec un
+          décalage pour ne pas recouvrir ce fantôme quand les deux coexistent.
+
+          `margin: 0` est explicite : le `space-y-4` du conteneur pousserait
+          sinon l'élément de 16 px sous la position calculée, les marges
+          s'ajoutant aux décalages d'un élément positionné. */}
+      {adding && dragPointer && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 rounded-card border border-primary bg-surface px-2.5 py-2 text-xs font-medium text-foreground shadow-float"
+          style={{ left: dragPointer.x + 14, top: dragPointer.y + 14, margin: 0 }}
+        >
+          {adding.label}
+        </div>
+      )}
     </div>
   );
 }
