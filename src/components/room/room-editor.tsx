@@ -522,8 +522,10 @@ export function RoomEditor({ room }: { room: RoomView }) {
     );
 
     commit({ ...layout, objects: [...kept, ...added] });
+    // On RESTE sur l'onglet des dispositions : le panneau se refermait autrefois
+    // après avoir posé, alors qu'on essaie volontiers deux ou trois agencements
+    // à la suite avant de garder le bon.
     setSelectedKey(null);
-    setPresetsOpen(false);
   }
 
   const updateSelected = useCallback(
