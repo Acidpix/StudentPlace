@@ -1054,7 +1054,7 @@ function InlinePlanName({
               setEditing(false);
             }
           }}
-          className="w-64 max-w-full rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25"
+          className="w-80 max-w-full rounded-control border border-primary bg-surface px-2 py-1 text-base font-bold tracking-tight outline-none ring-2 ring-primary/25"
         />
         <FieldError message={error} />
       </div>
@@ -1062,19 +1062,26 @@ function InlinePlanName({
   }
 
   return (
-    <div className="min-w-0 max-w-[16rem]">
+    <div className="min-w-0">
       {/* Le titre a QUITTÉ le haut de page pour la barre de l'éditeur : il y
           est donc dimensionné comme un libellé de barre — `text-base` — et non
           plus comme un titre de page. Il reste le `<h1>`.
 
-          Il se dimensionne sur son TEXTE, plafonné à 16 rem. Il ne prend PAS
-          `flex-1` : la largeur restante de la barre irait au titre au lieu de
-          rester au ressort qui pousse les actions à droite. */}
+          Il se dimensionne sur son TEXTE et n'est plus PLAFONNÉ à 16 rem : ce
+          plafond coupait des noms de plan parfaitement ordinaires. La barre
+          étant en `flex-wrap`, un nom long repousse les actions à la ligne
+          suivante plutôt que de se faire tronquer — la troncature ne reste
+          qu'en dernier recours, quand le nom dépasse la barre entière, et le
+          nom entier est alors dans l'infobulle.
+
+          Il ne prend toujours PAS `flex-1` : la largeur restante de la barre
+          irait au titre au lieu de rester au ressort qui pousse les actions à
+          droite. */}
       <h1 className="truncate text-base font-bold tracking-tight">
         <button
           type="button"
           onClick={() => setEditing(true)}
-          title="Renommer ce plan de classe"
+          title={`Renommer « ${name} »`}
           className="-mx-1 max-w-full truncate rounded-control px-1 text-left hover:bg-surface-muted"
         >
           {name}

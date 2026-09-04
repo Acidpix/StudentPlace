@@ -48,39 +48,48 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
 };
 
 /**
+ * Largeur d'une table par place, en centimètres. Une table à `count` places
+ * fait `count * TABLE_WIDTH_PER_SEAT_CM` de large : une place, 150 cm ; deux,
+ * 300 ; trois, 450.
+ *
+ * Ce n'est pas la cote d'une vraie table d'écolier, et c'est ASSUMÉ : le plan
+ * de classe est un outil de lecture, pas un plan d'architecte, et l'écartement
+ * qui en résulte est ce qui fixe la largeur — donc la lisibilité — de
+ * l'étiquette d'un élève (`seatFootprintCm()`).
+ *
+ * Ce barème est la SEULE source de la largeur d'une table : les dispositions
+ * types (`placement/layout-presets.ts`) le suivent aussi, sans le rétrécir.
+ */
+export const TABLE_WIDTH_PER_SEAT_CM = 150;
+
+/** Largeur d'une table à `count` places. */
+export function tableWidthForSeats(count: number): number {
+  return count * TABLE_WIDTH_PER_SEAT_CM;
+}
+
+/**
+ * Profondeur d'une table, en centimètres. Fixe, quel que soit le nombre de
+ * places, et c'est délibérément aussi la hauteur de l'étiquette d'élève sur le
+ * plan de classe : voir `seatFootprintCm()` (`placement/geometry.ts`).
+ */
+export const TABLE_DEPTH_CM = 45;
+
+/**
  * Dimensions par défaut du mobilier, en centimètres.
  *
- * La table n'a plus de largeur propre : elle suit `TABLE_WIDTH_PER_SEAT_CM`
- * (voir `tableWidthForSeats`). Sa profondeur, elle, est fixe — 45 cm, quel
- * que soit le nombre de places — et c'est délibérément aussi la hauteur de
- * l'étiquette d'élève sur le plan de classe : voir `seatFootprintCm()`
- * (`placement/geometry.ts`).
+ * La table n'a pas de largeur propre : elle DÉRIVE du barème ci-dessus, pour
+ * une table de deux places. Écrire ici un nombre en dur laisserait la valeur
+ * dériver du barème à la première retouche — c'est exactement ce qui était
+ * arrivé aux dispositions types.
  */
 export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm: number }> = {
-  TABLE: { widthCm: 340, heightCm: 45 },
+  TABLE: { widthCm: tableWidthForSeats(2), heightCm: TABLE_DEPTH_CM },
   TEACHER_DESK: { widthCm: 140, heightCm: 70 },
   BOARD: { widthCm: 300, heightCm: 35 },
   DOOR: { widthCm: 90, heightCm: 35 },
   WINDOW: { widthCm: 200, heightCm: 35 },
   OBSTACLE: { widthCm: 80, heightCm: 80 },
 };
-
-/**
- * Largeur d'une table par place, en centimètres. Une table à `count` places
- * fait `count * TABLE_WIDTH_PER_SEAT_CM` de large : une place, 170 cm ; deux,
- * 340 ; trois, 510.
- *
- * Ce n'est pas la cote d'une vraie table d'écolier, et c'est ASSUMÉ : le plan
- * de classe est un outil de lecture, pas un plan d'architecte, et l'écartement
- * qui en résulte est ce qui fixe la largeur — donc la lisibilité — de
- * l'étiquette d'un élève (`seatFootprintCm()`).
- */
-export const TABLE_WIDTH_PER_SEAT_CM = 170;
-
-/** Largeur d'une table à `count` places. */
-export function tableWidthForSeats(count: number): number {
-  return count * TABLE_WIDTH_PER_SEAT_CM;
-}
 
 // -------------------------------- Difficulté --------------------------------
 

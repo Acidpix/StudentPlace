@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { tableWidthForSeats } from "@/lib/domain";
+import { OBJECT_DEFAULT_SIZE, TABLE_WIDTH_PER_SEAT_CM, tableWidthForSeats } from "@/lib/domain";
 import { seatFootprintCm } from "./geometry";
 import {
   generatePresetLayout,
@@ -11,6 +11,16 @@ import {
 
 /** Salle par défaut du formulaire de création : 9 m sur 7 m. */
 const ROOM = { widthCm: 900, heightCm: 700 };
+
+/**
+ * Une salle assez grande pour loger une classe entière AU BARÈME.
+ *
+ * Les dispositions types ne rétrécissent plus les tables : une table de deux
+ * places fait `tableWidthForSeats(2)`, point. La salle par défaut n'en aligne
+ * donc que deux ou trois de front — tout ce qui vérifie une CAPACITÉ se mesure
+ * ici, ce qui vérifie un PLACEMENT reste sur la salle par défaut.
+ */
+const BIG_ROOM = { widthCm: 1400, heightCm: 1000 };
 
 /**
  * Emprise visuelle d'un meuble, rotation comprise. Un quart de tour échange
@@ -34,55 +44,61 @@ function tableSpansOf(tables: PresetObject[]) {
 
 describe("dispositions types", () => {
   it.each(LAYOUT_PRESET_IDS)("garde tout le mobilier dans la salle (%s)", (preset) => {
-    const { tables, fixtures } = generatePresetLayout(preset, ROOM, 30);
+    for (const room of [ROOM, BIG_ROOM]) {
+      const { tables, fixtures } = generatePresetLayout(preset, room, 30);
 
-    for (const object of [...tables, ...fixtures]) {
-      const bounds = boundsOf(object);
-      expect(bounds.left).toBeGreaterThanOrEqual(0);
-      expect(bounds.top).toBeGreaterThanOrEqual(0);
-      expect(bounds.right).toBeLessThanOrEqual(ROOM.widthCm);
-      expect(bounds.bottom).toBeLessThanOrEqual(ROOM.heightCm);
-    }
-  });
-
-  it.each(LAYOUT_PRESET_IDS)("ne superpose jamais deux tables (%s)", (preset) => {
-    const { tables } = generatePresetLayout(preset, ROOM, 30);
-
-    for (let i = 0; i < tables.length; i++) {
-      for (let j = i + 1; j < tables.length; j++) {
-        const a = boundsOf(tables[i]);
-        const b = boundsOf(tables[j]);
-        const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-        expect(overlaps).toBe(false);
+      for (const object of [...tables, ...fixtures]) {
+        const bounds = boundsOf(object);
+        expect(bounds.left).toBeGreaterThanOrEqual(0);
+        expect(bounds.top).toBeGreaterThanOrEqual(0);
+        expect(bounds.right).toBeLessThanOrEqual(room.widthCm);
+        expect(bounds.bottom).toBeLessThanOrEqual(room.heightCm);
       }
     }
   });
 
-  it.each(LAYOUT_PRESET_IDS)("laisse aux étiquettes de quoi rester lisibles (%s)", (preset) => {
-    // L'étiquette a toujours la largeur d'une place — largeur de la table ÷
-    // nombre de places — et la hauteur de sa table. Le pas le plus serré
-    // essayé par `generatePresetLayout` reste lisible.
-    const footprint = seatFootprintCm(tableSpansOf(generatePresetLayout(preset, ROOM, 30).tables));
+  it.each(LAYOUT_PRESET_IDS)("ne superpose jamais deux tables (%s)", (preset) => {
+    for (const room of [ROOM, BIG_ROOM]) {
+      const { tables } = generatePresetLayout(preset, room, 30);
 
-    expect(footprint.widthCm).toBeGreaterThanOrEqual(70);
-    expect(footprint.heightCm).toBeGreaterThanOrEqual(30);
+      for (let i = 0; i < tables.length; i++) {
+        for (let j = i + 1; j < tables.length; j++) {
+          const a = boundsOf(tables[i]);
+          const b = boundsOf(tables[j]);
+          const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+          expect(overlaps).toBe(false);
+        }
+      }
+    }
   });
 
-  it("pose les tables aussi larges que la salle le permet", () => {
-    // Une classe de 24 tient en trois colonnes de tables larges ; à trente, il
-    // faut en passer par des tables plus fines pour asseoir tout le monde.
-    const large = generatePresetLayout("ROWS", ROOM, 24);
-    const dense = generatePresetLayout("ROWS", ROOM, 30);
+  it.each(LAYOUT_PRESET_IDS)("donne aux étiquettes l'emprise du barème (%s)", (preset) => {
+    // L'étiquette a toujours la largeur d'une place — largeur de la table ÷
+    // nombre de places — et la hauteur de sa table. Comme les dispositions
+    // types posent des tables AU BARÈME, l'emprise vaut exactement le barème,
+    // quelle que soit l'étroitesse de la salle.
+    for (const room of [ROOM, BIG_ROOM]) {
+      const footprint = seatFootprintCm(tableSpansOf(generatePresetLayout(preset, room, 30).tables));
 
-    expect(large.tables[0].widthCm).toBe(tableWidthForSeats(2));
-    expect(large.shortfall).toBe(0);
+      expect(footprint.widthCm).toBe(TABLE_WIDTH_PER_SEAT_CM);
+      expect(footprint.heightCm).toBe(OBJECT_DEFAULT_SIZE.TABLE.heightCm);
+    }
+  });
 
-    expect(dense.tables[0].widthCm).toBeLessThan(tableWidthForSeats(2));
-    expect(dense.shortfall).toBe(0);
+  it.each(LAYOUT_PRESET_IDS)("pose toujours des tables au barème (%s)", (preset) => {
+    // Aucun rétrécissement, dans aucune salle : une table de disposition type
+    // a les cotes par défaut d'une table de deux places. La salle trop petite
+    // se paie en places manquantes, pas en noms illisibles.
+    for (const room of [ROOM, BIG_ROOM, { widthCm: 400, heightCm: 400 }]) {
+      for (const table of generatePresetLayout(preset, room, 30).tables) {
+        expect(table.widthCm).toBe(tableWidthForSeats(2));
+        expect(table.heightCm).toBe(OBJECT_DEFAULT_SIZE.TABLE.heightCm);
+      }
+    }
   });
 
   it("remplit les rangées jusqu'au nombre de places demandé", () => {
-    const result = generatePresetLayout("ROWS", ROOM, 30);
+    const result = generatePresetLayout("ROWS", BIG_ROOM, 30);
 
     expect(result.seatCount).toBe(30);
     expect(result.shortfall).toBe(0);
@@ -138,8 +154,10 @@ describe("dispositions types", () => {
   });
 
   it("emboîte un second U quand la classe déborde du premier", () => {
-    const single = generatePresetLayout("U_SHAPE", ROOM, 12);
-    const nested = generatePresetLayout("U_SHAPE", ROOM, 28);
+    // Au barème, un fer à cheval unique plafonne vite : il faut une grande
+    // salle pour qu'un second anneau ait la place de s'emboîter.
+    const single = generatePresetLayout("U_SHAPE", BIG_ROOM, 12);
+    const nested = generatePresetLayout("U_SHAPE", BIG_ROOM, 28);
 
     expect(nested.seatCount).toBeGreaterThan(single.seatCount);
     // Le U intérieur ne longe pas les murs : il commence plus loin du bord.

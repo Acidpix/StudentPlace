@@ -137,17 +137,22 @@ async function main() {
 
   // Quatre rangées de quatre tables doubles : 32 places pour 28 élèves.
   // Deux places d'une même table sont à 115 cm — sous le seuil d'alerte de
-  // 120 cm — tandis que deux tables voisines sont à 145 cm : le solveur a donc
-  // de quoi séparer les élèves incompatibles.
+  // 120 cm (`DEFAULT_PROXIMITY_CM`) — tandis que deux tables voisines sont à
+  // 145 cm : le solveur a donc de quoi séparer les élèves incompatibles, et
+  // c'est TOUT L'INTÉRÊT du jeu de démonstration.
   //
-  // La table fait 230 cm, la largeur type d'une table à deux places : c'est
-  // l'écartement des places qui plafonne la taille des étiquettes du plan de
-  // classe, et la salle de démonstration doit montrer des noms lisibles. Le
-  // pas de 260 cm et la salle de 10,5 m suivent de là — à 210 cm, deux tables
-  // voisines se seraient touchées et leurs places seraient passées sous le
-  // seuil de proximité.
+  // 230 cm N'EST PLUS la largeur type d'une table à deux places : le barème
+  // (`TABLE_WIDTH_PER_SEAT_CM`, 150 cm par place) en donne 300. L'écart est
+  // VOLONTAIRE et il faut le garder : à 300 cm, les deux places d'une même
+  // table seraient à 150 cm l'une de l'autre, donc AU-DESSUS du seuil de
+  // proximité, et la démonstration ne montrerait plus une seule alerte. Le pas
+  // de 260 cm et la salle de 10,5 m suivent de là.
+  //
+  // La profondeur, elle, suit le barème (`TABLE_DEPTH_CM`) : c'est elle qui
+  // fixe la hauteur des étiquettes du plan, et rien dans la démonstration ne
+  // demande de s'en écarter.
   const TABLE_WIDTH = 230;
-  const TABLE_HEIGHT = 50;
+  const TABLE_HEIGHT = 45;
 
   for (let row = 0; row < 4; row++) {
     for (let column = 0; column < 4; column++) {

@@ -25,8 +25,8 @@ function student(firstName: string, lastName: string): StudentView {
 const camille = student("Camille", "Martin");
 const jeanBaptiste = student("Jean-Baptiste", "Villeneuve");
 
-/** Une table de deux places au barème : 340 × 45 cm, donc un pas de 170 cm. */
-const roomyTable = { widthCm: 170, heightCm: 45 };
+/** L'emprise d'une place au barème : un pas de 150 cm sur 45 cm de profondeur. */
+const roomyTable = { widthCm: 150, heightCm: 45 };
 /** Une table serrée, comme une salle très grande affichée en petit. */
 const crampedTable = { widthCm: 40, heightCm: 20 };
 

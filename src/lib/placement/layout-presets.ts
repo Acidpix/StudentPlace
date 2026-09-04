@@ -24,7 +24,9 @@ import { snapToGrid } from "./geometry";
  *
  * L'écartement des tables n'est pas décoratif : c'est lui qui fixe la taille
  * des étiquettes d'élèves sur le plan de classe (voir `seatFootprintCm()`).
- * Des tables serrées donnent des noms illisibles.
+ * Des tables serrées donnent des noms illisibles — d'où la troisième règle :
+ * une disposition type pose TOUJOURS des tables au barème par place
+ * (`tableWidthForSeats()`), jamais rétrécies pour faire tenir un élève de plus.
  */
 
 export const LAYOUT_PRESET_IDS = ["ROWS", "U_SHAPE", "U_SHAPE_ISLAND", "ISLANDS"] as const;
@@ -101,39 +103,25 @@ interface TableSize {
 }
 
 /**
- * La table de référence : celle du barème pour deux places. Passer par
- * `tableWidthForSeats()` plutôt que par une constante propre garantit que les
- * tables posées par une disposition type et celles ajoutées à la main depuis la
- * palette ont exactement le même écartement de places.
+ * LA SEULE TABLE QU'UNE DISPOSITION TYPE POSE : celle du barème, pour deux
+ * places. Passer par `tableWidthForSeats()` et `OBJECT_DEFAULT_SIZE` plutôt
+ * que par des constantes propres garantit qu'une table posée par une
+ * disposition type et une table ajoutée à la main depuis la palette ont
+ * EXACTEMENT les mêmes cotes — donc le même écartement de places, donc des
+ * étiquettes de même taille sur le plan de classe.
+ *
+ * Il n'existe PLUS de largeur de repli. Une première version essayait les
+ * largeurs de la plus généreuse à la plus serrée et gardait la première qui
+ * logeait la classe entière ; son plancher était un nombre en dur, écrit avant
+ * le barème par place, si bien qu'une salle de 9 m rendait des tables à 80 cm
+ * par place là où le barème en promettait le double. Asseoir tout le monde ne
+ * vaut pas des noms illisibles : quand la salle ne suit pas, on pose moins de
+ * tables et on annonce le manque (`shortfall`).
  */
 const TABLE_SIZE: TableSize = {
   widthCm: tableWidthForSeats(SEATS_PER_TABLE),
   heightCm: OBJECT_DEFAULT_SIZE.TABLE.heightCm,
 };
-
-/**
- * En deçà, l'écartement des places repasse sous les 75 cm et les noms du plan
- * de classe redeviennent illisibles. On préfère alors annoncer un `shortfall`.
- */
-const TABLE_MIN_WIDTH_CM = 150;
-
-/**
- * Largeurs essayées, de la plus généreuse à la plus serrée.
- *
- * LA TABLE EST AUSSI LARGE QUE LA SALLE LE PERMET. Le barème vise la
- * lisibilité des étiquettes, pas le réalisme : à 190 cm, une salle de 9 m ne
- * loge plus que trois colonnes de tables au lieu de quatre, et une classe de
- * trente s'y retrouverait à l'étroit. Plutôt que de trancher une fois pour
- * toutes entre « lisible » et « tout le monde assis », on essaie les largeurs
- * dans l'ordre et l'on s'arrête à la première qui loge la classe entière —
- * c'est donc la CLASSE, et non une constante, qui décide de la finesse des
- * tables.
- */
-const TABLE_WIDTH_CHOICES: number[] = (() => {
-  const widths: number[] = [];
-  for (let width = TABLE_SIZE.widthCm; width >= TABLE_MIN_WIDTH_CM; width -= 10) widths.push(width);
-  return widths.length > 0 ? widths : [TABLE_MIN_WIDTH_CM];
-})();
 
 /** Bornes du nombre de places demandé. */
 export const PRESET_SEAT_MIN = 2;
@@ -264,10 +252,11 @@ function rowsTables(
  * tableau. Les tables d'une même branche se TOUCHENT — c'est ce qui fait un U
  * et non trois rangées — d'où l'absence de couloir entre elles.
  *
- * Un seul U plafonne vite : dans une salle de 9 × 7 m il n'accueille que dix-huit
- * élèves. Au-delà, on emboîte un second U à l'intérieur du premier, à un
- * couloir de distance. C'est le double fer à cheval, et c'est bien plus fidèle
- * à ce qu'un professeur ferait que d'aller entasser des tables au milieu.
+ * Un seul U plafonne vite — les tables du barème sont larges, et une salle de
+ * 9 m n'en aligne que deux sur sa base. Au-delà, on emboîte un second U à
+ * l'intérieur du premier, à un couloir de distance. C'est le double fer à
+ * cheval, et c'est bien plus fidèle à ce qu'un professeur ferait que d'aller
+ * entasser des tables au milieu.
  */
 function uShapeTables(
   widthCm: number,
@@ -483,30 +472,17 @@ function islandTables(
 // -------------------------------- Génération ---------------------------------
 
 /**
- * Nombre de fers à cheval EMBOÎTÉS dans une disposition en U.
- *
- * Se lit sur les tables de base — celles qui ne sont pas pivotées : un U n'en a
- * qu'une rangée, un double U en a deux, à des profondeurs différentes. Sert à
- * préférer le U simple, plus fidèle à ce qu'un professeur dessinerait, quand
- * une largeur de table plus fine permet d'y loger toute la classe.
- */
-function ringCount(tables: PresetObject[]): number {
-  return new Set(tables.filter((table) => table.rotation === 0).map((table) => table.y)).size;
-}
-
-/**
  * Produit le mobilier d'une disposition type.
  *
  * `seatTarget` est un SOUHAIT, pas une garantie : la salle a le dernier mot.
  * Le `shortfall` renvoyé permet à l'éditeur de le dire plutôt que de laisser
  * croire que tout le monde est assis.
  *
- * Les tables sont posées AUSSI LARGES QUE LA SALLE LE PERMET : on essaie les
- * largeurs de la plus généreuse à la plus serrée et l'on garde la première qui
- * loge la classe entière. Une table large écarte ses places, donc agrandit les
- * étiquettes du plan de classe ; mais asseoir tout le monde passe avant la
- * taille des noms. Faute de largeur suffisante, on retient celle qui offre le
- * plus de places et l'on annonce le manque.
+ * Les tables sont posées AU BARÈME, et rien d'autre n'est essayé : une table
+ * de disposition type a exactement les cotes par défaut d'une table de deux
+ * places (`TABLE_SIZE`). Quand la salle n'en loge pas assez, on rend moins de
+ * places et on l'annonce — jamais des tables rétrécies, dont les étiquettes
+ * deviendraient illisibles sur le plan de classe.
  */
 export function generatePresetLayout(
   preset: LayoutPresetId,
@@ -519,53 +495,16 @@ export function generatePresetLayout(
   );
   const wantedTables = Math.ceil(target / SEATS_PER_TABLE);
 
-  let tables: PresetObject[] = [];
-  let seatCount = 0;
-  let rings = 0;
-  let chosen = false;
+  const tables =
+    preset === "ROWS"
+      ? rowsTables(room.widthCm, room.heightCm, wantedTables, TABLE_SIZE)
+      : preset === "U_SHAPE"
+        ? uShapeTables(room.widthCm, room.heightCm, wantedTables, TABLE_SIZE)
+        : preset === "U_SHAPE_ISLAND"
+          ? uShapeIslandTables(room.widthCm, room.heightCm, wantedTables, TABLE_SIZE)
+          : islandTables(room.widthCm, room.heightCm, wantedTables, TABLE_SIZE);
 
-  for (const widthCm of TABLE_WIDTH_CHOICES) {
-    const size: TableSize = { widthCm, heightCm: TABLE_SIZE.heightCm };
-    const candidate =
-      preset === "ROWS"
-        ? rowsTables(room.widthCm, room.heightCm, wantedTables, size)
-        : preset === "U_SHAPE"
-          ? uShapeTables(room.widthCm, room.heightCm, wantedTables, size)
-          : preset === "U_SHAPE_ISLAND"
-            ? uShapeIslandTables(room.widthCm, room.heightCm, wantedTables, size)
-            : islandTables(room.widthCm, room.heightCm, wantedTables, size);
-
-    const candidateSeats = candidate.reduce((total, table) => total + table.seatCount, 0);
-    // Les rangées et les îlots n'ont pas d'anneaux : la question ne se pose que
-    // pour le U — simple ou avec îlot central —, qui peut s'emboîter.
-    const candidateRings = preset === "U_SHAPE" || preset === "U_SHAPE_ISLAND" ? ringCount(candidate) : 1;
-
-    // Les largeurs sont essayées de la plus grande à la plus petite : à égalité,
-    // c'est donc la table la plus large qui reste en place. Rétrécir sans rien
-    // gagner ne ferait que réduire les étiquettes du plan de classe.
-    //
-    // Trois critères, dans cet ordre : loger la classe, puis employer le moins
-    // de FERS À CHEVAL possible, puis le moins de TABLES possible. Les deux
-    // derniers ne concernent que le U — seule disposition qui puisse dépasser
-    // la demande. Un double U aux tables larges est un moins bon plan de classe
-    // qu'un U simple aux tables un peu plus fines : la maquette du professeur,
-    // c'est un fer à cheval.
-    const better = !chosen
-      ? true
-      : candidateSeats >= target
-        ? seatCount < target || candidateRings < rings || (candidateRings === rings && candidate.length < tables.length)
-        : candidateSeats > seatCount;
-
-    if (better) {
-      tables = candidate;
-      seatCount = candidateSeats;
-      rings = candidateRings;
-      chosen = true;
-    }
-
-    // Impossible de faire mieux qu'un seul U et une table par paire d'élèves.
-    if (seatCount >= target && rings === 1 && tables.length <= wantedTables) break;
-  }
+  const seatCount = tables.reduce((total, table) => total + table.seatCount, 0);
 
   return {
     tables,
