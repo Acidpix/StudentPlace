@@ -1,6 +1,6 @@
 import { Document, Line, Page, StyleSheet, Svg, Text, View, renderToBuffer } from "@react-pdf/renderer";
 
-import { DIFFICULTY_COLORS, DIFFICULTY_VALUES, type ObjectKind } from "@/lib/domain";
+import { BEHAVIOR_COLORS, BEHAVIOR_VALUES, type ObjectKind } from "@/lib/domain";
 import { seatFootprintCm } from "@/lib/placement/geometry";
 import {
   LABEL_BORDER_PX,
@@ -58,7 +58,7 @@ const TOP_BAR_GAP = 8;
 const HEADER_HEIGHT = TOP_BAR_HEIGHT + TOP_BAR_GAP;
 /**
  * Bandeau de légende sous le plan, marge comprise. Deux lignes de réserve : la
- * légende se replie (`flexWrap`) et s'allonge d'un cran dès que la difficulté
+ * légende se replie (`flexWrap`) et s'allonge d'un cran dès que le comportement
  * ou les cases de participation sont demandées.
  */
 const LEGEND_GAP = 8;
@@ -245,7 +245,7 @@ const FURNITURE_LABELS: Partial<Record<ObjectKind, string>> = {
 
 export interface PlanPdfOptions {
   includeComments: boolean;
-  includeDifficulty: boolean;
+  includeBehavior: boolean;
   includeRoster: boolean;
   /** Cinq cases à cocher sous chaque nom, pour noter la participation. */
   includeParticipation: boolean;
@@ -571,13 +571,15 @@ export function PlanDocument({
               : "Vue du dessus : le tableau est en haut, comme sur le plan de la salle."}
           </Text>
 
-          {options.includeDifficulty && (
+          {options.includeBehavior && (
             <>
-              <Text style={[styles.eyebrow, { color: INK.muted, marginRight: 4 }]}>Difficulté</Text>
-              {DIFFICULTY_VALUES.map((level) => (
+              <Text style={[styles.eyebrow, { color: INK.muted, marginRight: 4 }]}>
+                Comportement
+              </Text>
+              {BEHAVIOR_VALUES.map((level) => (
                 <View
                   key={level}
-                  style={[styles.legendSwatch, { backgroundColor: DIFFICULTY_COLORS[level] }]}
+                  style={[styles.legendSwatch, { backgroundColor: BEHAVIOR_COLORS[level] }]}
                 />
               ))}
               <Text style={[styles.legendText, { marginLeft: 4 }]}>(cerclage de l&apos;étiquette)</Text>
@@ -598,7 +600,7 @@ export function PlanDocument({
         <View style={styles.footer} fixed>
           <Text>StudentPlace — {data.teacherName}</Text>
           <Text>
-            {options.includeComments || options.includeDifficulty
+            {options.includeComments || options.includeBehavior
               ? "Document contenant des données personnelles : diffusion restreinte."
               : "Plan de classe"}
           </Text>
@@ -633,7 +635,7 @@ export function PlanDocument({
                 <View key={student.id} style={styles.rosterRow}>
                   <Text style={styles.rosterName}>
                     {student.lastName} {student.firstName}
-                    {options.includeDifficulty ? ` (${student.difficulty}/5)` : ""}
+                    {options.includeBehavior ? ` (${student.behavior}/5)` : ""}
                   </Text>
                   <Text style={styles.rosterSeat}>
                     {seat
@@ -751,7 +753,7 @@ function EmptySeat({
 /**
  * L'étiquette d'un élève placé — la carte de l'écran, à l'identique.
  *
- * La DIFFICULTÉ s'y lit à un cerclage INTÉRIEUR, posé en bordure d'un calque
+ * Le COMPORTEMENT s'y lit à un cerclage INTÉRIEUR, posé en bordure d'un calque
  * absolu plutôt qu'en `box-shadow: inset`, que react-pdf ne connaît pas. Le
  * VERROUILLAGE se lit à un cerclage rouge POSÉ AUTOUR, l'équivalent de
  * l'`outline` de l'écran : les deux ne se disputent ainsi ni la bordure de la
@@ -802,7 +804,7 @@ function SeatedStudent({
         />
       )}
 
-      {options.includeDifficulty && (
+      {options.includeBehavior && (
         <View
           style={{
             position: "absolute",
@@ -811,7 +813,7 @@ function SeatedStudent({
             right: 0,
             bottom: 0,
             borderWidth: metrics.ring,
-            borderColor: DIFFICULTY_COLORS[student.difficulty],
+            borderColor: BEHAVIOR_COLORS[student.behavior],
             borderRadius: metrics.radius,
           }}
         />

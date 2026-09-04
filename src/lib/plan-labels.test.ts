@@ -16,7 +16,7 @@ function student(firstName: string, lastName: string): StudentView {
     firstName,
     lastName,
     comment: "",
-    difficulty: 3,
+    behavior: 3,
     needsFront: false,
     leftHanded: false,
   };

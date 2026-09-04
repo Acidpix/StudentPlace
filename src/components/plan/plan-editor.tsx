@@ -27,9 +27,9 @@ import {
 } from "@/components/plan/plan-pieces";
 import { StudentCard, type StudentCardRelation } from "@/components/plan/student-card";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
+import { BehaviorLegend } from "@/components/ui/behavior-badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DifficultyLegend } from "@/components/ui/difficulty-badge";
 import { FieldError, Input } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
@@ -317,7 +317,7 @@ export function PlanEditor({
         ? relationsOf(editingStudent.id).map((relation) => ({
             id: relation.id,
             type: relation.type,
-            otherName: studentFullName(relation.other),
+            otherId: relation.other.id,
           }))
         : [],
     [editingStudent, relationsOf],
@@ -382,7 +382,7 @@ export function PlanEditor({
           .map((seat) => ({ id: seat.id, x: seat.x, y: seat.y, isEndSeat: seat.isEndSeat })),
         students: students.map((student) => ({
           id: student.id,
-          difficulty: student.difficulty,
+          behavior: student.behavior,
           needsFront: student.needsFront,
           leftHanded: student.leftHanded,
         })),
@@ -561,6 +561,7 @@ export function PlanEditor({
             student={editingStudent}
             contextLabel={`${plan.classGroupName} · ${room.name}`}
             relations={dialogRelations}
+            classmates={students}
           />
         )}
 
@@ -665,8 +666,8 @@ export function PlanEditor({
                 count={unplaced.length}
                 footer={
                   <>
-                    <h3 className="eyebrow mb-2">Difficulté</h3>
-                    <DifficultyLegend vertical />
+                    <h3 className="eyebrow mb-2">Comportement</h3>
+                    <BehaviorLegend vertical />
                   </>
                 }
               >
@@ -861,7 +862,7 @@ export function PlanEditor({
                 {mirrored
                   ? "Vue depuis le bureau : les élèves vous font face, le tableau est en bas."
                   : "Vue du dessus : le tableau est en haut, comme sur le plan de la salle."}{" "}
-                Cerclage intérieur : difficulté. Cadre rouge plein : place verrouillée. Pointillé
+                Cerclage intérieur : comportement. Cadre rouge plein : place verrouillée. Pointillé
                 rouge : incompatibilité non respectée.
               </p>
             </div>

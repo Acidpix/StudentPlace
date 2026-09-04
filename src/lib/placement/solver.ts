@@ -50,9 +50,9 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/** Tri stable : difficulté décroissante, besoins prioritaires, puis id. */
+/** Tri stable : comportement décroissant, besoins prioritaires, puis id. */
 function compareStudents(a: SolverStudent, b: SolverStudent): number {
-  if (b.difficulty !== a.difficulty) return b.difficulty - a.difficulty;
+  if (b.behavior !== a.behavior) return b.behavior - a.behavior;
   if (a.needsFront !== b.needsFront) return a.needsFront ? -1 : 1;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
@@ -183,7 +183,7 @@ export function solveSeating(input: SolverInput): SolverResult {
   });
 
   const isEndSeat = Uint8Array.from(seats.map((s) => (s.isEndSeat ? 1 : 0)));
-  const studentWeight = Float64Array.from(students.map((s) => (s.difficulty - 1) / 4));
+  const studentWeight = Float64Array.from(students.map((s) => (s.behavior - 1) / 4));
   const needsFront = Uint8Array.from(students.map((s) => (s.needsFront ? 1 : 0)));
   const leftHanded = Uint8Array.from(students.map((s) => (s.leftHanded ? 1 : 0)));
 

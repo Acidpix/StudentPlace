@@ -26,7 +26,7 @@ export default async function ClassesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Mes classes</h1>
           <p className="mt-1.5 text-sm text-muted">
-            Une classe rassemble des élèves, leurs difficultés et leurs incompatibilités.
+            Une classe rassemble des élèves, leur comportement et leurs incompatibilités.
           </p>
         </div>
         <NewClassForm />

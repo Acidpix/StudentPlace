@@ -31,7 +31,7 @@ const students: StudentView[] = ["a", "b", "c"].map((id) => ({
   firstName: id.toUpperCase(),
   lastName: "Test",
   comment: "",
-  difficulty: 1,
+  behavior: 1,
   needsFront: false,
   leftHanded: false,
 }));

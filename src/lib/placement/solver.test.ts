@@ -39,10 +39,10 @@ function buildSeats(): SolverSeat[] {
   return seats;
 }
 
-function buildStudents(count: number, difficulty = 1): SolverStudent[] {
+function buildStudents(count: number, behavior = 1): SolverStudent[] {
   return Array.from({ length: count }, (_, index) => ({
     id: `e${index}`,
-    difficulty,
+    behavior,
     needsFront: false,
     leftHanded: false,
   }));
@@ -134,18 +134,18 @@ describe("solveSeating", () => {
     expect(assignmentOf("e3")?.pinned).toBe(true);
   });
 
-  it("rapproche du bureau les élèves les plus difficiles", () => {
+  it("rapproche du bureau les élèves les plus perturbateurs", () => {
     const seats = buildSeats();
     const students: SolverStudent[] = [
       ...Array.from({ length: 4 }, (_, i) => ({
         id: `dur${i}`,
-        difficulty: 5,
+        behavior: 5,
         needsFront: false,
         leftHanded: false,
       })),
       ...Array.from({ length: 4 }, (_, i) => ({
         id: `calme${i}`,
-        difficulty: 1,
+        behavior: 1,
         needsFront: false,
         leftHanded: false,
       })),
@@ -253,7 +253,7 @@ describe("solveSeating", () => {
     const students = buildStudents(8);
 
     // Une permutation quelconque, qu'aucune contrainte ne justifie de défaire :
-    // tous les élèves ont la même difficulté et il n'y a ni incompatibilité ni
+    // tous les élèves ont la même note de comportement et il n'y a ni incompatibilité ni
     // affinité, donc toutes les dispositions se valent.
     const previous: Record<string, string> = {};
     students.forEach((student, index) => {

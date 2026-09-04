@@ -45,7 +45,7 @@ export async function GET() {
         id: student.id,
         nom: student.lastName,
         prenom: student.firstName,
-        difficulte: student.difficulty,
+        comportement: student.difficulty,
         premierRang: student.needsFront,
         gaucher: student.leftHanded,
         commentaire: decryptComment(student.commentEnc),

@@ -15,7 +15,7 @@ Dupont Léa
 Bernard Noah
 
 — ou, depuis un tableur —
-Nom;Prénom;Difficulté;Commentaire
+Nom;Prénom;Comportement;Commentaire
 Martin;Camille;3;Bavarde en fin d'heure`;
 
 /**
@@ -122,7 +122,7 @@ function CsvImportForm({
           <p className="mt-1 text-sm leading-snug text-muted">
             Un élève par ligne, en texte simple : « Martin Camille ». Vous pouvez aussi coller
             les colonnes d&apos;un tableur ou choisir un fichier — ordre attendu : nom, prénom,
-            difficulté (1-5, facultative), commentaire (facultatif).
+            comportement (1-5, facultatif), commentaire (facultatif).
           </p>
         </div>
 

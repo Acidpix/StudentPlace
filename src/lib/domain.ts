@@ -49,18 +49,27 @@ export const OBJECT_LABELS: Record<ObjectKind, string> = {
 
 /**
  * Largeur d'une table par place, en centimètres. Une table à `count` places
- * fait `count * TABLE_WIDTH_PER_SEAT_CM` de large : une place, 150 cm ; deux,
- * 300 ; trois, 450.
+ * fait `count * TABLE_WIDTH_PER_SEAT_CM` de large : une place, 115 cm ; deux,
+ * 230 ; trois, 345.
  *
  * Ce n'est pas la cote d'une vraie table d'écolier, et c'est ASSUMÉ : le plan
  * de classe est un outil de lecture, pas un plan d'architecte, et l'écartement
  * qui en résulte est ce qui fixe la largeur — donc la lisibilité — de
  * l'étiquette d'un élève (`seatFootprintCm()`).
  *
+ * 115 CM N'EST PAS UN CHIFFRE ARBITRAIRE : c'est aussi l'écart entre deux
+ * places d'une même table, `generateSeatPositions()` les répartissant sur la
+ * largeur. Il passe donc JUSTE SOUS `DEFAULT_PROXIMITY_CM` (120 cm), si bien
+ * que deux élèves incompatibles assis côte à côte déclenchent l'alerte. Les
+ * barèmes plus généreux essayés avant (150, puis 170) mettaient deux voisins
+ * de table au-delà du seuil : les contraintes du solveur devenaient inertes
+ * là où elles comptent le plus. Remonter ce nombre au-dessus de 120 les
+ * éteindrait de nouveau.
+ *
  * Ce barème est la SEULE source de la largeur d'une table : les dispositions
  * types (`placement/layout-presets.ts`) le suivent aussi, sans le rétrécir.
  */
-export const TABLE_WIDTH_PER_SEAT_CM = 150;
+export const TABLE_WIDTH_PER_SEAT_CM = 115;
 
 /** Largeur d'une table à `count` places. */
 export function tableWidthForSeats(count: number): number {
@@ -72,7 +81,7 @@ export function tableWidthForSeats(count: number): number {
  * places, et c'est délibérément aussi la hauteur de l'étiquette d'élève sur le
  * plan de classe : voir `seatFootprintCm()` (`placement/geometry.ts`).
  */
-export const TABLE_DEPTH_CM = 45;
+export const TABLE_DEPTH_CM = 35;
 
 /**
  * Dimensions par défaut du mobilier, en centimètres.
@@ -91,20 +100,29 @@ export const OBJECT_DEFAULT_SIZE: Record<ObjectKind, { widthCm: number; heightCm
   OBSTACLE: { widthCm: 80, heightCm: 80 },
 };
 
-// -------------------------------- Difficulté --------------------------------
-
-export type Difficulty = 1 | 2 | 3 | 4 | 5;
-export const DIFFICULTY_VALUES: readonly Difficulty[] = [1, 2, 3, 4, 5];
+// ------------------------------- Comportement -------------------------------
 
 /**
- * Palette des pastilles de difficulté.
+ * L'échelle dit la CONDUITE EN CLASSE, pas la difficulté scolaire.
+ *
+ * Elle s'appelait « difficulté » et le mot induisait en erreur : ce qu'elle
+ * mesure, c'est ce qui décide du placement — un élève agité va devant et loin
+ * des autres agités. Le champ Prisma s'appelle toujours `difficulty` (le
+ * renommer imposerait une migration) ; la traduction se fait à la frontière,
+ * dans les pages serveur et les actions.
+ */
+export type Behavior = 1 | 2 | 3 | 4 | 5;
+export const BEHAVIOR_VALUES: readonly Behavior[] = [1, 2, 3, 4, 5];
+
+/**
+ * Palette des pastilles de comportement.
  *
  * Les teintes sont volontairement claires et saturées : associées au texte
  * sombre `--pastille-ink`, elles gardent un contraste suffisant en thème clair
  * comme en thème sombre. La pastille affiche TOUJOURS le chiffre en plus de la
  * couleur — environ 8 % des hommes ne distinguent pas le rouge du vert.
  */
-export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
+export const BEHAVIOR_COLORS: Record<Behavior, string> = {
   1: "#34d399",
   2: "#a3e635",
   3: "#fbbf24",
@@ -112,11 +130,11 @@ export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   5: "#f87171",
 };
 
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  1: "Aucune difficulté",
-  2: "Difficulté légère",
-  3: "Difficulté moyenne",
-  4: "Difficulté marquée",
+export const BEHAVIOR_LABELS: Record<Behavior, string> = {
+  1: "Calme",
+  2: "Un peu bavard",
+  3: "Souvent agité",
+  4: "Comportement difficile",
   5: "Très perturbateur",
 };
 
@@ -124,21 +142,21 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
  * Les mêmes niveaux en UN MOT.
  *
  * La jauge à cinq segments met le libellé en gros, à gauche des segments : un
- * « Difficulté marquée » sur deux lignes y écraserait les segments. Ce sont
+ * « Comportement difficile » sur deux lignes y écraserait les segments. Ce sont
  * bien les mêmes cinq niveaux, seulement abrégés — la forme longue reste celle
  * des listes, des infobulles et des lecteurs d'écran.
  */
-export const DIFFICULTY_SHORT_LABELS: Record<Difficulty, string> = {
-  1: "Aucune",
-  2: "Légère",
-  3: "Moyenne",
-  4: "Marquée",
-  5: "Très forte",
+export const BEHAVIOR_SHORT_LABELS: Record<Behavior, string> = {
+  1: "Calme",
+  2: "Bavard",
+  3: "Agité",
+  4: "Difficile",
+  5: "Perturbateur",
 };
 
-export function toDifficulty(value: number): Difficulty {
+export function toBehavior(value: number): Behavior {
   const clamped = Math.min(5, Math.max(1, Math.round(value)));
-  return clamped as Difficulty;
+  return clamped as Behavior;
 }
 
 // -------------------------------- Géométrie ---------------------------------

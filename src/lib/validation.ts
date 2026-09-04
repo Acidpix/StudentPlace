@@ -37,11 +37,11 @@ export const studentSchema = z.object({
   firstName: z.string().trim().min(1, "Le prénom est obligatoire.").max(60),
   lastName: z.string().trim().min(1, "Le nom est obligatoire.").max(60),
   comment: z.string().trim().max(2000).optional().or(z.literal("")),
-  difficulty: z.coerce
+  behavior: z.coerce
     .number()
     .int()
-    .min(1, "La note de difficulté va de 1 à 5.")
-    .max(5, "La note de difficulté va de 1 à 5."),
+    .min(1, "La note de comportement va de 1 à 5.")
+    .max(5, "La note de comportement va de 1 à 5."),
   // Volontairement `z.boolean()` et non `z.coerce.boolean()` : la coercition
   // transformerait la chaîne "false" en `true`.
   needsFront: z.boolean().default(false),

@@ -182,7 +182,7 @@ function GettingStarted() {
   const steps = [
     {
       title: "Créez une classe",
-      text: "Ajoutez vos élèves, leur note de difficulté et leurs incompatibilités.",
+      text: "Ajoutez vos élèves, leur note de comportement et leurs incompatibilités.",
       href: "/classes",
       cta: "Aller aux classes",
     },

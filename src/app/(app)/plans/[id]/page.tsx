@@ -5,7 +5,7 @@ import { PlanEditor } from "@/components/plan/plan-editor";
 import { PageWidth } from "@/components/ui/page-width";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
-import { toDifficulty, type ObjectKind, type RelationType } from "@/lib/domain";
+import { toBehavior, type ObjectKind, type RelationType } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
 import type { AssignmentView, RelationView, RoomView, StudentView } from "@/lib/view-models";
 
@@ -61,7 +61,7 @@ export default async function PlanPage({ params }: { params: Promise<{ id: strin
     firstName: student.firstName,
     lastName: student.lastName,
     comment: decryptComment(student.commentEnc) ?? "",
-    difficulty: toDifficulty(student.difficulty),
+    behavior: toBehavior(student.difficulty),
     needsFront: student.needsFront,
     leftHanded: student.leftHanded,
   }));

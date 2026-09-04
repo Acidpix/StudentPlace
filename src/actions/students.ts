@@ -27,7 +27,9 @@ export async function createStudent(
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       commentEnc: encryptComment(parsed.data.comment),
-      difficulty: parsed.data.difficulty,
+      // La colonne Prisma s'appelle toujours `difficulty` : la renommer
+      // imposerait une migration. La traduction se fait ici.
+      difficulty: parsed.data.behavior,
       needsFront: parsed.data.needsFront,
       leftHanded: parsed.data.leftHanded,
     },
@@ -51,7 +53,9 @@ export async function updateStudent(id: string, input: unknown): Promise<ActionR
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       commentEnc: encryptComment(parsed.data.comment),
-      difficulty: parsed.data.difficulty,
+      // La colonne Prisma s'appelle toujours `difficulty` : la renommer
+      // imposerait une migration. La traduction se fait ici.
+      difficulty: parsed.data.behavior,
       needsFront: parsed.data.needsFront,
       leftHanded: parsed.data.leftHanded,
     },
@@ -107,7 +111,7 @@ export async function importStudents(
         classGroupId,
         firstName: student.firstName,
         lastName: student.lastName,
-        difficulty: student.difficulty,
+        difficulty: student.behavior,
         commentEnc: encryptComment(student.comment),
       })),
     });

@@ -6,14 +6,10 @@ import { useMemo, useState, useTransition } from "react";
 import { deleteStudent } from "@/actions/students";
 import { CsvImport } from "@/components/class/csv-import";
 import { StudentDialog, type StudentDialogRelation } from "@/components/class/student-dialog";
+import { BehaviorBadge, BehaviorLegend, BehaviorMeter } from "@/components/ui/behavior-badge";
 import { Button } from "@/components/ui/button";
 import { CARD, CARD_INTERACTIVE } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  DifficultyBadge,
-  DifficultyLegend,
-  DifficultyMeter,
-} from "@/components/ui/difficulty-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input } from "@/components/ui/field";
 import {
@@ -86,32 +82,26 @@ export function StudentManager({
     : undefined;
 
   /**
-   * Relations de l'élève ouvert, l'AUTRE élève déjà résolu.
+   * Relations de l'élève ouvert, l'AUTRE élève déjà DÉSIGNÉ.
    *
    * `StudentRelation` est normalisée (`studentAId < studentBId`) : l'élève
    * courant peut donc être d'un côté comme de l'autre, et c'est ici qu'on
-   * tranche — la fiche n'a pas à connaître cette convention.
+   * tranche — la fiche n'a pas à connaître cette convention. Le NOM, lui, s'y
+   * résout : elle reçoit déjà la classe entière pour proposer une nouvelle
+   * relation.
    */
   const editingRelations = useMemo<StudentDialogRelation[]>(() => {
     const id = editingStudent?.id;
     if (!id) return [];
 
-    const nameById = new Map(
-      students.map((student): [string, string] => [
-        student.id,
-        `${student.firstName} ${student.lastName}`,
-      ]),
-    );
-
     return relations
       .filter((relation) => relation.studentAId === id || relation.studentBId === id)
-      .map((relation) => {
-        const otherId = relation.studentAId === id ? relation.studentBId : relation.studentAId;
-        const otherName = nameById.get(otherId);
-        return otherName ? { id: relation.id, type: relation.type, otherName } : null;
-      })
-      .filter((entry): entry is StudentDialogRelation => entry !== null);
-  }, [editingStudent, relations, students]);
+      .map((relation) => ({
+        id: relation.id,
+        type: relation.type,
+        otherId: relation.studentAId === id ? relation.studentBId : relation.studentAId,
+      }));
+  }, [editingStudent, relations]);
 
   return (
     <section>
@@ -132,6 +122,7 @@ export function StudentManager({
         student={editingStudent}
         contextLabel={classGroupName}
         relations={editingRelations}
+        classmates={students}
       />
 
       <CsvImport
@@ -201,7 +192,7 @@ export function StudentManager({
         </ul>
       )}
 
-      {students.length > 0 && <DifficultyLegend className="mt-3" />}
+      {students.length > 0 && <BehaviorLegend className="mt-3" />}
     </section>
   );
 }
@@ -216,7 +207,7 @@ export function StudentManager({
  *
  * Ce qui a été rendu :
  *
- * - le médaillon rond a laissé la place à une PASTILLE DE DIFFICULTÉ chiffrée,
+ * - le médaillon rond a laissé la place à une PASTILLE DE COMPORTEMENT chiffrée,
  *   qui occupe le même coin mais dit quelque chose ;
  * - la jauge est en version `compact` : mêmes cinq segments, hauteur d'un
  *   filet, le mot conservé — la couleur ne porte jamais l'information seule ;
@@ -277,7 +268,7 @@ function StudentTile({
       />
 
       <div className="flex items-center gap-2">
-        <DifficultyBadge difficulty={student.difficulty} size="sm" />
+        <BehaviorBadge behavior={student.behavior} size="sm" />
 
         <p className="min-w-0 flex-1 truncate text-sm leading-tight">
           <span className="font-bold">{student.lastName}</span>{" "}
@@ -314,7 +305,7 @@ function StudentTile({
         </Button>
       </div>
 
-      <DifficultyMeter difficulty={student.difficulty} compact />
+      <BehaviorMeter behavior={student.behavior} compact />
 
       {/* `relative` sur les deux porteurs d'infobulle — jeton de besoin et
           commentaire tronqué : un calque posé par-dessus les priverait de leur

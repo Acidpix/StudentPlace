@@ -8,7 +8,7 @@
  * ignorée.
  *
  * Colonnes attendues, dans l'ordre :
- *   Nom ; Prénom ; Difficulté (1-5, facultative) ; Commentaire (facultatif)
+ *   Nom ; Prénom ; Comportement (1-5, facultatif) ; Commentaire (facultatif)
  *
  * Une ligne SANS séparateur est acceptée telle quelle — « Martin Camille », un
  * élève par ligne. Nom et prénom sont alors séparés d'après `nameOrder`, sauf
@@ -20,7 +20,7 @@
 export interface ParsedStudentRow {
   lastName: string;
   firstName: string;
-  difficulty: number;
+  behavior: number;
   comment: string;
 }
 
@@ -125,6 +125,10 @@ const HEADER_WORDS = new Set([
   "prenoms",
   "eleve",
   "eleves",
+  "comportement",
+  // « difficulte » est resté : l'échelle a changé de nom, pas les fichiers
+  // déjà préparés par le professeur. Sans lui, leur en-tête serait pris pour
+  // un élève.
   "difficulte",
   "commentaire",
   "commentaires",
@@ -215,23 +219,23 @@ export function parseStudentList(text: string, options: ParseOptions = {}): Pars
       return;
     }
 
-    let difficulty = 1;
-    const rawDifficulty = (cells[2] ?? "").trim();
-    if (rawDifficulty !== "") {
-      const parsed = Number.parseInt(rawDifficulty.replace(",", "."), 10);
+    let behavior = 1;
+    const rawBehavior = (cells[2] ?? "").trim();
+    if (rawBehavior !== "") {
+      const parsed = Number.parseInt(rawBehavior.replace(",", "."), 10);
       if (Number.isNaN(parsed) || parsed < 1 || parsed > 5) {
         errors.push(
-          `Ligne ${lineNumber} : difficulté « ${rawDifficulty} » ignorée, elle doit aller de 1 à 5.`,
+          `Ligne ${lineNumber} : comportement « ${rawBehavior} » ignoré, il doit aller de 1 à 5.`,
         );
       } else {
-        difficulty = parsed;
+        behavior = parsed;
       }
     }
 
     students.push({
       lastName,
       firstName,
-      difficulty,
+      behavior,
       comment: (cells[3] ?? "").trim(),
     });
   });

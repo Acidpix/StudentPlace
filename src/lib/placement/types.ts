@@ -16,8 +16,8 @@ export interface SolverSeat {
 
 export interface SolverStudent {
   id: string;
-  /** 1 (aucune difficulté) à 5 (très perturbateur). */
-  difficulty: number;
+  /** 1 (calme) à 5 (très perturbateur). */
+  behavior: number;
   needsFront: boolean;
   leftHanded: boolean;
 }
@@ -32,7 +32,7 @@ export interface SolverWeights {
   incompatible: number;
   /** Contrainte dure : élève devant être au premier rang. */
   needsFront: number;
-  /** Rapprocher du bureau à mesure que la difficulté augmente. */
+  /** Rapprocher du bureau à mesure que la note de comportement augmente. */
   proximityToDesk: number;
   /** Éviter que deux élèves difficiles soient voisins. */
   isolation: number;

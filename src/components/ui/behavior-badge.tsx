@@ -1,24 +1,24 @@
 import { cn } from "@/lib/cn";
 import {
-  DIFFICULTY_COLORS,
-  DIFFICULTY_LABELS,
-  DIFFICULTY_SHORT_LABELS,
-  DIFFICULTY_VALUES,
-  type Difficulty,
+  BEHAVIOR_COLORS,
+  BEHAVIOR_LABELS,
+  BEHAVIOR_SHORT_LABELS,
+  BEHAVIOR_VALUES,
+  type Behavior,
 } from "@/lib/domain";
 
 /**
- * Pastille de difficulté.
+ * Pastille de comportement.
  *
  * La couleur ne porte JAMAIS l'information seule : le chiffre est toujours
  * affiché, et le libellé complet est accessible aux lecteurs d'écran.
  */
-export function DifficultyBadge({
-  difficulty,
+export function BehaviorBadge({
+  behavior,
   size = "md",
   className,
 }: {
-  difficulty: Difficulty;
+  behavior: Behavior;
   /**
    * `"sm"` / `"md"` pour les listes ; un nombre de pixels pour le plan de
    * classe, dont les étiquettes sont mises à l'échelle de la salle.
@@ -37,24 +37,24 @@ export function DifficultyBadge({
         className,
       )}
       style={{
-        backgroundColor: DIFFICULTY_COLORS[difficulty],
+        backgroundColor: BEHAVIOR_COLORS[behavior],
         color: "var(--pastille-ink)",
         ...(numeric
           ? { width: size, height: size, fontSize: Math.max(6, size * 0.66), lineHeight: 1 }
           : null),
       }}
-      title={`${difficulty}/5 — ${DIFFICULTY_LABELS[difficulty]}`}
+      title={`${behavior}/5 — ${BEHAVIOR_LABELS[behavior]}`}
     >
-      <span aria-hidden="true">{difficulty}</span>
+      <span aria-hidden="true">{behavior}</span>
       <span className="sr-only">
-        Difficulté {difficulty} sur 5, {DIFFICULTY_LABELS[difficulty]}
+        Comportement {behavior} sur 5, {BEHAVIOR_LABELS[behavior]}
       </span>
     </span>
   );
 }
 
 /**
- * Jauge de difficulté en CINQ SEGMENTS, d'après la maquette 2c.
+ * Jauge de comportement en CINQ SEGMENTS, d'après la maquette 2c.
  *
  * La maquette dessine exactement cinq blocs, dont les premiers sont allumés :
  * c'est la taille de l'échelle du domaine, il n'y a rien eu à adapter. La
@@ -64,12 +64,12 @@ export function DifficultyBadge({
  * Le libellé accompagne toujours la jauge : la couleur ne porte jamais
  * l'information seule.
  */
-export function DifficultyMeter({
-  difficulty,
+export function BehaviorMeter({
+  behavior,
   compact = false,
   className,
 }: {
-  difficulty: Difficulty;
+  behavior: Behavior;
   /** Version resserrée, pour les vignettes de la liste d'élèves. */
   compact?: boolean;
   className?: string;
@@ -78,29 +78,31 @@ export function DifficultyMeter({
     <div className={cn("flex items-center", compact ? "gap-2" : "gap-3", className)}>
       {/* Le mot à gauche, comme dans la maquette. C'est lui qui porte
           l'information ; les segments ne font que la rendre comparable d'un
-          coup d'œil entre deux élèves. */}
+          coup d'œil entre deux élèves. Il reste `shrink-0` et non tronqué :
+          « Perturbateur » est le plus long des cinq, et un « Perturbat… »
+          coûterait plus que les quelques pixels qu'il rendrait aux segments. */}
       <span
         className={cn("shrink-0 font-bold", compact ? "text-[11px]" : "text-sm")}
-        style={{ color: DIFFICULTY_COLORS[difficulty] }}
+        style={{ color: BEHAVIOR_COLORS[behavior] }}
       >
-        {DIFFICULTY_SHORT_LABELS[difficulty]}
+        {BEHAVIOR_SHORT_LABELS[behavior]}
       </span>
 
       <span className="flex flex-1 gap-1" aria-hidden="true">
-        {DIFFICULTY_VALUES.map((level) => (
+        {BEHAVIOR_VALUES.map((level) => (
           <span
             key={level}
             className={cn("flex-1 rounded-[3px]", compact ? "h-1.5" : "h-4")}
             style={{
               backgroundColor:
-                level <= difficulty ? DIFFICULTY_COLORS[difficulty] : "var(--surface-muted)",
+                level <= behavior ? BEHAVIOR_COLORS[behavior] : "var(--surface-muted)",
             }}
           />
         ))}
       </span>
 
       <span className="sr-only">
-        Difficulté {difficulty} sur 5, {DIFFICULTY_LABELS[difficulty]}
+        Comportement {behavior} sur 5, {BEHAVIOR_LABELS[behavior]}
       </span>
     </div>
   );
@@ -113,7 +115,7 @@ export function DifficultyMeter({
  * la forme de la maquette, une ligne par niveau. Horizontale, elle se met sous
  * un plan ou une liste.
  */
-export function DifficultyLegend({
+export function BehaviorLegend({
   className,
   vertical = false,
 }: {
@@ -130,11 +132,11 @@ export function DifficultyLegend({
         className,
       )}
     >
-      {!vertical && <span className="eyebrow">Difficulté</span>}
+      {!vertical && <span className="eyebrow">Comportement</span>}
       {([1, 2, 3, 4, 5] as const).map((level) => (
         <span key={level} className="inline-flex items-center gap-1.5">
-          <DifficultyBadge difficulty={level} size="sm" />
-          {DIFFICULTY_LABELS[level]}
+          <BehaviorBadge behavior={level} size="sm" />
+          {BEHAVIOR_LABELS[level]}
         </span>
       ))}
     </div>

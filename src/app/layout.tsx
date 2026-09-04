@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: "%s · StudentPlace",
   },
   description:
-    "Composer et imprimer des plans de classe qui tiennent compte des difficultés et des incompatibilités entre élèves.",
+    "Composer et imprimer des plans de classe qui tiennent compte du comportement des élèves et de leurs incompatibilités.",
   robots: {
     // Application privée contenant des données d'élèves : jamais indexée.
     index: false,

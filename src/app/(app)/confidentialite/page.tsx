@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <Section title="Ce qui est enregistré">
           <ul className="list-inside list-disc space-y-1">
             <li>Votre nom, votre adresse e-mail et votre mot de passe (haché, jamais lisible).</li>
-            <li>Pour chaque élève : nom, prénom, note de difficulté, besoins particuliers.</li>
+            <li>Pour chaque élève : nom, prénom, note de comportement, besoins particuliers.</li>
             <li>Le commentaire libre que vous rédigez éventuellement à son sujet.</li>
             <li>Vos salles, leur agencement, et vos plans de classe.</li>
           </ul>
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             </li>
             <li>
               Les exports PDF <strong>excluent par défaut</strong> les commentaires et les notes de
-              difficulté. Les y inclure demande une action explicite de votre part.
+              comportement. Les y inclure demande une action explicite de votre part.
             </li>
             <li>
               Les données ne quittent jamais ce serveur : aucun service tiers n&apos;est appelé.

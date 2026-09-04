@@ -13,8 +13,8 @@ voisins**.
 
 ## Fonctionnalités
 
-- **Classes et élèves** — nom, prénom, commentaire, et une note de difficulté de
-  1 à 5. Import d'une liste collée depuis un tableur.
+- **Classes et élèves** — nom, prénom, commentaire, et une note de comportement
+  de 1 à 5 (calme → très perturbateur). Import d'une liste collée depuis un tableur.
 - **Incompatibilités et affinités** — les paires d'élèves à séparer, et celles à
   rapprocher.
 - **Besoins particuliers** — premier rang imposé (vue, audition), bout de table
@@ -28,7 +28,7 @@ voisins**.
   discrètement faux.
 - **Placement manuel** — glisser-déposer, échange de deux élèves, verrouillage
   d'une place que le placement automatique ne touchera plus.
-- **Alerte visuelle** — pastille de difficulté colorée *et chiffrée*, et
+- **Alerte visuelle** — pastille de comportement colorée *et chiffrée*, et
   avertissement rouge dès que deux élèves incompatibles sont trop proches.
 - **Vue miroir** — bascule entre « vue depuis le bureau » et « vue depuis le
   fond », pour éviter le plan imprimé à l'envers.
@@ -182,7 +182,7 @@ comme tel :
   fichier de base ne suffit pas à les lire ;
 - chaque requête est filtrée par compte, y compris en forçant un identifiant
   dans l'URL ;
-- les exports PDF **excluent par défaut** commentaires et notes de difficulté ;
+- les exports PDF **excluent par défaut** commentaires et notes de comportement ;
 - chaque professeur peut exporter l'intégralité de ses données ou supprimer son
   compte, avec effacement immédiat et en cascade ;
 - aucune donnée ne quitte le serveur : aucun service tiers n'est appelé, et
@@ -210,8 +210,8 @@ Le coût agrège :
 |---|---|---|
 | Incompatibilité sous le seuil de proximité | dure | pénalité massive, croissante à mesure qu'ils se rapprochent |
 | Élève devant être au premier rang | dure | pénalité massive hors du premier tiers |
-| Difficulté élevée loin du bureau | souple | coût proportionnel à la difficulté et à la distance |
-| Deux élèves difficiles voisins | souple | pénalité au produit de leurs difficultés |
+| Note de comportement élevée loin du bureau | souple | coût proportionnel à la note et à la distance |
+| Deux élèves perturbateurs voisins | souple | pénalité au produit de leurs notes |
 | Élève difficile entouré de monde | souple | pénalité par voisin occupé |
 | Affinité non satisfaite | souple | pénalité modérée |
 | Gaucher hors bout de table | souple | pénalité faible |

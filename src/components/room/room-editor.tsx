@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from "react";
 
 import { saveRoomLayout } from "@/actions/rooms";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
@@ -19,6 +19,7 @@ import {
   UndoIcon,
 } from "@/components/ui/icons";
 import { InlineRename } from "@/components/ui/inline-rename";
+import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { Segment, Track } from "@/components/ui/segmented";
 import {
   GRID_CM,
@@ -30,7 +31,11 @@ import {
   type ObjectKind,
 } from "@/lib/domain";
 import { clamp, generateSeatPositions, snapToGrid } from "@/lib/placement/geometry";
-import { generatePresetLayout, type LayoutPresetId } from "@/lib/placement/layout-presets";
+import {
+  generatePresetLayout,
+  type LayoutPresetId,
+  type PresetOptions,
+} from "@/lib/placement/layout-presets";
 import { useHistory } from "@/lib/use-history";
 import type { RoomView } from "@/lib/view-models";
 
@@ -166,6 +171,13 @@ const PALETTE: Array<{ kind: ObjectKind; label: string; seatCount: number }> = [
   { kind: "WINDOW", label: OBJECT_LABELS.WINDOW, seatCount: 0 },
   { kind: "OBSTACLE", label: OBJECT_LABELS.OBSTACLE, seatCount: 0 },
 ];
+
+/**
+ * Où poser le filet du menu « Ajouter » : après les tables. Compté sur la
+ * palette elle-même plutôt qu'écrit en dur, pour qu'ajouter un type de table
+ * n'oblige pas à corriger un nombre ailleurs.
+ */
+const TABLE_PALETTE_COUNT = PALETTE.filter((item) => item.kind === "TABLE").length;
 
 // ---------------------------------------------------------------- composant
 
@@ -318,11 +330,12 @@ export function RoomEditor({ room }: { room: RoomView }) {
    * annoncé dans le panneau — mais cela reste réversible par Ctrl+Z tant que
    * l'agencement n'est pas enregistré.
    */
-  function applyPreset(preset: LayoutPresetId, seatTarget: number) {
+  function applyPreset(preset: LayoutPresetId, seatTarget: number, options: PresetOptions) {
     const generated = generatePresetLayout(
       preset,
       { widthCm: layout.widthCm, heightCm: layout.heightCm },
       seatTarget,
+      options,
     );
 
     const kept = layout.objects.filter((object) => object.kind !== "TABLE");
@@ -560,7 +573,8 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
         <div className="flex flex-wrap gap-2">
           {/* Dessiner une salle table par table est le geste le plus long de
-              l'application : la disposition type vient donc AVANT la palette. */}
+              l'application : la disposition type vient donc AVANT la palette,
+              et reste un bouton à part — ce n'est pas un ajout d'élément. */}
           <Button
             variant={presetsOpen ? "primary" : "secondary"}
             size="sm"
@@ -571,16 +585,21 @@ export function RoomEditor({ room }: { room: RoomView }) {
             Dispositions types
           </Button>
 
-          {PALETTE.map((item) => (
-            <Button
-              key={item.label}
-              variant="secondary"
-              size="sm"
-              onClick={() => addObject(item.kind, item.seatCount)}
-            >
-              + {item.label}
-            </Button>
-          ))}
+          {/* La palette était une rangée de huit boutons, sur deux lignes dans
+              une fenêtre étroite, pour des gestes qu'on ne fait qu'une fois par
+              salle. Repliée dans un menu, elle rend cette place au plan. */}
+          <Menu label="Ajouter">
+            {PALETTE.map((item, index) => (
+              <Fragment key={item.label}>
+                {/* Les trois tables d'abord, le reste du mobilier ensuite :
+                    c'est la seule frontière que la liste ait vraiment. */}
+                {index === TABLE_PALETTE_COUNT && <MenuSeparator />}
+                <MenuItem onClick={() => addObject(item.kind, item.seatCount)}>
+                  {item.label}
+                </MenuItem>
+              </Fragment>
+            ))}
+          </Menu>
         </div>
       </div>
 

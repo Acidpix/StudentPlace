@@ -10,7 +10,7 @@ import { ArrowLeftIcon } from "@/components/ui/icons";
 import { PageWidth } from "@/components/ui/page-width";
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
-import { toDifficulty, type RelationType } from "@/lib/domain";
+import { toBehavior, type RelationType } from "@/lib/domain";
 import { requireUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Classe" };
@@ -47,7 +47,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ id
     firstName: student.firstName,
     lastName: student.lastName,
     comment: decryptComment(student.commentEnc) ?? "",
-    difficulty: toDifficulty(student.difficulty),
+    behavior: toBehavior(student.difficulty),
     needsFront: student.needsFront,
     leftHanded: student.leftHanded,
   }));

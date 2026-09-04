@@ -1,4 +1,4 @@
-import type { Difficulty, ObjectKind, RelationType } from "@/lib/domain";
+import type { Behavior, ObjectKind, RelationType } from "@/lib/domain";
 
 /**
  * Formes de données transmises du serveur vers les composants clients.
@@ -13,7 +13,7 @@ export interface StudentView {
   firstName: string;
   lastName: string;
   comment: string;
-  difficulty: Difficulty;
+  behavior: Behavior;
   needsFront: boolean;
   leftHanded: boolean;
 }

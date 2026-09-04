@@ -1,7 +1,7 @@
 "use client";
 
+import { BehaviorMeter } from "@/components/ui/behavior-badge";
 import { Button } from "@/components/ui/button";
-import { DifficultyMeter } from "@/components/ui/difficulty-badge";
 import { LockIcon, UnlockIcon, XIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
 import type { RelationType } from "@/lib/domain";
@@ -13,12 +13,15 @@ import { studentFullName, type StudentView } from "@/lib/view-models";
  * Elle a quitté la barre d'outils du plan, où elle était comprimée sur une
  * ligne, pour la colonne de droite. La maquette lui donne une structure fixe,
  * reprise ici section par section : en-tête à médaillon, BESOINS PARTICULIERS,
- * NIVEAU, RELATIONS, NOTE PRIVÉE, puis les deux commandes.
+ * COMPORTEMENT, RELATIONS, NOTE PRIVÉE, puis les deux commandes.
  *
  * Chaque section est adossée à une donnée qui existe réellement — rien n'a été
  * inventé pour remplir la maquette. Les sections vides ne s'affichent pas :
  * un élève sans besoin particulier, sans relation et sans commentaire montre
- * juste son médaillon et son niveau.
+ * juste son médaillon et sa note de comportement.
+ *
+ * Elle reste en LECTURE : les relations s'y modifient dans le POPUP, ouvert par
+ * « Modifier ».
  */
 
 /** Deux lettres pour le médaillon : initiale du prénom, initiale du nom. */
@@ -111,10 +114,10 @@ export function StudentCard({
         )}
 
         {/* La jauge à cinq segments de la maquette, partagée avec la liste
-            d'élèves de la page de classe (`DifficultyMeter`). */}
-        <Section title="Difficulté">
-          <DifficultyMeter
-            difficulty={student.difficulty}
+            d'élèves de la page de classe (`BehaviorMeter`). */}
+        <Section title="Comportement">
+          <BehaviorMeter
+            behavior={student.behavior}
             className="rounded-control border border-border bg-surface-muted/60 p-2.5"
           />
         </Section>
@@ -183,11 +186,18 @@ export function StudentCard({
   );
 }
 
-/** Intitulé de section : la signature typographique de `.eyebrow`. */
+/**
+ * Intitulé de section : la signature typographique de `.eyebrow`, en gras.
+ *
+ * `.eyebrow` vit dans `@layer components` précisément pour qu'un utilitaire la
+ * surcharge ; `font-bold` et `text-foreground` passent donc devant sans règle
+ * CSS nouvelle. En 600 sur `--muted`, ces quatre intitulés se détachaient mal
+ * du contenu qu'ils annoncent.
+ */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="eyebrow mb-2">{title}</h3>
+      <h3 className="eyebrow mb-2 font-bold text-foreground">{title}</h3>
       {children}
     </div>
   );

@@ -113,8 +113,11 @@ model ClassGroup {
   @@index([userId])
 }
 
-/// Un élève. `difficulty` va de 1 (aucune difficulté) à 5 (très perturbateur) :
-/// plus la note est élevée, plus l'élève doit être proche du bureau et isolé.
+/// Un élève. `difficulty` porte la note de COMPORTEMENT, de 1 (calme) à 5
+/// (très perturbateur) : plus elle est élevée, plus l'élève doit être proche du
+/// bureau et isolé. Le champ garde son nom d'origine — le renommer imposerait
+/// une migration ; côté TypeScript l'échelle s'appelle `Behavior`, et la
+/// traduction se fait dans les pages serveur et les actions.
 model Student {
   id           String     @id @default(cuid())
   classGroupId String

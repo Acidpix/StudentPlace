@@ -6,7 +6,7 @@ import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "
  * Pourquoi : un fichier SQLite est un fichier texte à peine structuré. Une
  * sauvegarde égarée ou un accès disque suffirait à lire en clair des
  * appréciations comportementales concernant des mineurs. Ces commentaires sont
- * donc chiffrés au repos ; le reste des données (noms, notes de difficulté)
+ * donc chiffrés au repos ; le reste des données (noms, notes de comportement)
  * demeure en clair car il doit rester triable et interrogeable.
  *
  * Format stocké : "<iv>.<tag>.<données>", chaque partie en base64.

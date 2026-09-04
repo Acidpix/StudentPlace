@@ -9,26 +9,29 @@ import { DownloadIcon } from "@/components/ui/icons";
 /**
  * Options d'export PDF.
  *
- * Les commentaires et les notes de difficulté sont DÉCOCHÉS par défaut, et ce
+ * Les commentaires et les notes de comportement sont DÉCOCHÉS par défaut, et ce
  * n'est pas un détail : un plan de classe imprimé circule, traîne sur un
  * bureau, se photographie. Le professeur doit poser un geste délibéré pour y
  * faire figurer des appréciations sur des mineurs.
  */
 export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored: boolean }) {
   const [includeComments, setIncludeComments] = useState(false);
-  const [includeDifficulty, setIncludeDifficulty] = useState(false);
+  const [includeBehavior, setIncludeBehavior] = useState(false);
   const [includeRoster, setIncludeRoster] = useState(true);
   const [includeParticipation, setIncludeParticipation] = useState(false);
 
   const params = new URLSearchParams({
     commentaires: includeComments ? "1" : "0",
-    difficulte: includeDifficulty ? "1" : "0",
+    // Le nom du paramètre est lu par `api/plans/[id]/pdf/route.ts` : les deux
+    // doivent changer ensemble, une divergence rendrait l'option inopérante
+    // sans le dire.
+    comportement: includeBehavior ? "1" : "0",
     liste: includeRoster ? "1" : "0",
     participation: includeParticipation ? "1" : "0",
     miroir: mirrored ? "1" : "0",
   });
 
-  const sensitive = includeComments || includeDifficulty;
+  const sensitive = includeComments || includeBehavior;
 
   return (
     <div className={`${CARD} p-3`}>
@@ -62,10 +65,10 @@ export function ExportPdfPanel({ planId, mirrored }: { planId: string; mirrored:
           <input
             type="checkbox"
             className="accent-primary"
-            checked={includeDifficulty}
-            onChange={(event) => setIncludeDifficulty(event.target.checked)}
+            checked={includeBehavior}
+            onChange={(event) => setIncludeBehavior(event.target.checked)}
           />
-          Inclure les notes de difficulté
+          Inclure les notes de comportement
         </label>
         <label className="flex items-center gap-2">
           <input

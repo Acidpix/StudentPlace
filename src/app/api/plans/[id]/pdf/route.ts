@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { decryptComment } from "@/lib/crypto";
 import { prisma } from "@/lib/db";
-import { toDifficulty, type ObjectKind } from "@/lib/domain";
+import { toBehavior, type ObjectKind } from "@/lib/domain";
 import { renderPlanPdf, type PlanPdfAssignment, type PlanPdfOptions } from "@/lib/pdf/plan-document";
 import { getCurrentUser } from "@/lib/session";
 import type { RoomView, StudentView } from "@/lib/view-models";
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const options: PlanPdfOptions = {
     // Par défaut, aucune donnée comportementale : il faut la demander.
     includeComments: query.get("commentaires") === "1",
-    includeDifficulty: query.get("difficulte") === "1",
+    includeBehavior: query.get("comportement") === "1",
     includeRoster: query.get("liste") !== "0",
     // Les cases de participation ne portent aucune donnée : elles sont vides
     // par définition. Elles restent néanmoins décochées par défaut, un plan
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     lastName: student.lastName,
     // Ne déchiffrer que si le commentaire doit réellement figurer au document.
     comment: options.includeComments ? (decryptComment(student.commentEnc) ?? "") : "",
-    difficulty: toDifficulty(student.difficulty),
+    behavior: toBehavior(student.difficulty),
     needsFront: student.needsFront,
     leftHanded: student.leftHanded,
   }));

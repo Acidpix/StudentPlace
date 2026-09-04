@@ -25,7 +25,7 @@ const prisma = new PrismaClient({ adapter });
 const CLASS_NAME = "4e B (démonstration)";
 const ROOM_NAME = "Salle 204 (démonstration)";
 
-/** Noms, prénoms, difficulté, commentaire éventuel. */
+/** Noms, prénoms, note de comportement, commentaire éventuel. */
 const STUDENTS: Array<[string, string, number, string]> = [
   ["Bernard", "Noah", 5, "À garder près du bureau, se lève souvent."],
   ["Martin", "Camille", 4, "Bavarde surtout en fin d'heure."],
@@ -141,18 +141,14 @@ async function main() {
   // 145 cm : le solveur a donc de quoi séparer les élèves incompatibles, et
   // c'est TOUT L'INTÉRÊT du jeu de démonstration.
   //
-  // 230 cm N'EST PLUS la largeur type d'une table à deux places : le barème
-  // (`TABLE_WIDTH_PER_SEAT_CM`, 150 cm par place) en donne 300. L'écart est
-  // VOLONTAIRE et il faut le garder : à 300 cm, les deux places d'une même
-  // table seraient à 150 cm l'une de l'autre, donc AU-DESSUS du seuil de
-  // proximité, et la démonstration ne montrerait plus une seule alerte. Le pas
-  // de 260 cm et la salle de 10,5 m suivent de là.
-  //
-  // La profondeur, elle, suit le barème (`TABLE_DEPTH_CM`) : c'est elle qui
-  // fixe la hauteur des étiquettes du plan, et rien dans la démonstration ne
-  // demande de s'en écarter.
+  // Ces cotes sont EXACTEMENT celles du barème (`TABLE_WIDTH_PER_SEAT_CM`,
+  // 115 cm par place, et `TABLE_DEPTH_CM`) : une table de démonstration est
+  // une table comme les autres. Ce fut un temps un écart volontaire, quand le
+  // barème était plus généreux et mettait deux voisins de table hors du seuil
+  // de proximité ; les deux se sont rejoints. Le pas de 260 cm entre colonnes
+  // et la salle de 10,5 m suivent de là.
   const TABLE_WIDTH = 230;
-  const TABLE_HEIGHT = 45;
+  const TABLE_HEIGHT = 35;
 
   for (let row = 0; row < 4; row++) {
     for (let column = 0; column < 4; column++) {

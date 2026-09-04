@@ -2,9 +2,9 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 
-import { DifficultyBadge } from "@/components/ui/difficulty-badge";
+import { BehaviorBadge } from "@/components/ui/behavior-badge";
 import { cn } from "@/lib/cn";
-import { DIFFICULTY_COLORS } from "@/lib/domain";
+import { BEHAVIOR_COLORS } from "@/lib/domain";
 import {
   LABEL_PADDING_PX,
   fittedSize,
@@ -60,7 +60,7 @@ export function StudentLabel({
 }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5">
-      <DifficultyBadge difficulty={student.difficulty} size="sm" />
+      <BehaviorBadge behavior={student.behavior} size="sm" />
       <span className="truncate">
         {full ? `${student.lastName} ${student.firstName}` : studentShortName(student)}
       </span>
@@ -94,7 +94,7 @@ export function TrayStudent({ student }: { student: StudentView }) {
         isDragging && "opacity-40",
       )}
     >
-      <DifficultyBadge difficulty={student.difficulty} size="sm" />
+      <BehaviorBadge behavior={student.behavior} size="sm" />
       <span className="min-w-0 flex-1 truncate">
         <span className="font-medium">{student.lastName}</span> {student.firstName}
       </span>
@@ -113,14 +113,14 @@ export function TrayStudent({ student }: { student: StudentView }) {
  * Colonne « À placer » — la colonne de GAUCHE de l'éditeur, d'après la maquette.
  *
  * Elle ne se replie plus quand tout le monde est placé : elle porte aussi la
- * légende de difficulté, calée en bas, donc elle a toujours quelque chose à
+ * légende de comportement, calée en bas, donc elle a toujours quelque chose à
  * montrer. Une fois la classe placée, elle affiche simplement « Tout le monde
  * est placé » et reste la ZONE DE DÉPOSE qui sort un élève du plan — c'est la
  * colonne entière qui est droppable, pas seulement la liste, pour qu'on puisse
  * viser large en glissant.
  *
  * `footer` reçoit la légende plutôt que de l'inclure d'office : la colonne ne
- * connaît ainsi rien du vocabulaire de difficulté.
+ * connaît ainsi rien du vocabulaire de comportement.
  */
 export function TrayColumn({
   children,
@@ -278,11 +278,11 @@ function SeatedStudent({
     id: studentDraggableId(student.id),
   });
 
-  // La difficulté n'est plus chiffrée sur l'étiquette : elle doit donc être
+  // Le comportement n'est plus chiffré sur l'étiquette : il doit donc être
   // dite ailleurs. La couleur du cerclage ne porte jamais l'information seule.
   const title = [
     studentFullName(student),
-    `difficulté ${student.difficulty}/5`,
+    `comportement ${student.behavior}/5`,
     pinned ? "place verrouillée" : null,
     student.comment || null,
   ]
@@ -316,12 +316,12 @@ function SeatedStudent({
         borderRadius: metrics.radius,
         outline: pinned ? `${pinRing}px solid var(--danger)` : undefined,
         outlineOffset: pinned ? 1 : undefined,
-        // Le cerclage de difficulté est posé en ombre INTÉRIEURE : il se
+        // Le cerclage de comportement est posé en ombre INTÉRIEURE : il se
         // dessine à l'intérieur du cadre, donc il ne se dispute ni la bordure
         // (sélection, survol, conflit) ni l'`outline` (verrouillage), et les
         // trois restent lisibles ensemble. `--elev-1` s'ajoute par-dessus pour
         // l'ombre nette décalée, comme sur toutes les autres surfaces.
-        boxShadow: `inset 0 0 0 ${metrics.ring}px ${DIFFICULTY_COLORS[student.difficulty]}, var(--elev-1)`,
+        boxShadow: `inset 0 0 0 ${metrics.ring}px ${BEHAVIOR_COLORS[student.behavior]}, var(--elev-1)`,
       }}
       className={cn(
         "relative flex h-full w-full items-center overflow-hidden border-2 transition-colors",
@@ -356,7 +356,7 @@ function SeatedStudent({
         )}
 
         <span className="sr-only">
-          {studentFullName(student)} — difficulté {student.difficulty} sur 5
+          {studentFullName(student)} — comportement {student.behavior} sur 5
           {pinned ? " — place verrouillée" : ""}
         </span>
       </button>

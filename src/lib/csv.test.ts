@@ -8,8 +8,8 @@ describe("lecture d'une liste d'élèves", () => {
 
     expect(result.errors).toEqual([]);
     expect(result.students).toEqual([
-      { lastName: "Martin", firstName: "Camille", difficulty: 3, comment: "Bavarde" },
-      { lastName: "Dupont", firstName: "Léa", difficulty: 1, comment: "" },
+      { lastName: "Martin", firstName: "Camille", behavior: 3, comment: "Bavarde" },
+      { lastName: "Dupont", firstName: "Léa", behavior: 1, comment: "" },
     ]);
   });
 
@@ -19,6 +19,15 @@ describe("lecture d'une liste d'élèves", () => {
   });
 
   it("ignore une ligne d'en-tête", () => {
+    const result = parseStudentList("Nom;Prénom;Comportement\nMartin;Camille;2");
+
+    expect(result.students).toHaveLength(1);
+    expect(result.students[0].lastName).toBe("Martin");
+  });
+
+  // L'échelle a changé de nom, pas les fichiers déjà préparés par le
+  // professeur : « Difficulté » doit rester reconnu comme un en-tête.
+  it("ignore encore une ligne d'en-tête à l'ancien mot", () => {
     const result = parseStudentList("Nom;Prénom;Difficulté\nMartin;Camille;2");
 
     expect(result.students).toHaveLength(1);
@@ -37,15 +46,15 @@ describe("lecture d'une liste d'élèves", () => {
     expect(rows[0][1]).toBe('il a dit "bonjour"');
   });
 
-  it("applique une difficulté de 1 par défaut", () => {
-    expect(parseStudentList("Martin;Camille").students[0].difficulty).toBe(1);
+  it("applique un comportement de 1 par défaut", () => {
+    expect(parseStudentList("Martin;Camille").students[0].behavior).toBe(1);
   });
 
-  it("signale une difficulté hors barème sans perdre l'élève", () => {
+  it("signale un comportement hors barème sans perdre l'élève", () => {
     const result = parseStudentList("Martin;Camille;9");
 
     expect(result.students).toHaveLength(1);
-    expect(result.students[0].difficulty).toBe(1);
+    expect(result.students[0].behavior).toBe(1);
     expect(result.errors[0]).toContain("Ligne 1");
   });
 
@@ -80,8 +89,8 @@ describe("liste en texte simple", () => {
 
     expect(result.errors).toEqual([]);
     expect(result.students).toEqual([
-      { lastName: "Martin", firstName: "Camille", difficulty: 1, comment: "" },
-      { lastName: "Dupont", firstName: "Léa", difficulty: 1, comment: "" },
+      { lastName: "Martin", firstName: "Camille", behavior: 1, comment: "" },
+      { lastName: "Dupont", firstName: "Léa", behavior: 1, comment: "" },
     ]);
   });
 

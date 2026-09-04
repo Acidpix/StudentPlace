@@ -32,7 +32,7 @@ export const SEAT_FONT_MAX_PX = 22;
  * Rembourrage horizontal de l'étiquette, de part et d'autre du texte.
  *
  * Réduit au strict nécessaire : sur une carte de cent pixels, chaque pixel rendu
- * au texte est un pixel de corps de police en plus. Le cerclage de difficulté
+ * au texte est un pixel de corps de police en plus. Le cerclage de comportement
  * s'y ajoute, lui, parce qu'il est peint À L'INTÉRIEUR du cadre.
  */
 export const LABEL_PADDING_PX = 1;
@@ -66,7 +66,7 @@ export interface SeatMetrics {
   height: number;
   /** Corps MAXIMAL de l'étiquette. Un nom long en recevra moins. */
   font: number;
-  /** Épaisseur du cerclage intérieur qui porte la difficulté. */
+  /** Épaisseur du cerclage intérieur qui porte le comportement. */
   ring: number;
   radius: number;
   /** Trop étroite pour le moindre mot : « Libre » et consorts sont masqués. */
@@ -106,7 +106,7 @@ export interface SeatMetricsOptions {
  * l'affichage stable quand la fenêtre rétrécit ou que la salle est grande — le
  * texte se resserre au lieu de disparaître d'un coup.
  *
- * La difficulté ne se lit pas dans l'étiquette mais à un CERCLAGE INTÉRIEUR de
+ * Le comportement ne se lit pas dans l'étiquette mais à un CERCLAGE INTÉRIEUR de
  * la carte : le nom dispose de toute la largeur et se centre, et la couleur
  * reste visible même sur une étiquette minuscule où une pastille deviendrait
  * un point indéchiffrable.
@@ -127,7 +127,7 @@ export function seatMetrics(
     // qu'une carte basse et large ne reçoive pas un corps que ses noms ne
     // pourraient jamais employer.
     font: Math.max(6 * unit, Math.min(SEAT_FONT_MAX_PX * unit, height * heightShare, width * 0.3)),
-    // Un filet, pas un cadre : le cerclage de difficulté doit se lire sans
+    // Un filet, pas un cadre : le cerclage de comportement doit se lire sans
     // manger la place du nom.
     ring: Math.max(1 * unit, Math.min(2 * unit, height * 0.03)),
     radius: Math.max(4 * unit, Math.min(10 * unit, height * 0.18)),
@@ -222,7 +222,7 @@ export function seatLabelText(student: StudentView, form: SeatLabelForm): string
  * Quand elle ne suffit plus, on abrège — pour tout le monde en même temps —
  * dans cet ordre : « Camille M. », puis le prénom seul (l'initiale coûte trois
  * caractères, et mieux vaut « Camille » en grand que « Camille M. » à la
- * loupe), puis les initiales, puis rien, le cerclage de difficulté restant la
+ * loupe), puis les initiales, puis rien, le cerclage de comportement restant la
  * seule information. Le nom complet demeure de toute façon dans l'infobulle,
  * dans le panneau latéral, dans la liste alphabétique du PDF et pour les
  * lecteurs d'écran.
