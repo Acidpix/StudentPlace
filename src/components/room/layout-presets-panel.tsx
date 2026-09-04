@@ -3,17 +3,15 @@
 import { useMemo, useState, type ComponentType } from "react";
 
 import { Button } from "@/components/ui/button";
-import { CARD } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/field";
+import { Hint, Input, Label, Select } from "@/components/ui/field";
 import {
   IslandsLayoutArt,
   RowsLayoutArt,
   UShapeIslandLayoutArt,
   UShapeLayoutArt,
   WarningIcon,
-  XIcon,
 } from "@/components/ui/icons";
-import { Segment, Track } from "@/components/ui/segmented";
+import { cn } from "@/lib/cn";
 import {
   DEFAULT_PRESET_OPTIONS,
   generatePresetLayout,
@@ -45,35 +43,33 @@ const THUMBNAILS: Record<LayoutPresetId, ComponentType<{ className?: string }>> 
  *
  * ---
  *
- * LE PANNEAU TIENT EN TROIS LIGNES. La première version étalait quatre cartes
- * — vignette, titre, phrase de description, compte de places — sur une grille,
- * puis les réglages, puis un pavé d'avertissement : près de 380 px au-dessus du
- * plan de la salle, dans un éditeur où c'est justement la place qui manque. Les
- * quatre cartes sont devenues quatre segments d'une piste (`ui/segmented.tsx`,
- * le vocabulaire commun aux deux éditeurs), et la description ne s'affiche plus
- * que pour la disposition SÉLECTIONNÉE — les trois autres n'ont pas besoin de
- * se raconter tant qu'on ne les a pas choisies.
+ * LE PANNEAU EST LE CONTENU D'UN ONGLET, dans la colonne de droite de
+ * l'éditeur : il se range donc en COLONNE, dans quelque 300 px, et il n'est
+ * PLUS une `CARD` — une carte dans une carte doublerait bordure et ombre. Il
+ * n'a pas non plus de bouton de fermeture : on en sort en prenant l'autre
+ * onglet.
  *
- * Les intitulés des réglages sont posés en `<label className="eyebrow">` et
- * NON avec le composant `Label` : celui-ci porte `mb-1.5 block`, qu'il aurait
- * fallu défaire pour une ligne, et `cn()` est une simple concaténation sans
- * `tailwind-merge` — `mb-1.5` et `mb-0` auraient cohabité à spécificité égale,
- * l'ordre de la feuille générée tranchant. Même piège que `bg-foreground`
- * contre `bg-primary` sur les boutons.
+ * Il s'ouvrait auparavant en pleine largeur sous la barre d'outils, où il
+ * poussait le plan de la salle vers le bas ; ses quatre dispositions ont donc
+ * été tour à tour de grandes cartes, puis des segments d'une piste horizontale,
+ * avant de trouver ici leur forme : une grille 2 × 2 de vignettes. C'est la
+ * VIGNETTE qui compte — elle dit la forme d'un coup d'œil, ce qu'aucun libellé
+ * ne fait — et une colonne étroite lui rend la place qu'une ligne lui refusait.
+ *
+ * La description ne s'affiche que pour la disposition SÉLECTIONNÉE : les trois
+ * autres n'ont pas besoin de se raconter tant qu'on ne les a pas choisies.
  */
 export function LayoutPresetsPanel({
   roomWidthCm,
   roomHeightCm,
   tableCount,
   onApply,
-  onClose,
 }: {
   roomWidthCm: number;
   roomHeightCm: number;
   /** Nombre de tables déjà posées, pour avertir de ce que l'on va remplacer. */
   tableCount: number;
   onApply: (preset: LayoutPresetId, seatTarget: number, options: PresetOptions) => void;
-  onClose: () => void;
 }) {
   const [preset, setPreset] = useState<LayoutPresetId>("ROWS");
   const [seatTarget, setSeatTarget] = useState(30);
@@ -101,35 +97,40 @@ export function LayoutPresetsPanel({
   const selected = previews[preset];
 
   return (
-    <section className={`${CARD} p-3`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Track className="flex-wrap">
-          {LAYOUT_PRESET_IDS.map((id) => {
-            const Thumbnail = THUMBNAILS[id];
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        {LAYOUT_PRESET_IDS.map((id) => {
+          const Thumbnail = THUMBNAILS[id];
+          const active = id === preset;
 
-            return (
-              <Segment key={id} active={id === preset} onClick={() => setPreset(id)}>
-                <Thumbnail className="h-4 w-6 shrink-0" />
-                {LAYOUT_PRESETS[id].label}
-                <span className="text-muted">{previews[id].seatCount}</span>
-              </Segment>
-            );
-          })}
-        </Track>
-
-        <div className="flex items-center gap-2">
-          <p className="hidden text-xs text-muted sm:block">{LAYOUT_PRESETS[preset].description}</p>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Fermer les dispositions types">
-            <XIcon />
-          </Button>
-        </div>
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setPreset(id)}
+              aria-pressed={active}
+              className={cn(
+                "rounded-card border p-2 text-left transition-[border-color,background-color] duration-150",
+                active
+                  ? "border-primary bg-primary-soft"
+                  : "border-border bg-surface hover:border-primary/40 hover:bg-surface-muted",
+              )}
+            >
+              <Thumbnail className="h-8 w-full text-muted" />
+              <p className="mt-1 text-xs font-medium leading-tight">{LAYOUT_PRESETS[id].label}</p>
+              <p className="text-[0.65rem] text-muted">
+                {previews[id].seatCount} place{previews[id].seatCount > 1 ? "s" : ""}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor="preset-seats" className="eyebrow">
-            Places
-          </label>
+      <p className="text-xs text-muted">{LAYOUT_PRESETS[preset].description}</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label htmlFor="preset-seats">Places</Label>
           <Input
             id="preset-seats"
             type="number"
@@ -137,19 +138,15 @@ export function LayoutPresetsPanel({
             max={PRESET_SEAT_MAX}
             value={seatTarget}
             onChange={(event) => setSeatTarget(Number(event.target.value))}
-            className="w-20"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <label htmlFor="preset-table" className="eyebrow">
-            Table
-          </label>
+        <div>
+          <Label htmlFor="preset-table">Table</Label>
           <Select
             id="preset-table"
             value={seatsPerTable}
             onChange={(event) => setSeatsPerTable(Number(event.target.value) as PresetSeatCount)}
-            className="w-32"
           >
             {PRESET_SEAT_COUNTS.map((count) => (
               <option key={count} value={count}>
@@ -158,36 +155,33 @@ export function LayoutPresetsPanel({
             ))}
           </Select>
         </div>
-
-        {/* Le nombre d'îlots n'a de sens que pour le U qui en porte : ailleurs,
-            un sélecteur inerte laisserait croire à un réglage sans effet. */}
-        {preset === "U_SHAPE_ISLAND" && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="preset-islands" className="eyebrow">
-              Îlots
-            </label>
-            <Select
-              id="preset-islands"
-              value={islandCount}
-              onChange={(event) => setIslandCount(Number(event.target.value))}
-              className="w-20"
-            >
-              {Array.from({ length: PRESET_ISLAND_MAX + 1 }, (_, count) => (
-                <option key={count} value={count}>
-                  {count}
-                </option>
-              ))}
-            </Select>
-          </div>
-        )}
-
-        <Button size="sm" className="ml-auto" onClick={() => onApply(preset, seatTarget, options)}>
-          Appliquer
-        </Button>
       </div>
 
+      {/* Le nombre d'îlots n'a de sens que pour le U qui en porte : ailleurs,
+          un sélecteur inerte laisserait croire à un réglage sans effet. */}
+      {preset === "U_SHAPE_ISLAND" && (
+        <div>
+          <Label htmlFor="preset-islands">Îlots au centre</Label>
+          <Select
+            id="preset-islands"
+            value={islandCount}
+            onChange={(event) => setIslandCount(Number(event.target.value))}
+          >
+            {Array.from({ length: PRESET_ISLAND_MAX + 1 }, (_, count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      <Button className="w-full" onClick={() => onApply(preset, seatTarget, options)}>
+        Appliquer
+      </Button>
+
       {selected.shortfall > 0 && (
-        <p className="mt-2 flex items-start gap-2 text-xs text-danger">
+        <p className="flex items-start gap-2 text-xs text-danger">
           <WarningIcon className="mt-px shrink-0" />
           <span>
             La salle ne tient que {selected.seatCount} place
@@ -197,11 +191,11 @@ export function LayoutPresetsPanel({
         </p>
       )}
 
-      <p className="mt-2 text-xs text-muted">
+      <Hint>
         {tableCount > 0
           ? `Remplace les ${tableCount} tables actuelles — et les élèves déjà placés. Ctrl+Z annule.`
           : "Tout reste modifiable ensuite, table par table."}
-      </p>
-    </section>
+      </Hint>
+    </div>
   );
 }

@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, useCallback, useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from "react";
 
 import { saveRoomLayout } from "@/actions/rooms";
+import { AddPanel, itemSizeCm, type PaletteItem } from "@/components/room/add-panel";
 import { Furniture, RoomGrid } from "@/components/room/furniture";
 import { LayoutPresetsPanel } from "@/components/room/layout-presets-panel";
 import { Button } from "@/components/ui/button";
 import { CARD } from "@/components/ui/card";
-import { FieldError, Input, Label, Select } from "@/components/ui/field";
+import { FieldError, Hint, Input, Label, Select } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
   LayoutIcon,
@@ -20,7 +21,6 @@ import {
   UndoIcon,
 } from "@/components/ui/icons";
 import { InlineRename } from "@/components/ui/inline-rename";
-import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { Segment, Track } from "@/components/ui/segmented";
 import {
   GRID_CM,
@@ -162,7 +162,7 @@ function toLayout(room: RoomView): Layout {
   };
 }
 
-const PALETTE: Array<{ kind: ObjectKind; label: string; seatCount: number }> = [
+const PALETTE: PaletteItem[] = [
   { kind: "TABLE", label: "Table 1 place", seatCount: 1 },
   { kind: "TABLE", label: "Table 2 places", seatCount: 2 },
   { kind: "TABLE", label: "Table 3 places", seatCount: 3 },
@@ -174,11 +174,23 @@ const PALETTE: Array<{ kind: ObjectKind; label: string; seatCount: number }> = [
 ];
 
 /**
- * Où poser le filet du menu « Ajouter » : après les tables. Compté sur la
- * palette elle-même plutôt qu'écrit en dur, pour qu'ajouter un type de table
- * n'oblige pas à corriger un nombre ailleurs.
+ * Les deux groupes de cartes du bac. La frontière se lit sur la palette
+ * elle-même plutôt qu'à un indice écrit en dur : ajouter un type de table ne
+ * doit pas obliger à corriger un nombre ailleurs.
  */
-const TABLE_PALETTE_COUNT = PALETTE.filter((item) => item.kind === "TABLE").length;
+const TABLE_ITEMS = PALETTE.filter((item) => item.kind === "TABLE");
+const FURNITURE_ITEMS = PALETTE.filter((item) => item.kind !== "TABLE");
+
+/**
+ * Course minimale, en pixels d'écran, avant qu'un appui sur une carte compte
+ * comme un GLISSER. En deçà, c'est un clic, et le meuble se pose à la position
+ * en cascade — sans ce seuil, le moindre tremblement de souris déciderait à la
+ * place du professeur.
+ */
+const DRAG_THRESHOLD_PX = 4;
+
+/** Les deux onglets de la colonne de droite. */
+type PanelTab = "add" | "presets";
 
 // ---------------------------------------------------------------- composant
 
@@ -188,18 +200,31 @@ export function RoomEditor({ room }: { room: RoomView }) {
   const [preview, setPreview] = useState<Layout | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [presetsOpen, setPresetsOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<PanelTab>("add");
   const [dirty, setDirty] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Le meuble qu'on est en train de tirer depuis le bac, et l'endroit où il
+  // tomberait. `dropGhost` vaut `null` tant que le curseur n'est pas entré dans
+  // la salle : c'est ce qui permet d'annuler en relâchant à côté.
+  const [adding, setAdding] = useState<PaletteItem | null>(null);
+  const [dropGhost, setDropGhost] = useState<{ x: number; y: number } | null>(null);
+
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<{ key: string; pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
+  const addStartRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+
+  // Un glisser abouti se termine aussi par un `click` sur la carte, la souris
+  // n'ayant ni bougé de cible ni changé de bouton. Sans ce drapeau, le meuble
+  // serait posé DEUX fois : une au lâcher, une au clic qui suit.
+  const suppressClickRef = useRef(false);
 
   // Pendant un glisser, on affiche un état provisoire : sans cela, chaque
   // mouvement de souris empilerait une entrée dans l'historique.
   const layout = preview ?? history.current;
   const selected = layout.objects.find((object) => object.key === selectedKey) ?? null;
   const seatCount = layout.objects.reduce((total, object) => total + object.seats.length, 0);
+  const tableCount = layout.objects.filter((object) => object.kind === "TABLE").length;
 
   const commit = useCallback(
     (next: Layout) => {
@@ -211,12 +236,48 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
   // ------------------------------------------------------------- géométrie
 
-  function toSvgPoint(event: ReactPointerEvent): { x: number; y: number } {
+  /**
+   * Coordonnées de salle sous un point de l'ÉCRAN.
+   *
+   * Prend `clientX`/`clientY` et non un événement : pendant qu'on tire une carte
+   * du bac, le pointeur est capturé par la carte et l'événement ne vise jamais
+   * le `<svg>`. Seule la matrice de l'écran vers la salle importe.
+   */
+  function svgPointFrom(clientX: number, clientY: number): { x: number; y: number } | null {
     const svg = svgRef.current;
     const matrix = svg?.getScreenCTM();
-    if (!svg || !matrix) return { x: 0, y: 0 };
-    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    if (!svg || !matrix) return null;
+    const point = new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse());
     return { x: point.x, y: point.y };
+  }
+
+  function toSvgPoint(event: ReactPointerEvent): { x: number; y: number } {
+    return svgPointFrom(event.clientX, event.clientY) ?? { x: 0, y: 0 };
+  }
+
+  /**
+   * Où tomberait le meuble tiré, si le curseur est dans la salle.
+   *
+   * Le meuble se CENTRE sur le curseur — c'est ce qu'on attend d'un objet qu'on
+   * tient — puis s'aimante au pas de la grille et se borne à la salle. Renvoie
+   * `null` hors de la salle : relâcher à côté n'ajoute rien.
+   */
+  function dropPositionAt(
+    clientX: number,
+    clientY: number,
+    item: PaletteItem,
+  ): { x: number; y: number } | null {
+    const point = svgPointFrom(clientX, clientY);
+    if (!point) return null;
+    if (point.x < 0 || point.y < 0 || point.x > layout.widthCm || point.y > layout.heightCm) {
+      return null;
+    }
+
+    const { widthCm, heightCm } = itemSizeCm(item);
+    return {
+      x: clamp(snapToGrid(point.x - widthCm / 2), 0, Math.max(0, layout.widthCm - widthCm)),
+      y: clamp(snapToGrid(point.y - heightCm / 2), 0, Math.max(0, layout.heightCm - heightCm)),
+    };
   }
 
   function handleObjectPointerDown(event: ReactPointerEvent, object: EditorObject) {
@@ -273,7 +334,16 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
   // --------------------------------------------------------------- actions
 
-  function addObject(kind: ObjectKind, count: number) {
+  /**
+   * Pose un meuble. `at` est le coin haut-gauche voulu, quand le professeur a
+   * TIRÉ la carte jusque-là ; sans lui, on retombe sur la position en cascade,
+   * qui est ce que donne un simple clic sur la carte.
+   *
+   * Ne SÉLECTIONNE pas le meuble ajouté : la fiche du meuble prend la place du
+   * bac dans la colonne de droite, et le bac disparaîtrait donc après chaque
+   * dépose — alors qu'on en pose plusieurs d'affilée.
+   */
+  function addObject(kind: ObjectKind, count: number, at?: { x: number; y: number }) {
     const defaults = OBJECT_DEFAULT_SIZE[kind];
     // Une table est large en proportion de son nombre de places : c'est cet
     // écartement qui décide de la lisibilité des noms sur le plan de classe.
@@ -284,7 +354,8 @@ export function RoomEditor({ room }: { room: RoomView }) {
     // Le tableau va au fond visuel de la salle (en haut), le bureau juste
     // devant : c'est la disposition que le professeur attend par défaut.
     const position =
-      kind === "BOARD"
+      at ??
+      (kind === "BOARD"
         ? { x: Math.round((layout.widthCm - size.widthCm) / 2), y: 10 }
         : kind === "TEACHER_DESK"
           ? { x: Math.round((layout.widthCm - size.widthCm) / 2), y: 60 }
@@ -299,7 +370,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
                 x: 40 + (index % perRow) * pitchX,
                 y: 200 + Math.floor(index / perRow) * (size.heightCm + 75),
               };
-            })();
+            })());
 
     const base: EditorObject = {
       key: localKey("obj"),
@@ -314,8 +385,96 @@ export function RoomEditor({ room }: { room: RoomView }) {
     };
 
     commit({ ...layout, objects: [...layout.objects, withSeats(base, count)] });
-    setSelectedKey(base.key);
   }
+
+  /**
+   * Montre un onglet, et DÉSÉLECTIONNE le meuble en cours.
+   *
+   * Sans cela, cliquer « Ajouter » ne ferait rien de visible : la fiche du
+   * meuble sélectionné passe avant l'onglet, et l'onglet resterait caché
+   * derrière elle.
+   */
+  function showTab(tab: PanelTab) {
+    setPanelTab(tab);
+    setSelectedKey(null);
+  }
+
+  // ------------------------------------------------- glisser depuis le bac
+
+  function handleAddPointerDown(event: ReactPointerEvent<HTMLButtonElement>, item: PaletteItem) {
+    // Un geste qui commence repart d'une ardoise propre. Sans cette remise à
+    // zéro, un glisser relâché HORS de la carte laisserait le drapeau levé —
+    // aucun `click` ne vient alors le rabaisser, puisqu'il se poserait sur
+    // l'ancêtre commun du `pointerdown` et du `pointerup`, pas sur la carte —
+    // et c'est le clic suivant, parfaitement légitime, qui serait avalé.
+    suppressClickRef.current = false;
+
+    // Bouton principal seulement : un clic droit ouvre le menu contextuel et ne
+    // doit rien armer.
+    if (event.button !== 0) return;
+    addStartRef.current = { x: event.clientX, y: event.clientY, moved: false };
+    setAdding(item);
+  }
+
+  function handleAddClick(item: PaletteItem) {
+    // Le `click` qui suit un glisser abouti ne doit rien poser de plus.
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    addObject(item.kind, item.seatCount);
+  }
+
+  /**
+   * Le glisser se suit sur la FENÊTRE, pas sur la carte.
+   *
+   * L'abonnement est refait à chaque rendu utile — c'est ce que donne un effet
+   * dépendant de `layout` — si bien que `dropPositionAt` et `addObject` voient
+   * toujours la salle à jour. Des écouteurs posés une fois pour toutes au
+   * `pointerdown` garderaient, eux, les dimensions qu'avait la salle au début
+   * du geste.
+   */
+  useEffect(() => {
+    if (!adding) return;
+
+    function move(event: PointerEvent) {
+      const start = addStartRef.current;
+      if (!start || !adding) return;
+
+      if (!start.moved) {
+        const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+        if (distance < DRAG_THRESHOLD_PX) return;
+        start.moved = true;
+      }
+
+      setDropGhost(dropPositionAt(event.clientX, event.clientY, adding));
+    }
+
+    function up(event: PointerEvent) {
+      const start = addStartRef.current;
+      addStartRef.current = null;
+      setAdding(null);
+      setDropGhost(null);
+
+      if (!start?.moved || !adding) return;
+
+      // Un vrai glisser : le `click` qui suit doit être ignoré, qu'on ait posé
+      // le meuble ou relâché hors de la salle.
+      suppressClickRef.current = true;
+
+      const position = dropPositionAt(event.clientX, event.clientY, adding);
+      if (position) addObject(adding.kind, adding.seatCount, position);
+    }
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+  });
 
   /**
    * Applique une disposition type.
@@ -513,9 +672,8 @@ export function RoomEditor({ room }: { room: RoomView }) {
               return null;
             }}
           />
-          <p className="eyebrow mt-1.5">
-            {seatCount} place{seatCount > 1 ? "s" : ""} · {layout.widthCm} × {layout.heightCm}
-          </p>
+          {/* L'effectif et les cotes ne sont plus ici : ils vivent dans la zone
+              de la colonne de droite, à côté des champs qui les produisent. */}
         </div>
 
         <div className="flex items-center gap-2">
@@ -538,90 +696,13 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
       <FieldError message={error} />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <Label htmlFor="room-w">Largeur</Label>
-            <Input
-              id="room-w"
-              type="number"
-              step={GRID_CM}
-              min={ROOM_MIN_CM}
-              max={ROOM_MAX_CM}
-              value={layout.widthCm}
-              onChange={(event) =>
-                updateRoom({ widthCm: clamp(Number(event.target.value), ROOM_MIN_CM, ROOM_MAX_CM) })
-              }
-              className="w-28"
-            />
-          </div>
-          <div>
-            <Label htmlFor="room-h">Profondeur</Label>
-            <Input
-              id="room-h"
-              type="number"
-              step={GRID_CM}
-              min={ROOM_MIN_CM}
-              max={ROOM_MAX_CM}
-              value={layout.heightCm}
-              onChange={(event) =>
-                updateRoom({ heightCm: clamp(Number(event.target.value), ROOM_MIN_CM, ROOM_MAX_CM) })
-              }
-              className="w-28"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Les deux commandes qui MODIFIENT l'agencement vivent dans la colonne
-          du canevas, alignées sur le bord gauche du cadre, et le panneau des
-          dispositions types s'ouvre juste dessous. Elles étaient renvoyées à
-          l'autre bout de la rangée des dimensions par un `justify-between`,
-          donc au bord opposé d'une page large — à 100 rem, un bouton posé
-          au-dessus du panneau latéral n'a plus l'air de commander le plan. */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {/* Dessiner une salle table par table est le geste le plus long de
-                l'application : la disposition type vient donc AVANT la palette,
-                et reste un bouton à part — ce n'est pas un ajout d'élément. */}
-            <Button
-              variant={presetsOpen ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => setPresetsOpen((open) => !open)}
-              aria-expanded={presetsOpen}
-            >
-              <LayoutIcon />
-              Dispositions types
-            </Button>
-
-            {/* La palette était une rangée de huit boutons, sur deux lignes dans
-                une fenêtre étroite, pour des gestes qu'on ne fait qu'une fois par
-                salle. Repliée dans un menu, elle rend cette place au plan. */}
-            <Menu label="Ajouter" icon={<PlusIcon />} variant="primary">
-              {PALETTE.map((item, index) => (
-                <Fragment key={item.label}>
-                  {/* Les trois tables d'abord, le reste du mobilier ensuite :
-                      c'est la seule frontière que la liste ait vraiment. */}
-                  {index === TABLE_PALETTE_COUNT && <MenuSeparator />}
-                  <MenuItem onClick={() => addObject(item.kind, item.seatCount)}>
-                    {item.label}
-                  </MenuItem>
-                </Fragment>
-              ))}
-            </Menu>
-          </div>
-
-          {presetsOpen && (
-            <LayoutPresetsPanel
-              roomWidthCm={layout.widthCm}
-              roomHeightCm={layout.heightCm}
-              tableCount={layout.objects.filter((object) => object.kind === "TABLE").length}
-              onApply={applyPreset}
-              onClose={() => setPresetsOpen(false)}
-            />
-          )}
-
+      {/* TOUTES les commandes tiennent dans la colonne de droite : deux onglets
+          en tête, la fiche du meuble qui les remplace quand on en clique un, et
+          en bas les cotes de la salle. Elles étaient réparties sur quatre
+          étages — bandeau de titre, rangée de dimensions, barre au-dessus du
+          canevas, colonne — dont deux ne servaient qu'à quelques champs. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <div>
           {/* Le cadre est le plan de travail : surface du thème et trame de
               points. La salle, elle, est BLANCHE (`--room-floor`, posé par
               `RoomGrid`), ce qui la détache du cadre même quand elle ne le
@@ -664,37 +745,132 @@ export function RoomEditor({ room }: { room: RoomView }) {
                   />
                 )),
               )}
+
+              {/* Le meuble tiré depuis le bac, à l'endroit où il tomberait. On
+                  le dessine POUR DE VRAI plutôt qu'en carte flottante : c'est
+                  le seul moyen de juger de sa taille par rapport aux tables
+                  déjà posées. `Furniture` est ici dans le même `<svg>` que
+                  `RoomGrid`, donc les hachures du tableau tiennent. */}
+              {adding && dropGhost && (
+                <g opacity={0.5} style={{ pointerEvents: "none" }}>
+                  <Furniture
+                    object={{
+                      id: "ghost",
+                      kind: adding.kind,
+                      ...dropGhost,
+                      ...itemSizeCm(adding),
+                      rotation: 0,
+                      label: null,
+                    }}
+                  />
+                </g>
+              )}
             </svg>
           </div>
         </div>
 
-        <aside className={`${CARD} p-4`}>
-          {selected ? (
-            <SelectedPanel
-              object={selected}
-              onChange={updateSelected}
-              onDelete={deleteSelected}
-              roomWidthCm={layout.widthCm}
-            />
-          ) : (
-            <div className="text-sm text-muted">
-              <p className="font-bold">Aucun meuble sélectionné</p>
-              <ul className="mt-3 space-y-1.5">
-                <li>Cliquez un meuble pour le modifier.</li>
-                <li>Faites-le glisser pour le déplacer.</li>
-                <li>
-                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Suppr</kbd> l&apos;efface.
-                </li>
-                <li>
-                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Ctrl</kbd>+
-                  <kbd className="rounded-control border border-border bg-surface-muted px-1">Z</kbd> annule.
-                </li>
-              </ul>
-              <p className="mt-4 border-t border-border pt-3">
-                Le tableau se place en haut : c&apos;est le repère qui définit le « premier rang ».
-              </p>
+        <aside className={`${CARD} flex flex-col p-4`}>
+          {/* Deux onglets, et une seule règle : un meuble SÉLECTIONNÉ l'emporte
+              sur l'onglet actif. Cliquer un onglet désélectionne donc, et
+              cliquer le fond du canevas rend l'onglet qu'on avait laissé —
+              `panelTab` n'ayant pas bougé entre-temps. */}
+          <Track className="w-full">
+            <Segment
+              active={panelTab === "add"}
+              onClick={() => showTab("add")}
+              className="flex-1 justify-center"
+            >
+              <PlusIcon />
+              Ajouter
+            </Segment>
+            <Segment
+              active={panelTab === "presets"}
+              onClick={() => showTab("presets")}
+              className="flex-1 justify-center"
+            >
+              <LayoutIcon />
+              Dispositions
+            </Segment>
+          </Track>
+
+          <div className="mt-4">
+            {selected ? (
+              <SelectedPanel
+                object={selected}
+                onChange={updateSelected}
+                onDelete={deleteSelected}
+                roomWidthCm={layout.widthCm}
+              />
+            ) : panelTab === "add" ? (
+              <AddPanel
+                tables={TABLE_ITEMS}
+                furniture={FURNITURE_ITEMS}
+                onPointerDown={handleAddPointerDown}
+                onClick={handleAddClick}
+              />
+            ) : (
+              <LayoutPresetsPanel
+                roomWidthCm={layout.widthCm}
+                roomHeightCm={layout.heightCm}
+                tableCount={tableCount}
+                onApply={applyPreset}
+              />
+            )}
+          </div>
+
+          {/* La salle elle-même, en bas : ses deux cotes et ce qu'elles
+              produisent. Un simple regroupement — filet et fond à peine
+              teinté —, pas une carte : une carte dans une carte doublerait
+              bordure et ombre. */}
+          <div className="mt-auto rounded-card border border-border bg-surface-muted/40 p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="room-w">Largeur</Label>
+                <Input
+                  id="room-w"
+                  type="number"
+                  step={GRID_CM}
+                  min={ROOM_MIN_CM}
+                  max={ROOM_MAX_CM}
+                  value={layout.widthCm}
+                  onChange={(event) =>
+                    updateRoom({
+                      widthCm: clamp(Number(event.target.value), ROOM_MIN_CM, ROOM_MAX_CM),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="room-h">Profondeur</Label>
+                <Input
+                  id="room-h"
+                  type="number"
+                  step={GRID_CM}
+                  min={ROOM_MIN_CM}
+                  max={ROOM_MAX_CM}
+                  value={layout.heightCm}
+                  onChange={(event) =>
+                    updateRoom({
+                      heightCm: clamp(Number(event.target.value), ROOM_MIN_CM, ROOM_MAX_CM),
+                    })
+                  }
+                />
+              </div>
             </div>
-          )}
+
+            <p className="eyebrow mt-3">
+              {tableCount} table{tableCount > 1 ? "s" : ""} · {seatCount} place
+              {seatCount > 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <Hint>
+            <kbd className="rounded-control border border-border bg-surface-muted px-1">Suppr</kbd>{" "}
+            efface le meuble sélectionné,{" "}
+            <kbd className="rounded-control border border-border bg-surface-muted px-1">Ctrl</kbd>+
+            <kbd className="rounded-control border border-border bg-surface-muted px-1">Z</kbd>{" "}
+            annule.
+          </Hint>
         </aside>
       </div>
     </div>

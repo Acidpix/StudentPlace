@@ -8,10 +8,14 @@ import { cn } from "@/lib/cn";
 /**
  * Menu déroulant.
  *
- * Né du besoin de replier la palette de l'éditeur de salle : neuf boutons
- * « + Table 1 place », « + Tableau », « + Porte »… occupaient deux lignes
- * entières au-dessus du plan, pour des gestes qu'on ne fait qu'une fois par
- * salle.
+ * **SANS APPELANT, ET GARDÉ EXPRÈS.** Il est né pour replier la palette de
+ * l'éditeur de salle — huit boutons « + Table 1 place », « + Tableau »,
+ * « + Porte »… sur deux lignes au-dessus du plan — mais cette palette est
+ * depuis devenue un onglet à CARTES dans la colonne de droite
+ * (`room/add-panel.tsx`), et plus rien n'appelle ce composant. Il reste
+ * disponible, sur décision explicite, pour le prochain menu du site. Même
+ * statut que les jetons `--*-glow` de `globals.css` : défini, correct,
+ * volontairement inemployé — et donc jamais testé au navigateur.
  *
  * PAS de `<dialog>` ici, contrairement au popup de fiche élève (`ui/modal.tsx`).
  * Le natif y avait été choisi pour le piège à focus, l'inertie de la page et la

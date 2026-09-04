@@ -49,6 +49,7 @@ export function Segment({
   active,
   disabled = false,
   title,
+  className,
   onClick,
   children,
 }: {
@@ -61,6 +62,14 @@ export function Segment({
   active?: boolean;
   disabled?: boolean;
   title?: string;
+  /**
+   * Ajouts de mise en page seulement — `flex-1`, `justify-center` pour une
+   * piste d'ONGLETS qui occupe toute la largeur de sa colonne. Ni l'un ni
+   * l'autre n'entre en conflit avec les classes de base : `cn()` étant une
+   * simple concaténation sans `tailwind-merge`, une classe qui en doublerait
+   * une d'ici serait départagée par l'ordre de la feuille générée.
+   */
+  className?: string;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -80,6 +89,7 @@ export function Segment({
         active
           ? "border border-border bg-surface text-foreground"
           : "border border-transparent text-muted hover:bg-surface/70 hover:text-foreground",
+        className,
       )}
     >
       {children}
