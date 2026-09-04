@@ -13,6 +13,7 @@ import {
   UsersIcon,
   WarningIcon,
 } from "@/components/ui/icons";
+import { Logo } from "@/components/ui/logo";
 
 export const metadata: Metadata = {
   title: "Sisit — le plan de classe qui se fait tout seul",
@@ -79,51 +80,60 @@ export default function LandingPage() {
   return (
     <>
       {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <section className="seyes border-b border-border">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
-          <div>
-            <span className="inline-block rounded-control bg-highlight-soft px-3 py-1.5 text-sm font-semibold text-highlight-ink">
-              Prêt avant la sonnerie
-            </span>
-
-            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-              Un plan de classe juste, en trois clics.
-            </h1>
-
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-              Importez la liste, cochez vos contraintes, imprimez. Sisit gère le comportement,
-              les affinités et les îlots à votre place — et vous gardez la main sur chaque
-              place.
-            </p>
-
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link href="/inscription" className={buttonClasses("primary", "lg")}>
-                Créer mon plan
-              </Link>
-              {/* Le second appel à l'action est le JAUNE de la maquette. C'est
-                  une VARIANTE de `Button` et non un `bg-highlight` passé en
-                  `className` : `cn()` concatène sans `tailwind-merge`, et le
-                  `bg-*` de la variante de base cohabiterait avec le mien à
-                  spécificité égale. Même raison que la variante `ink`. */}
-              <a href="#apercu" className={buttonClasses("highlight", "lg")}>
-                Voir un exemple
-              </a>
-            </div>
-
-            <ul className="mt-7 flex flex-wrap gap-2">
-              {CONSTRAINTS.map((constraint) => (
-                <li
-                  key={constraint}
-                  className="rounded-control border border-border bg-surface px-3 py-1.5 text-sm font-medium"
-                >
-                  {constraint}
-                </li>
-              ))}
-            </ul>
+      <section className="border-b border-border">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 lg:py-20">
+          {/* Le mot-symbole en grand, seul et centré, au-dessus du texte ET de
+              l'exemple : la première chose que voit un visiteur avant même le
+              titre. `size="xl"` n'existe que pour cet emploi. */}
+          <div className="flex justify-center">
+            <Logo size="xl" />
           </div>
 
-          <div id="apercu" className="scroll-mt-24">
-            <PlanShowcase />
+          <div className="mt-10 grid items-center gap-10 lg:mt-14 lg:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <span className="inline-block rounded-control bg-highlight-soft px-3 py-1.5 text-sm font-semibold text-highlight-ink">
+                Prêt avant la sonnerie
+              </span>
+
+              <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+                Un plan de classe juste, en trois clics.
+              </h1>
+
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+                Importez la liste, cochez vos contraintes, imprimez. Sisit gère le comportement,
+                les affinités et les îlots à votre place — et vous gardez la main sur chaque
+                place.
+              </p>
+
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Link href="/inscription" className={buttonClasses("primary", "lg")}>
+                  Créer mon plan
+                </Link>
+                {/* Le second appel à l'action est le JAUNE de la maquette. C'est
+                    une VARIANTE de `Button` et non un `bg-highlight` passé en
+                    `className` : `cn()` concatène sans `tailwind-merge`, et le
+                    `bg-*` de la variante de base cohabiterait avec le mien à
+                    spécificité égale. Même raison que la variante `ink`. */}
+                <a href="#apercu" className={buttonClasses("highlight", "lg")}>
+                  Voir un exemple
+                </a>
+              </div>
+
+              <ul className="mt-7 flex flex-wrap gap-2">
+                {CONSTRAINTS.map((constraint) => (
+                  <li
+                    key={constraint}
+                    className="rounded-control border border-border bg-surface px-3 py-1.5 text-sm font-medium"
+                  >
+                    {constraint}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div id="apercu" className="scroll-mt-24">
+              <PlanShowcase />
+            </div>
           </div>
         </div>
       </section>

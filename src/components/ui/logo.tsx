@@ -39,6 +39,7 @@ const SIZES = {
   sm: "h-6",
   md: "h-7",
   lg: "h-10",
+  xl: "h-16 sm:h-20",
 } as const;
 
 export interface LogoProps {

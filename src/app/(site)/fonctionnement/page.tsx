@@ -46,7 +46,7 @@ const STEPS: FeatureStep[] = [
 export default function HowItWorksPage() {
   return (
     <>
-      <section className="seyes border-b border-border">
+      <section className="border-b border-border">
         <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
           <p className="eyebrow">Fonctionnement</p>
           <h1 className="mx-auto mt-3 max-w-3xl font-display text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
@@ -162,6 +162,23 @@ export default function HowItWorksPage() {
  * `data-feature-section` est le repère que `FeatureScroll` observe ; l'`id`
  * sert à la fois d'ancre pour le rail et de valeur remontée à l'étape active.
  * Les deux doivent rester sur le MÊME élément.
+ *
+ * **Fond alterné et découpe oblique** (6 septembre 2026), en remplacement du
+ * simple filet (`border-b`) et du `lg:min-h-[80vh]` qui forçait chaque écran à
+ * occuper au moins quatre cinquièmes de la fenêtre quel que soit son contenu —
+ * c'était là l'essentiel du « trop de blanc » entre les sections. Chaque écran
+ * est désormais juste assez grand pour son contenu (`py-14 lg:py-20`), et la
+ * limite avec le suivant se lit à un changement de teinte (`bg-background` /
+ * `bg-surface`, alterné par la parité de `index`) plutôt qu'à un vide.
+ *
+ * La découpe (`.diagonal-top`) n'est posée qu'à PARTIR du second écran : le
+ * premier n'a rien au-dessus à trancher, sa limite est le `border-b` du hero.
+ * `-mt-8`/`pt-[…]` (`lg:-mt-10`/`lg:pt-[…]`) doivent rester en phase avec les
+ * hauteurs de `clip-path` de `.diagonal-top` dans `globals.css` — les trois
+ * valeurs forment un seul réglage. Le remplissage se fait en `pt-[…]` et non
+ * en `py-*` À CÔTÉ d'un `pt-*` : `cn()` concatène sans `tailwind-merge`, deux
+ * classes qui posent toutes deux `padding-top` cohabiteraient à spécificité
+ * égale et l'ordre de la feuille générée déciderait laquelle gagne.
  */
 function Feature({
   id,
@@ -180,11 +197,20 @@ function Feature({
   illustration: React.ReactNode;
   reversed?: boolean;
 }) {
+  const tone = index % 2 === 1 ? "bg-background" : "bg-surface";
+  const diagonal = index > 1;
+
   return (
     <section
       id={id}
       data-feature-section
-      className="scroll-mt-24 border-b border-border py-16 last:border-0 lg:min-h-[80vh] lg:py-24"
+      className={cn(
+        "scroll-mt-24 pb-14 lg:pb-20",
+        tone,
+        diagonal
+          ? "diagonal-top -mt-8 pt-[5.5rem] lg:-mt-10 lg:pt-[7.5rem]"
+          : "pt-14 lg:pt-20",
+      )}
     >
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div className={cn(reversed && "lg:order-2")}>

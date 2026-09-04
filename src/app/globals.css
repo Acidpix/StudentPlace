@@ -1095,9 +1095,14 @@ body::after {
 }
 
 /* Quadrillage Seyès — la signature de la maquette 1c, et la raison du nom de la
-   palette « Cahier ». Réservé aux PAGES PUBLIQUES, où il tient le rôle que
-   `.halftone` tient dans les éditeurs : donner une matière au fond sans y
-   poser d'information.
+   palette « Cahier ». Posé sur le conteneur racine de CHAQUE groupe de pages
+   (`(site)`, `(app)`, `(auth)`) : le motif d'un cahier d'écolier, présent
+   partout et pas seulement sur les pages publiques (6 septembre 2026). Il
+   tient, sur le fond de page, le rôle que `.halftone` tient localement dans
+   les éditeurs : donner une matière sans y poser d'information. Les cartes et
+   autres surfaces opaques (`bg-surface`, `bg-background`) le recouvrent
+   normalement ; il ne reste visible que dans les marges et les espacements —
+   c'est voulu, une salle de classe entière quadrillée serait illisible.
 
    NE PAS le mettre sous un plan de salle : le sol de la salle a déjà sa propre
    trame en centimètres (`RoomGrid`), et deux quadrillages superposés à des pas
@@ -1111,6 +1116,28 @@ body::after {
     linear-gradient(var(--seyes-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--seyes-line) 1px, transparent 1px);
   background-size: 26px 26px;
+}
+
+/* Séparateur diagonal entre les écrans de la page « Fonctionnement »
+   (6 septembre 2026). Le changement de fond COLORÉ (`bg-background` /
+   `bg-surface`, alterné section par section dans `Feature`) fait la limite ;
+   cette découpe ne fait que l'incliner plutôt que la laisser horizontale.
+
+   La marge négative qui accompagne toujours cette classe (`-mt-8 lg:-mt-10`,
+   posée à l'appel) referme l'espace que la découpe retire à la mise en page
+   normale — sans elle, le fond de la section précédente transparaîtrait dans
+   le triangle laissé vide en haut à gauche. Le remplissage `pt-[…]` qui
+   l'accompagne restitue ensuite cet espace au CONTENU, pour qu'aucun titre ne
+   se retrouve sous la pente. Les trois valeurs (marge, remplissage, hauteur du
+   `polygon`) doivent rester égales. */
+.diagonal-top {
+  clip-path: polygon(0 2rem, 100% 0, 100% 100%, 0 100%);
+}
+
+@media (min-width: 1024px) {
+  .diagonal-top {
+    clip-path: polygon(0 2.5rem, 100% 0, 100% 100%, 0 100%);
+  }
 }
 
 /* Libellé de section : petites capitales de la police du site.
@@ -1285,6 +1312,14 @@ body::after {
   .halftone,
   .seyes {
     background-image: none;
+  }
+
+  /* La découpe oblique n'a de sens qu'à l'écran, entre deux fonds de couleur ;
+     sur une page blanche imprimée elle ne ferait que trancher le texte. */
+  .diagonal-top {
+    clip-path: none;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   /* Une section jamais atteinte par l'observateur sortirait blanche : à

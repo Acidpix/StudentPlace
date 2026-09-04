@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SiteFooter } from "@/components/site/site-footer";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -36,6 +37,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
