@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { buttonClasses } from "@/components/ui/button";
+import { buttonClasses, type ButtonVariant } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 /**
@@ -22,13 +22,26 @@ import { cn } from "@/lib/cn";
 export function Menu({
   label,
   icon,
-  align = "right",
+  align = "left",
+  variant,
   children,
 }: {
   label: string;
   icon?: React.ReactNode;
-  /** Bord du déclencheur sur lequel le panneau s'aligne. */
+  /**
+   * Bord du déclencheur sur lequel le panneau s'aligne. À gauche par défaut :
+   * le panneau est plus large que son bouton — « Bureau du professeur » n'a
+   * rien de court —, et aligné à droite il déborderait vers la gauche, hors de
+   * la colonne quand le déclencheur en occupe le bord.
+   */
   align?: "left" | "right";
+  /**
+   * Variante du déclencheur. Non renseignée, il se contente d'être discret et
+   * ne s'allume qu'à l'ouverture ; renseignée, elle vaut dans les DEUX états —
+   * un menu ouvert se signale déjà par son panneau, changer aussi la couleur du
+   * bouton ferait sauter la barre d'outils à chaque clic.
+   */
+  variant?: ButtonVariant;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -66,7 +79,7 @@ export function Menu({
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={buttonClasses(open ? "primary" : "secondary", "sm")}
+        className={buttonClasses(variant ?? (open ? "primary" : "secondary"), "sm")}
       >
         {icon}
         {label}

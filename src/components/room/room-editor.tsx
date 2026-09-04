@@ -13,6 +13,7 @@ import { FieldError, Input, Label, Select } from "@/components/ui/field";
 import {
   ArrowLeftIcon,
   LayoutIcon,
+  PlusIcon,
   RedoIcon,
   RotateIcon,
   TrashIcon,
@@ -537,7 +538,7 @@ export function RoomEditor({ room }: { room: RoomView }) {
 
       <FieldError message={error} />
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <Label htmlFor="room-w">Largeur</Label>
@@ -570,93 +571,101 @@ export function RoomEditor({ room }: { room: RoomView }) {
             />
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          {/* Dessiner une salle table par table est le geste le plus long de
-              l'application : la disposition type vient donc AVANT la palette,
-              et reste un bouton à part — ce n'est pas un ajout d'élément. */}
-          <Button
-            variant={presetsOpen ? "primary" : "secondary"}
-            size="sm"
-            onClick={() => setPresetsOpen((open) => !open)}
-            aria-expanded={presetsOpen}
-          >
-            <LayoutIcon />
-            Dispositions types
-          </Button>
-
-          {/* La palette était une rangée de huit boutons, sur deux lignes dans
-              une fenêtre étroite, pour des gestes qu'on ne fait qu'une fois par
-              salle. Repliée dans un menu, elle rend cette place au plan. */}
-          <Menu label="Ajouter">
-            {PALETTE.map((item, index) => (
-              <Fragment key={item.label}>
-                {/* Les trois tables d'abord, le reste du mobilier ensuite :
-                    c'est la seule frontière que la liste ait vraiment. */}
-                {index === TABLE_PALETTE_COUNT && <MenuSeparator />}
-                <MenuItem onClick={() => addObject(item.kind, item.seatCount)}>
-                  {item.label}
-                </MenuItem>
-              </Fragment>
-            ))}
-          </Menu>
-        </div>
       </div>
 
-      {presetsOpen && (
-        <LayoutPresetsPanel
-          roomWidthCm={layout.widthCm}
-          roomHeightCm={layout.heightCm}
-          tableCount={layout.objects.filter((object) => object.kind === "TABLE").length}
-          onApply={applyPreset}
-          onClose={() => setPresetsOpen(false)}
-        />
-      )}
-
+      {/* Les deux commandes qui MODIFIENT l'agencement vivent dans la colonne
+          du canevas, alignées sur le bord gauche du cadre, et le panneau des
+          dispositions types s'ouvre juste dessous. Elles étaient renvoyées à
+          l'autre bout de la rangée des dimensions par un `justify-between`,
+          donc au bord opposé d'une page large — à 100 rem, un bouton posé
+          au-dessus du panneau latéral n'a plus l'air de commander le plan. */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        {/* Le cadre est le plan de travail : surface du thème et trame de
-            points. La salle, elle, est BLANCHE (`--room-floor`, posé par
-            `RoomGrid`), ce qui la détache du cadre même quand elle ne le
-            remplit pas entièrement. */}
-        <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}
-            preserveAspectRatio="xMidYMid meet"
-            className="no-select h-auto max-h-[70vh] w-full touch-none"
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onPointerDown={() => setSelectedKey(null)}
-            role="application"
-            aria-label="Plan de la salle. Faites glisser les meubles pour les déplacer."
-          >
-            <RoomGrid widthCm={layout.widthCm} heightCm={layout.heightCm} />
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {/* Dessiner une salle table par table est le geste le plus long de
+                l'application : la disposition type vient donc AVANT la palette,
+                et reste un bouton à part — ce n'est pas un ajout d'élément. */}
+            <Button
+              variant={presetsOpen ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => setPresetsOpen((open) => !open)}
+              aria-expanded={presetsOpen}
+            >
+              <LayoutIcon />
+              Dispositions types
+            </Button>
 
-            {layout.objects.map((object) => (
-              <g key={object.key} onPointerDown={(event) => handleObjectPointerDown(event, object)}>
-                <Furniture object={{ ...object, id: object.key }} selected={object.key === selectedKey} interactive />
-              </g>
-            ))}
+            {/* La palette était une rangée de huit boutons, sur deux lignes dans
+                une fenêtre étroite, pour des gestes qu'on ne fait qu'une fois par
+                salle. Repliée dans un menu, elle rend cette place au plan. */}
+            <Menu label="Ajouter" icon={<PlusIcon />} variant="primary">
+              {PALETTE.map((item, index) => (
+                <Fragment key={item.label}>
+                  {/* Les trois tables d'abord, le reste du mobilier ensuite :
+                      c'est la seule frontière que la liste ait vraiment. */}
+                  {index === TABLE_PALETTE_COUNT && <MenuSeparator />}
+                  <MenuItem onClick={() => addObject(item.kind, item.seatCount)}>
+                    {item.label}
+                  </MenuItem>
+                </Fragment>
+              ))}
+            </Menu>
+          </div>
 
-            {/* Les places sont dessinées hors du groupe pivoté : leurs
-                coordonnées tiennent déjà compte de la rotation de la table. */}
-            {layout.objects.flatMap((object) =>
-              object.seats.map((seat) => (
-                <circle
-                  key={seat.key}
-                  cx={seat.x}
-                  cy={seat.y}
-                  r={16}
-                  fill={seat.disabled ? "transparent" : "var(--surface)"}
-                  stroke={seat.disabled ? "var(--muted)" : "var(--primary)"}
-                  strokeWidth={3}
-                  strokeDasharray={seat.disabled ? "6 4" : undefined}
-                  style={{ pointerEvents: "none" }}
-                />
-              )),
-            )}
-          </svg>
+          {presetsOpen && (
+            <LayoutPresetsPanel
+              roomWidthCm={layout.widthCm}
+              roomHeightCm={layout.heightCm}
+              tableCount={layout.objects.filter((object) => object.kind === "TABLE").length}
+              onApply={applyPreset}
+              onClose={() => setPresetsOpen(false)}
+            />
+          )}
+
+          {/* Le cadre est le plan de travail : surface du thème et trame de
+              points. La salle, elle, est BLANCHE (`--room-floor`, posé par
+              `RoomGrid`), ce qui la détache du cadre même quand elle ne le
+              remplit pas entièrement. */}
+          <div className="halftone overflow-hidden rounded-card border border-border bg-surface p-2 shadow-soft">
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${layout.widthCm} ${layout.heightCm}`}
+              preserveAspectRatio="xMidYMid meet"
+              className="no-select h-auto max-h-[70vh] w-full touch-none"
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onPointerDown={() => setSelectedKey(null)}
+              role="application"
+              aria-label="Plan de la salle. Faites glisser les meubles pour les déplacer."
+            >
+              <RoomGrid widthCm={layout.widthCm} heightCm={layout.heightCm} />
+
+              {layout.objects.map((object) => (
+                <g key={object.key} onPointerDown={(event) => handleObjectPointerDown(event, object)}>
+                  <Furniture object={{ ...object, id: object.key }} selected={object.key === selectedKey} interactive />
+                </g>
+              ))}
+
+              {/* Les places sont dessinées hors du groupe pivoté : leurs
+                  coordonnées tiennent déjà compte de la rotation de la table. */}
+              {layout.objects.flatMap((object) =>
+                object.seats.map((seat) => (
+                  <circle
+                    key={seat.key}
+                    cx={seat.x}
+                    cy={seat.y}
+                    r={16}
+                    fill={seat.disabled ? "transparent" : "var(--surface)"}
+                    stroke={seat.disabled ? "var(--muted)" : "var(--primary)"}
+                    strokeWidth={3}
+                    strokeDasharray={seat.disabled ? "6 4" : undefined}
+                    style={{ pointerEvents: "none" }}
+                  />
+                )),
+              )}
+            </svg>
+          </div>
         </div>
 
         <aside className={`${CARD} p-4`}>
