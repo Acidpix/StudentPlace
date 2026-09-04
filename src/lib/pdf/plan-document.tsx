@@ -375,7 +375,7 @@ export function PlanDocument({
     <Document
       title={`${data.className} — ${data.roomName}`}
       author={data.teacherName}
-      creator="StudentPlace"
+      creator="Sisit"
     >
       <Page size="A4" orientation="landscape" style={styles.page}>
         {/* ------------------------------------------- la barre de l'éditeur */}
@@ -598,7 +598,7 @@ export function PlanDocument({
         </View>
 
         <View style={styles.footer} fixed>
-          <Text>StudentPlace — {data.teacherName}</Text>
+          <Text>Sisit — {data.teacherName}</Text>
           <Text>
             {options.includeComments || options.includeBehavior
               ? "Document contenant des données personnelles : diffusion restreinte."

@@ -30,10 +30,14 @@ const FontContext = createContext<FontContextValue>({
  * Pose la police sur `<html>`.
  *
  * La police par défaut RETIRE l'attribut au lieu de l'écrire : `globals.css`
- * lui donne sa valeur dans `--font-body` (`:root`), et un `data-font="system"`
- * explicite n'apporterait rien qu'une redéfinition identique — mais suivre
- * exactement le mécanisme de `applyPalette` évite qu'un des deux se mette à
- * diverger en silence si l'un des deux fichiers est retouché seul.
+ * lui donne sa valeur dans `--font-body` (`:root`), et un `data-font` explicite
+ * n'apporterait rien qu'une redéfinition identique — mais suivre exactement le
+ * mécanisme de `applyPalette` évite qu'un des deux se mette à diverger en
+ * silence si l'un des deux fichiers est retouché seul.
+ *
+ * Comme pour la palette, la comparaison porte sur `DEFAULT_FONT` : c'est ce qui
+ * a permis de faire passer le défaut de « Système » à « Work Sans » en ne
+ * touchant qu'à `fonts.ts` et à la feuille de style.
  */
 function applyFont(font: FontId) {
   const root = document.documentElement;

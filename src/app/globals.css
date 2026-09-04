@@ -112,68 +112,87 @@
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
     U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+
+/* Outfit — POLICE DE TITRAGE, à part des cinq ci-dessus.
+   Elle n'est pas un choix offert dans « Apparence » : c'est `--font-display`,
+   la police de la marque, employée pour les titres et le mot-symbole. Elle ne
+   suit donc ni `data-font`, ni `data-palette`, ni le mode. Variable comme ses
+   voisines, d'où l'axe complet en une seule requête — et jusqu'à 800, la
+   graisse des grands titres de la maquette. */
+@font-face {
+  font-family: "Outfit";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/outfit.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 /* --------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
-   Palette « Atelier » — pop art atténué.
+   Palette « Cahier » — le cahier quadrillé, d'après la maquette Claude Design
+   « Sisit — Pairings », direction 1c.
 
-   Papier chaud et encre brune plutôt que gris bleutés ; le relief se lit à une
-   OMBRE PORTÉE NETTE, décalée et sans flou (`--stamp`), et non plus à un halo
-   diffus. C'est le trait dominant du langage visuel : contours fins, aplats
-   crème, couleur en petites touches.
+   Blanc, bleu Seyès et jaune : les couleurs d'un cahier d'écolier français. Le
+   quadrillage en est la signature — voir l'utilitaire `.seyes` plus bas —, et
+   le relief se lit toujours à l'OMBRE PORTÉE NETTE, décalée et sans flou
+   (`--stamp`), qui reste le trait dominant du langage visuel du projet.
 
-   L'ACTION EST CORAIL, LE SIGNAL RÉSERVÉ EST BRIQUE. C'est le renversement de
-   la règle précédente, qui interdisait toute couleur d'action approchant le
-   rouge et imposait un accent violet. La maquette bâtit son identité sur le
-   corail `oklch(0.72 0.14 25)` ; on le prend.
+   ELLE A REMPLACÉ « ATELIER » COMME PALETTE PAR DÉFAUT (4 septembre 2026).
+   Atelier n'a pas disparu : elle est descendue sous `[data-palette="atelier"]`
+   avec les cinq autres, et reste choisissable dans « Mon compte ». C'est un
+   simple échange de place, mais il touche à la spécificité CSS : lire la note
+   qui précède les palettes alternatives avant d'y toucher.
 
-   Le rouge n'en reste pas moins NON DÉCORATIF : il signale une place
-   verrouillée ou une incompatibilité non respectée, rien d'autre. Ce qui sépare
-   désormais les deux n'est plus la teinte mais la LUMINOSITÉ — le corail est
-   clair et orangé, le brique est sombre et saturé. Toute retouche de l'un des
-   deux doit préserver cet écart : deux rouges de même clarté rendraient un
-   cerclage de verrouillage indiscernable d'un bouton.
+   L'ACTION EST BLEUE, LE SIGNAL RÉSERVÉ RESTE BRIQUE. La règle héritée
+   d'Atelier — « le rouge ne sert qu'au verrouillage et à l'incompatibilité,
+   jamais à décorer » — ne bouge pas. Ce qui change, c'est ce qui SÉPARE les
+   deux : Atelier posait une action corail, donc un rouge clair, et devait
+   compter sur un écart de LUMINOSITÉ pour que `--danger` reste distinct. Ici
+   l'action est un bleu franc : la distinction redevient une affaire de TEINTE,
+   bien plus robuste. Une future retouche de `--primary` doit rester dans les
+   bleus, sous peine de rouvrir ce problème.
 
-   Le vert de confirmation est celui du PDF (`plan-document.tsx`) : l'export
-   était déjà sur une crème chaude, l'écran le rejoint au lieu de le contredire.
+   Le vert d'`--accent` ne suit pas la marque : c'est un SENS — le tableau, une
+   affinité, une classe entièrement placée — et il est le même dans les sept
+   palettes. Voir la règle 3 de la note des palettes alternatives.
 
    Toutes les couleurs passent par des variables : aucun composant ne code une
    teinte en dur, et changer de thème ne touche que ce fichier.
-
-   « Atelier » est la palette PAR DÉFAUT, et à ce titre la seule à ne pas
-   porter d'attribut : elle vit dans `:root` et `.dark` ci-dessous. Les cinq
-   autres sont plus bas, sous `[data-palette]`. Voir la note de spécificité qui
-   les précède avant d'en ajouter une.
 --------------------------------------------------------------------------- */
 
 :root {
   color-scheme: light;
 
-  --background: #efeae0;
-  --surface: #fdfbf7;
-  --surface-muted: #e9e3d6;
-  --border: #ddd3bf;
-  --foreground: #22201f;
-  --muted: #6d675e;
+  --background: #f6f9fe;
+  --surface: #ffffff;
+  --surface-muted: #eef3fb;
+  --border: #dce5f2;
+  --foreground: #10233f;
+  --muted: #3d5477;
 
-  /* Le corail de la maquette, repris tel quel. */
-  --primary: oklch(0.72 0.14 25);
+  /* Le bleu Seyès de la maquette, repris tel quel. */
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
-  --primary-soft: oklch(0.97 0.02 25);
+  --primary-soft: #eaf1fe;
 
   /* Halo coloré posé SOUS le bouton plein. La maquette n'estampe pas ses
      boutons — seules les cartes le sont — et leur donne à la place cette
-     lueur diffuse de leur propre teinte. */
-  --primary-glow: oklch(0.72 0.14 25 / 0.35);
+     lueur diffuse de leur propre teinte. ACTUELLEMENT INEMPLOYÉ : les boutons
+     restent des aplats, voir la note de `@theme inline`. */
+  --primary-glow: rgb(37 99 235 / 0.32);
 
   --accent: #0f6f5c;
   --accent-foreground: #ffffff;
   --accent-soft: #e2f1ec;
 
-  /* Brique profond, et non plus rouge vif : c'est l'écart de LUMINOSITÉ avec le
-     corail de l'action qui porte la distinction. Il reste par ailleurs plus
-     sombre que le niveau 5 de l'échelle de comportement (`#f87171`), donc un
-     verrouillage ne se confond pas non plus avec une pastille d'élève. */
+  /* Brique profond. Avec une action BLEUE, l'écart ne repose plus sur la seule
+     luminosité comme du temps du corail : les deux teintes sont franchement
+     séparées. Il reste par ailleurs plus sombre que le niveau 5 de l'échelle de
+     comportement (`#f87171`), donc un verrouillage ne se confond pas non plus
+     avec une pastille d'élève. */
   --danger: oklch(0.47 0.16 22);
   --danger-glow: oklch(0.47 0.16 22 / 0.3);
   --danger-soft: oklch(0.96 0.02 22);
@@ -182,7 +201,7 @@
 
   /* Encre de l'ombre portée nette. Une seule variable pilote les trois
      niveaux : changer d'intensité ne demande pas de les réécrire. */
-  --stamp: rgb(34 32 31 / 0.13);
+  --stamp: rgb(16 35 63 / 0.12);
 
   /* Ombres étagées. Chacune combine trois choses :
      — le LISERÉ INTÉRIEUR clair sur la tranche haute, qui empêche la carte
@@ -201,19 +220,19 @@
   /* Dégradé vertical des surfaces, ACTUELLEMENT INEMPLOYÉ — `.material` reste
      retirée, l'ombre nette décalée suffit à décoller les cartes du papier. Le
      jeton reste défini pour pouvoir le reprendre sans rouvrir les palettes. */
-  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 32 31 / 0.025));
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(16 35 63 / 0.025));
 
-  /* Taches du dégradé de fond : corail, vert, ocre — les trois teintes de la
+  /* Taches du dégradé de fond : bleu, vert, jaune — les trois teintes de la
      maquette, très diluées. */
-  --mesh-a: oklch(0.72 0.14 25 / 0.08);
-  --mesh-b: rgb(15 111 92 / 0.07);
-  --mesh-c: rgb(190 138 60 / 0.09);
+  --mesh-a: rgb(37 99 235 / 0.08);
+  --mesh-b: rgb(15 111 92 / 0.06);
+  --mesh-c: rgb(255 197 61 / 0.1);
 
   /* Grain de surface : fibre du papier en clair, bruit d'écran en sombre. */
   --grain-opacity: 0.04;
 
   /* Trame de points : le sol de l'atelier, sous le plan de salle. */
-  --halftone: rgb(34 32 31 / 0.11);
+  --halftone: rgb(16 35 63 / 0.09);
 
   /* Hachures du tableau. Claires sur l'aplat vert en thème clair, sombres en
      thème sombre — c'est le contraste avec le fond du meuble qui compte. */
@@ -221,7 +240,7 @@
 
   /* Sol de la salle : BLANC FRANC, comme dans la maquette.
      Il était crème, et le plan de classe entier virait au beige. C'est le plus
-     grand aplat de l'application : la moindre teinte y pèse. Le papier chaud du
+     grand aplat de l'application : la moindre teinte y pèse. Le fond bleuté du
      thème reste tout autour — cadre, colonnes, cartes — et le contraste entre
      les deux fait justement lire la salle comme une feuille posée dessus. */
   --room-floor: #ffffff;
@@ -229,32 +248,82 @@
   /* Voile derrière une modale. Encre diluée plutôt que noir pur : le papier
      doit rester perceptible dessous, c'est ce qui garde la modale « posée sur »
      la page et non « à la place de » la page. */
-  --backdrop: rgb(34 32 31 / 0.45);
+  --backdrop: rgb(16 35 63 / 0.45);
 
   /* Encre des pastilles de comportement : volontairement très sombre, pour
      conserver un contraste suffisant sur les cinq teintes de la palette. */
   --pastille-ink: #1a1207;
 
+  /* ---- JETONS DE MARQUE, HORS PALETTE -------------------------------------
+
+     Le JAUNE de la maquette 1c. Il n'a d'équivalent dans aucun des jetons
+     existants : ce n'est ni l'action (bleue), ni le sens vert d'`--accent`,
+     ni le rouge réservé d'`--danger`. Il ne sert qu'au SECOND appel à l'action
+     et aux badges des pages publiques — jamais dans l'application, où il
+     ajouterait une quatrième couleur porteuse de sens sans en avoir un.
+
+     Il est défini ici et dans `.dark`, mais dans AUCUN bloc `[data-palette]` :
+     c'est une constante de marque, au même titre que `--radius-*` et les
+     fontes, et non une variable de palette. Les pages publiques gardent donc
+     leur jaune quel que soit le thème choisi par le visiteur. */
+  --highlight: #ffc53d;
+  --highlight-soft: #fff3cc;
+  --highlight-ink: #7a5b00;
+
+  /* Trait du quadrillage Seyès (`.seyes`). DÉRIVÉ de `--border` plutôt
+     qu'écrit en dur : il suit ainsi les sept palettes et les deux modes sans
+     qu'aucun de leurs blocs n'ait à le redéfinir. La substitution d'une
+     variable dans une autre est résolue à l'emploi, donc c'est bien le
+     `--border` de la palette courante qui est repris. */
+  --seyes-line: color-mix(in oklab, var(--border) 60%, transparent);
+
   /* Police du corps : réglage INDÉPENDANT du mode et de la palette (aucun bloc
      `.dark` ni `[data-palette]` n'a besoin de le redéfinir). `--font-fallback`
      est la pile système du projet, reprise telle quelle si l'on retombe sur une
      police choisie qui ne couvre pas un caractère (voir `unicode-range`
-     ci-dessus). `--font-body` est ce que `[data-font]` redéfinit plus bas ; par
-     défaut elle VAUT le repli, donc aucune fonte n'est demandée tant que rien
-     n'est choisi dans le panneau « Apparence ». */
+     ci-dessus). `--font-body` est ce que `[data-font]` redéfinit plus bas.
+
+     ELLE NE VAUT PLUS LE REPLI PAR DÉFAUT (4 septembre 2026) : la maquette 1c
+     repose sur Work Sans, qui devient donc la police par défaut du site —
+     `DEFAULT_FONT` de `src/lib/fonts.ts` suit, et `font-provider.tsx` retire
+     l'attribut pour elle comme il le faisait pour « Système ». C'est une
+     entorse assumée à « aucune fonte n'est téléchargée tant que rien n'est
+     choisi » : deux fichiers (Work Sans et Outfit, ~80 ko) partent désormais
+     d'office. Ils restent AUTO-HÉBERGÉS — la raison de ne pas appeler
+     fonts.googleapis.com, elle, n'a pas changé. « Système » reste offert dans
+     « Apparence » pour qui n'en veut aucune. */
   --font-fallback:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", sans-serif;
-  --font-body: var(--font-fallback);
+  --font-body: "Work Sans", var(--font-fallback);
+
+  /* Police de TITRAGE. Comme le jaune ci-dessus : une constante de marque, que
+     ni la palette, ni le mode, ni le sélecteur de police ne redéfinissent. Elle
+     retombe sur `--font-body` — donc sur le choix du professeur, puis sur la
+     pile système — si Outfit ne charge pas.
+
+     Elle s'appelle `--font-title` et non `--font-display` : c'est ce dernier
+     nom qu'emploie la clé de `@theme inline`, et l'y faire pointer vers une
+     variable homonyme serait circulaire. */
+  --font-title: "Outfit", var(--font-body);
 }
 
 /* Polices au choix, posées en `data-font` sur `<html>` par `font-provider.tsx`
    — le même mécanisme que `data-palette`, mais un axe INDÉPENDANT : le mode et
    la palette ne changent rien à la police, donc ce bloc n'a pas besoin d'exister
-   sous `.dark` ni sous `[data-palette]`. Pas d'entrée « système » ici : c'est la
-   valeur par défaut de `--font-body` ci-dessus, et `font-provider.tsx` retire
-   l'attribut plutôt que d'écrire `data-font="system"` — même raison que
-   l'absence d'attribut de la palette « Atelier ». */
+   sous `.dark` ni sous `[data-palette]`.
+
+   « Système » A DÉSORMAIS SON BLOC, et c'est « Work Sans » qui n'en a plus
+   besoin : les deux ont échangé leur place le jour où la maquette 1c est
+   devenue le thème du site. `font-provider.tsx` retire l'attribut pour la
+   police PAR DÉFAUT, quelle qu'elle soit — il compare à `DEFAULT_FONT`, jamais
+   à un littéral —, donc seul `src/lib/fonts.ts` a eu à changer. Le bloc
+   `work-sans` reste écrit quand même : il est redondant avec `:root` mais
+   inoffensif, et il évite qu'un futur changement de défaut laisse le sélecteur
+   sans entrée pour Work Sans. */
+[data-font="system"] {
+  --font-body: var(--font-fallback);
+}
 [data-font="dm-sans"] {
   --font-body: "DM Sans", var(--font-fallback);
 }
@@ -274,29 +343,31 @@
 .dark {
   color-scheme: dark;
 
-  /* Le modèle d'origine n'existe qu'en clair. Le thème sombre en reprend la
-     TEMPÉRATURE — des neutres bruns, pas bleutés — plutôt que ses valeurs. */
-  --background: #12110f;
-  --surface: #1c1a17;
-  --surface-muted: #26231f;
-  --border: #37322b;
-  --foreground: #f3f0e9;
-  --muted: #a1998a;
+  /* La maquette n'existe qu'en clair. Le thème sombre en reprend la
+     TEMPÉRATURE — des neutres franchement bleutés, comme l'encre du cahier —
+     plutôt que ses valeurs. */
+  --background: #0b1220;
+  --surface: #121a2b;
+  --surface-muted: #1b2436;
+  --border: #263349;
+  --foreground: #e8eef9;
+  --muted: #9baec9;
 
-  /* Le corail est éclairci d'un cran pour tenir sur fond sombre. */
-  --primary: oklch(0.78 0.13 25);
-  --primary-foreground: #2a1008;
-  --primary-soft: oklch(0.3 0.05 25);
-  --primary-glow: oklch(0.78 0.13 25 / 0.3);
+  /* Le bleu est éclairci de plusieurs crans pour tenir sur fond sombre : le
+     `#2563eb` du thème clair y serait presque noir. */
+  --primary: #60a5fa;
+  --primary-foreground: #08172e;
+  --primary-soft: #17233a;
+  --primary-glow: rgb(96 165 250 / 0.3);
 
   --accent: #34d399;
   --accent-foreground: #052e21;
   --accent-soft: #102b23;
 
-  /* En thème sombre l'écart ne peut plus se jouer sur la seule luminosité — un
-     brique trop foncé disparaîtrait dans le fond. Le rouge réservé est donc
-     RENDU PLUS SOMBRE ET PLUS SATURÉ que le corail, et déplacé vers une teinte
-     plus froide (18 contre 25) : les deux restent séparables. */
+  /* Le brique du thème clair disparaîtrait dans ce fond : le rouge réservé est
+     donc éclairci et saturé. Il reste séparable du bleu de l'action par la
+     TEINTE, ce qui est bien plus robuste que l'écart de clarté dont Atelier
+     devait se contenter avec son action corail. */
   --danger: oklch(0.63 0.2 18);
   --danger-glow: oklch(0.63 0.2 18 / 0.3);
   --danger-soft: oklch(0.27 0.06 18);
@@ -319,20 +390,27 @@
 
   --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
 
-  --mesh-a: oklch(0.78 0.13 25 / 0.12);
-  --mesh-b: rgb(52 211 153 / 0.08);
-  --mesh-c: rgb(190 138 60 / 0.08);
+  --mesh-a: rgb(96 165 250 / 0.12);
+  --mesh-b: rgb(52 211 153 / 0.07);
+  --mesh-c: rgb(255 197 61 / 0.07);
 
   --grain-opacity: 0.05;
 
   --halftone: rgb(255 255 255 / 0.07);
   --hatch: rgb(0 0 0 / 0.3);
-  --room-floor: #1a1815;
+  --room-floor: #0f1626;
   --backdrop: rgb(0 0 0 / 0.65);
 
   /* Les pastilles gardent des fonds clairs en thème sombre : l'encre reste
      donc sombre, inchangée. */
   --pastille-ink: #1a1207;
+
+  /* Le jaune de marque, assombri d'un cran pour ne pas éblouir sur fond sombre,
+     et son encre inversée. Voir la note du bloc clair : ces trois jetons ne
+     sont redéfinis dans AUCUNE palette, seulement ici. */
+  --highlight: #f2b93a;
+  --highlight-soft: #3a2f10;
+  --highlight-ink: #ffd980;
 }
 
 /* ---------------------------------------------------------------------------
@@ -345,15 +423,18 @@
 
    TROIS RÈGLES À NE PAS DÉFAIRE :
 
-   1. « Atelier » n'a PAS de bloc ici. C'est la palette par défaut, et le
-      fournisseur RETIRE l'attribut plutôt que d'écrire `data-palette="atelier"`.
-      Sans cela, `:root[data-palette="atelier"]` (0,2,0) l'emporterait sur le
+   1. « Cahier » n'a PAS de bloc ici. C'est la palette par défaut, et le
+      fournisseur RETIRE l'attribut plutôt que d'écrire `data-palette="cahier"`.
+      Sans cela, `:root[data-palette="cahier"]` (0,2,0) l'emporterait sur le
       `.dark` de base (0,1,0) et le thème sombre virerait au clair.
+
+      C'était le cas d'« Atelier » jusqu'au 4 septembre 2026 ; les deux ont
+      échangé leur place, et Atelier a donc gagné le bloc complet ci-dessous.
 
    2. La sélection claire porte `:not(.dark)`. Les deux variantes pèsent alors
       le même poids — (0,3,0) — et sont mutuellement exclusives ; toutes deux
       passent devant le `.dark` de base, dont elles reprennent donc TOUTES les
-      variables. Une palette incomplète laisserait fuiter du corail.
+      variables. Une palette incomplète laisserait fuiter du bleu.
 
    3. Ce qui varie d'une palette à l'autre, ce sont les NEUTRES et la couleur
       d'ACTION. `--accent` reste vert partout : ce n'est pas une couleur de
@@ -366,6 +447,99 @@
    ne sont pas redéfinies : elles n'appartiennent pas à la palette. Seul
    `--stamp`, qui est de l'encre, suit les neutres.
 --------------------------------------------------------------------------- */
+
+/* --- Atelier : papier chaud, corail et vert sapin. Le thème qui a précédé
+       « Cahier », et qui fut lui-même la palette par défaut jusqu'au
+       4 septembre 2026 — d'où le commentaire d'histoire en tête de fichier,
+       qui décrit ses intentions d'origine.
+
+       ATTENTION : c'est la seule palette dont l'action approche le rouge. Son
+       couple corail (`--primary`) / brique (`--danger`) ne se distingue que
+       par la LUMINOSITÉ, là où les six autres séparent les deux par la teinte.
+       Toute retouche de l'un des deux, ici et ici seulement, doit préserver
+       cet écart : deux rouges de même clarté rendraient un cerclage de
+       verrouillage indiscernable d'un bouton. --- */
+:root[data-palette="atelier"]:not(.dark) {
+  color-scheme: light;
+
+  --background: #efeae0;
+  --surface: #fdfbf7;
+  --surface-muted: #e9e3d6;
+  --border: #ddd3bf;
+  --foreground: #22201f;
+  --muted: #6d675e;
+
+  --primary: oklch(0.72 0.14 25);
+  --primary-foreground: #ffffff;
+  --primary-soft: oklch(0.97 0.02 25);
+  --primary-glow: oklch(0.72 0.14 25 / 0.35);
+
+  --accent: #0f6f5c;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e2f1ec;
+
+  --danger: oklch(0.47 0.16 22);
+  --danger-glow: oklch(0.47 0.16 22 / 0.3);
+  --danger-soft: oklch(0.96 0.02 22);
+  --danger-border: oklch(0.82 0.08 22);
+  --success: #0f6f5c;
+
+  --stamp: rgb(34 32 31 / 0.13);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.85), rgb(34 32 31 / 0.025));
+
+  --mesh-a: oklch(0.72 0.14 25 / 0.08);
+  --mesh-b: rgb(15 111 92 / 0.07);
+  --mesh-c: rgb(190 138 60 / 0.09);
+  --grain-opacity: 0.04;
+
+  --halftone: rgb(34 32 31 / 0.11);
+  --hatch: rgb(255 255 255 / 0.5);
+  --room-floor: #ffffff;
+  --backdrop: rgb(34 32 31 / 0.45);
+  --pastille-ink: #1a1207;
+}
+
+:root.dark[data-palette="atelier"] {
+  color-scheme: dark;
+
+  --background: #12110f;
+  --surface: #1c1a17;
+  --surface-muted: #26231f;
+  --border: #37322b;
+  --foreground: #f3f0e9;
+  --muted: #a1998a;
+
+  --primary: oklch(0.78 0.13 25);
+  --primary-foreground: #2a1008;
+  --primary-soft: oklch(0.3 0.05 25);
+  --primary-glow: oklch(0.78 0.13 25 / 0.3);
+
+  --accent: #34d399;
+  --accent-foreground: #052e21;
+  --accent-soft: #102b23;
+
+  /* En sombre, le brique est rendu plus clair et déplacé vers une teinte plus
+     froide (18 contre 25) pour rester séparable du corail. */
+  --danger: oklch(0.63 0.2 18);
+  --danger-glow: oklch(0.63 0.2 18 / 0.3);
+  --danger-soft: oklch(0.27 0.06 18);
+  --danger-border: oklch(0.42 0.11 18);
+  --success: #34d399;
+
+  --stamp: rgb(0 0 0 / 0.55);
+  --surface-grad: linear-gradient(180deg, rgb(255 255 255 / 0.035), rgb(0 0 0 / 0.12));
+
+  --mesh-a: oklch(0.78 0.13 25 / 0.12);
+  --mesh-b: rgb(52 211 153 / 0.08);
+  --mesh-c: rgb(190 138 60 / 0.08);
+  --grain-opacity: 0.05;
+
+  --halftone: rgb(255 255 255 / 0.07);
+  --hatch: rgb(0 0 0 / 0.3);
+  --room-floor: #1a1815;
+  --backdrop: rgb(0 0 0 / 0.65);
+  --pastille-ink: #1a1207;
+}
 
 /* --- Studio : gris bleutés, violet. Le thème qui a précédé « Atelier ». --- */
 :root[data-palette="studio"]:not(.dark) {
@@ -799,6 +973,15 @@
   --color-danger-border: var(--danger-border);
   --color-success: var(--success);
 
+  /* Le jaune de marque : `bg-highlight`, `bg-highlight-soft`,
+     `text-highlight-ink`. Réservé aux PAGES PUBLIQUES — second appel à
+     l'action et badges. Dans l'application, il ajouterait une quatrième
+     couleur porteuse de sens à côté du bleu, du vert et du rouge, alors qu'il
+     n'en porte aucun. */
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-highlight-ink: var(--highlight-ink);
+
   /* Rayons resserrés d'un cran : le modèle dessine des cartes à 14 px et des
      contrôles à 9-10 px. */
   --radius-card: 0.875rem;
@@ -824,6 +1007,18 @@
      `--color-primary` pointe vers `--primary`. Tailwind génère `font-sans` à
      partir de ce jeton. */
   --font-sans: var(--font-body);
+
+  /* Police de TITRAGE (`font-display`), pointeur vers `--font-display`. Elle
+     ne varie PAS avec le choix du visiteur : c'est la police de la marque, au
+     même titre que le jaune ci-dessus. Employée sur les grands titres des
+     pages publiques et sur le mot-symbole (`ui/logo.tsx`).
+
+     La variable source s'appelle `--font-title` et NON `--font-display` : dans
+     `@theme inline`, la clé de ce jeton EST `--font-display` (c'est ce qui
+     engendre l'utilitaire du même nom), et pointer vers une variable
+     homonyme serait circulaire. `--font-sans` → `--font-body` suit d'ailleurs
+     la même précaution. */
+  --font-display: var(--font-title);
 
   /* La CHASSE FIXE ne sert plus qu'aux données brutes — la zone de collage de
      l'import d'élèves, où l'alignement des colonnes se voit. Les libellés de
@@ -897,6 +1092,25 @@ body::after {
 .halftone {
   background-image: radial-gradient(var(--halftone) 1.1px, transparent 1.2px);
   background-size: 11px 11px;
+}
+
+/* Quadrillage Seyès — la signature de la maquette 1c, et la raison du nom de la
+   palette « Cahier ». Réservé aux PAGES PUBLIQUES, où il tient le rôle que
+   `.halftone` tient dans les éditeurs : donner une matière au fond sans y
+   poser d'information.
+
+   NE PAS le mettre sous un plan de salle : le sol de la salle a déjà sa propre
+   trame en centimètres (`RoomGrid`), et deux quadrillages superposés à des pas
+   différents produisent un moiré. Le pas est ici en PIXELS, donc constant —
+   c'est du papier, pas de la salle.
+
+   Sa couleur est `--seyes-line`, dérivée de `--border` : le quadrillage suit
+   donc les sept palettes et les deux modes sans une ligne de plus. */
+.seyes {
+  background-image:
+    linear-gradient(var(--seyes-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--seyes-line) 1px, transparent 1px);
+  background-size: 26px 26px;
 }
 
 /* Libellé de section : petites capitales de la police du site.
@@ -1018,6 +1232,39 @@ body::after {
   animation: drop-in 320ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
+/* Révélation au défilement des sections de la page « Fonctionnement ».
+
+   LE CONTENU EST VISIBLE PAR DÉFAUT, et c'est le JavaScript qui le masque au
+   montage en posant `data-reveal="armed"` (`site/feature-scroll.tsx`), avant
+   que l'observateur ne le rende en `data-reveal="in"`. C'est l'inverse du
+   réflexe habituel — écrire `opacity: 0` dans la classe de base — et c'est
+   voulu : sans JavaScript, ou si l'observateur échoue, une page entière
+   resterait invisible. Ici elle reste simplement sans animation.
+
+   La préférence « animations réduites » est traitée deux fois : la règle
+   générale plus bas ramène la durée à 0,01 ms, et le bloc de fin désarme en
+   plus l'état masqué — sans quoi la section attendrait l'observateur pour
+   apparaître, ce qui est exactement le mouvement qu'on cherchait à éviter. */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+[data-reveal="armed"] {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+[data-reveal="in"] {
+  animation: reveal-up 620ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
 /* Rendu d'impression : on masque la navigation pour que Ctrl+P donne
    directement le plan de classe, en complément de l'export PDF. */
 @media print {
@@ -1035,8 +1282,17 @@ body::after {
     display: none;
   }
 
-  .halftone {
+  .halftone,
+  .seyes {
     background-image: none;
+  }
+
+  /* Une section jamais atteinte par l'observateur sortirait blanche : à
+     l'impression, tout est révélé d'office. */
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 
   /* L'ombre nette est de l'encre : à l'impression elle doublerait chaque
@@ -1057,5 +1313,14 @@ body::after {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Ramener la durée à zéro ne suffit pas pour la révélation au défilement :
+     l'état masqué tiendrait jusqu'au passage de l'observateur. On le désarme
+     donc franchement — la page est alors entièrement visible d'emblée. */
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }

@@ -8,13 +8,18 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "StudentPlace — Plans de classe",
-    template: "%s · StudentPlace",
+    default: "Sisit — Plans de classe",
+    template: "%s · Sisit",
   },
   description:
     "Composer et imprimer des plans de classe qui tiennent compte du comportement des élèves et de leurs incompatibilités.",
   robots: {
     // Application privée contenant des données d'élèves : jamais indexée.
+    //
+    // C'est le DÉFAUT de tout le site, et le groupe de routes `(site)` — les
+    // seules pages publiques — le relève pour lui seul. Ne pas inverser les
+    // deux : une consigne d'indexation posée ici et retirée page par page
+    // laisserait passer la première page protégée qu'on oublierait.
     index: false,
     follow: false,
   },

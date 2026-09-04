@@ -2,7 +2,7 @@
  * Les palettes de l'application.
  *
  * Une palette et un mode (clair / sombre) sont DEUX RÉGLAGES INDÉPENDANTS :
- * les six palettes existent chacune dans les deux modes. Le mode reste géré par
+ * les sept palettes existent chacune dans les deux modes. Le mode reste géré par
  * next-themes (classe `dark` sur `<html>`) ; la palette se pose en
  * `data-palette` sur le même élément, par `palette-provider.tsx`.
  *
@@ -11,17 +11,30 @@
  * libellés, et les quelques teintes de l'APERÇU du sélecteur.
  */
 
-export const PALETTE_IDS = ["atelier", "studio", "encre", "ambre", "prune", "graphite"] as const;
+export const PALETTE_IDS = [
+  "cahier",
+  "atelier",
+  "studio",
+  "encre",
+  "ambre",
+  "prune",
+  "graphite",
+] as const;
 
 export type PaletteId = (typeof PALETTE_IDS)[number];
 
 /**
- * « Atelier » est la palette par défaut, et la SEULE à ne pas porter
+ * « Cahier » est la palette par défaut, et la SEULE à ne pas porter
  * d'attribut : `globals.css` la définit dans `:root` / `.dark`, et le
  * fournisseur retire `data-palette` au lieu de l'écrire. La note de spécificité
  * en tête des blocs de palette explique pourquoi.
+ *
+ * C'était « Atelier » jusqu'au 4 septembre 2026. Les deux ont simplement
+ * échangé leur place ; comme le fournisseur et son script d'amorçage comparent
+ * à cette constante et jamais à un littéral, cette ligne et les blocs CSS
+ * correspondants suffisent à faire la bascule.
  */
-export const DEFAULT_PALETTE: PaletteId = "atelier";
+export const DEFAULT_PALETTE: PaletteId = "cahier";
 
 /** Clé de `localStorage`. Voisine de `theme`, celle de next-themes. */
 export const PALETTE_STORAGE_KEY = "studentplace-palette";
@@ -53,6 +66,23 @@ export interface PaletteInfo {
 }
 
 export const PALETTES: readonly PaletteInfo[] = [
+  {
+    id: "cahier",
+    label: "Cahier",
+    description: "Blanc, bleu Seyès et jaune. La palette du site.",
+    light: {
+      background: "#f6f9fe",
+      surface: "#ffffff",
+      primary: "#2563eb",
+      accent: "#0f6f5c",
+    },
+    dark: {
+      background: "#0b1220",
+      surface: "#121a2b",
+      primary: "#60a5fa",
+      accent: "#34d399",
+    },
+  },
   {
     id: "atelier",
     label: "Atelier",

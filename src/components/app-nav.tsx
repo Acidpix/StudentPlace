@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { GridIcon, LayoutIcon, SettingsIcon, UsersIcon } from "@/components/ui/icons";
+import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/cn";
@@ -41,20 +42,11 @@ export function AppNav({ userName }: { userName: string }) {
   return (
     <header className="print-hidden sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-        {/* Pastille RONDE et non plus carrée : c'est la marque du modèle, et un
-            disque se distingue au premier coup d'œil des pavés rectangulaires
-            qui remplissent le reste de l'écran — cartes, boutons, places. */}
-        <Link
-          href="/tableau-de-bord"
-          className="flex items-center gap-2 font-bold tracking-tight"
-        >
-          <span
-            aria-hidden="true"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-soft"
-          >
-            SP
-          </span>
-          StudentPlace
+        {/* La pastille ronde « SP » a laissé la place au VRAI mot-symbole. Il
+            est le même ici et sur les pages publiques : voir `ui/logo.tsx`,
+            seul endroit à toucher pour le changer. */}
+        <Link href="/tableau-de-bord" className="flex items-center">
+          <Logo />
         </Link>
 
         <nav className="flex flex-1 flex-wrap items-center gap-1">

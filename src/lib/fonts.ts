@@ -15,14 +15,20 @@ export const FONT_IDS = ["system", "dm-sans", "nunito", "ubuntu", "work-sans", "
 export type FontId = (typeof FONT_IDS)[number];
 
 /**
- * « Système » est la police par défaut, et la SEULE à ne pas porter
+ * « Work Sans » est la police par défaut, et la SEULE à ne pas porter
  * d'attribut : `globals.css` lui donne sa valeur dans `--font-body` (`:root`),
- * et le fournisseur retire `data-font` au lieu d'écrire `data-font="system"` —
- * même raison que la palette « Atelier ». Aucune fonte n'est alors demandée au
- * navigateur : c'est la pile système, comme partout ailleurs dans le projet
- * avant ce réglage.
+ * et le fournisseur retire `data-font` au lieu de l'écrire — même raison que la
+ * palette par défaut, `DEFAULT_PALETTE`.
+ *
+ * C'ÉTAIT « SYSTÈME » jusqu'au 4 septembre 2026, et le changement a un coût
+ * qu'il faut connaître : la maquette 1c repose sur Work Sans, qui part donc
+ * désormais d'office (avec Outfit, la police de titrage), là où le site ne
+ * téléchargeait aucune fonte tant que rien n'était choisi. Les deux restent
+ * AUTO-HÉBERGÉES — la raison de ne pas appeler fonts.googleapis.com n'a pas
+ * changé — et « Système » reste offert dans « Apparence » pour qui n'en veut
+ * aucune.
  */
-export const DEFAULT_FONT: FontId = "system";
+export const DEFAULT_FONT: FontId = "work-sans";
 
 /** Clé de `localStorage`. Voisine de `studentplace-palette`. */
 export const FONT_STORAGE_KEY = "studentplace-font";
@@ -73,7 +79,7 @@ export const FONTS: readonly FontInfo[] = [
   {
     id: "work-sans",
     label: "Work Sans",
-    description: "Contemporaine, pensée pour les petits corps de texte.",
+    description: "Contemporaine, pensée pour les petits corps. Celle du site.",
     previewFamily: `"Work Sans", ${FALLBACK}`,
   },
   {

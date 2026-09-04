@@ -5,16 +5,30 @@ import { PageWidth } from "@/components/ui/page-width";
 
 export const metadata: Metadata = { title: "Traitement des données" };
 
+/**
+ * Cette page A CHANGÉ DE GROUPE (5 septembre 2026) : elle vivait sous `(app)`,
+ * donc derrière `requireUser()`, alors que son contenu n'a jamais rien eu de
+ * privé — c'est la note de traitement des données, celle qu'on veut pouvoir
+ * lire AVANT de créer un compte. Le pied de page public y renvoie désormais.
+ *
+ * L'URL n'a pas bougé : un groupe de routes ne paraît pas dans le chemin, et le
+ * lien de « Mon compte » vers `/confidentialite` fonctionne inchangé.
+ *
+ * Le rembourrage est porté par la page et non plus par le layout : celui du
+ * groupe `(app)` posait un `px-4 py-8` pour toutes ses pages, celui de `(site)`
+ * laisse chaque page composer la sienne — les sections de la landing vont d'un
+ * bord à l'autre de la fenêtre.
+ */
 export default function PrivacyPage() {
   return (
-    <PageWidth>
+    <PageWidth className="px-4 py-12">
       <article className="max-w-2xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Traitement des données
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            StudentPlace enregistre des informations sur des élèves mineurs, assorties
+            Sisit enregistre des informations sur des élèves mineurs, assorties
             d&apos;appréciations comportementales. Voici précisément ce qui est stocké, et comment.
           </p>
         </div>

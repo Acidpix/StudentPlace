@@ -1,9 +1,13 @@
-# StudentPlace
+# Sisit
 
 Application web de gestion des plans de classe, à destination des professeurs.
 
+> Le produit s'appelle **Sisit** ; le dépôt, le dossier d'installation et le
+> schéma de base gardent le nom `StudentPlace` de leurs origines. Renommer les
+> seconds n'apporterait rien et casserait les déploiements existants.
+
 Composer un plan de classe à la main est fastidieux, et il faut tout recommencer
-au moindre changement de salle. StudentPlace mémorise vos classes, vos salles et
+au moindre changement de salle. Sisit mémorise vos classes, vos salles et
 vos contraintes, puis propose une disposition qui respecte deux règles que tout
 professeur connaît : **les élèves les plus difficiles doivent être près du bureau
 et à l'écart les uns des autres**, et **certains élèves ne doivent jamais être

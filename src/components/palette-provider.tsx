@@ -43,9 +43,13 @@ const PaletteContext = createContext<PaletteContextValue>({
  * Pose la palette sur `<html>`.
  *
  * La palette par défaut RETIRE l'attribut au lieu de l'écrire : `globals.css`
- * la définit dans `:root` / `.dark`, et un `data-palette="atelier"` explicite
- * l'emporterait en spécificité sur le `.dark` de base — le thème sombre
+ * la définit dans `:root` / `.dark`, et un `data-palette` explicite portant son
+ * nom l'emporterait en spécificité sur le `.dark` de base — le thème sombre
  * repasserait au clair. Voir la note en tête des blocs de palette.
+ *
+ * La comparaison porte sur `DEFAULT_PALETTE` et jamais sur un nom écrit en
+ * clair : c'est ce qui a permis de faire passer le défaut d'« Atelier » à
+ * « Cahier » en ne touchant qu'à `palettes.ts` et à la feuille de style.
  */
 function applyPalette(palette: PaletteId) {
   const root = document.documentElement;

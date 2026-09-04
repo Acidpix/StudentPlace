@@ -2,7 +2,14 @@ import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "accent" | "danger" | "ink";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "accent"
+  | "danger"
+  | "ink"
+  | "highlight";
 export type ButtonSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 /**
@@ -40,11 +47,22 @@ const PRESS = "active:translate-y-px";
  * qui trancherait.
  *
  * Il sert aux actions ENGAGEANTES MAIS NEUTRES : ouvrir un plan, enregistrer
- * une fiche. Le corail reste à ce qui crée ou calcule.
+ * une fiche. Le bleu reste à ce qui crée ou calcule.
+ *
+ * `highlight` : le JAUNE de marque, RÉSERVÉ AUX PAGES PUBLIQUES — le second
+ * appel à l'action de la maquette 1c, à côté du bleu. Il n'a rien à faire dans
+ * l'application, où il ajouterait une quatrième couleur porteuse de sens à côté
+ * du bleu, du vert et du rouge sans en avoir un.
+ *
+ * Il existe en variante propre pour EXACTEMENT la raison d'`ink` ci-dessus :
+ * l'obtenir en passant `bg-highlight` par-dessus `secondary` ferait cohabiter
+ * `bg-surface` et `bg-highlight` dans l'attribut, à spécificité égale, et c'est
+ * l'ordre de la feuille générée qui trancherait.
  */
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: `bg-primary text-primary-foreground hover:brightness-110 ${PRESS}`,
   ink: `bg-foreground text-background hover:brightness-125 ${PRESS}`,
+  highlight: `bg-highlight text-highlight-ink hover:brightness-105 ${PRESS}`,
   accent: `bg-accent text-accent-foreground hover:brightness-110 ${PRESS}`,
   danger: `bg-danger text-white hover:brightness-110 ${PRESS}`,
   secondary: `bg-surface text-foreground border border-border hover:bg-surface-muted hover:border-primary/50 ${PRESS}`,

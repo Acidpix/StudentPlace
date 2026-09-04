@@ -10,8 +10,12 @@ export default function NotFound() {
       <p className="mt-2 max-w-sm text-sm text-muted">
         Cette page n&apos;existe pas, ou elle appartient à un autre compte que le vôtre.
       </p>
-      <Link href="/tableau-de-bord" className={buttonClasses("primary", "md", "mt-6")}>
-        Retour au tableau de bord
+      {/* Vers l'ACCUEIL et non plus le tableau de bord : cette page s'affiche
+          aussi pour un visiteur anonyme, à qui l'on proposait jusqu'ici un lien
+          vers une page protégée — donc un aller simple vers l'écran de
+          connexion. L'accueil, lui, s'adresse aux deux. */}
+      <Link href="/" className={buttonClasses("primary", "md", "mt-6")}>
+        Retour à l&apos;accueil
       </Link>
     </div>
   );
