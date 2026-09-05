@@ -179,6 +179,14 @@ export default function HowItWorksPage() {
  * en `py-*` À CÔTÉ d'un `pt-*` : `cn()` concatène sans `tailwind-merge`, deux
  * classes qui posent toutes deux `padding-top` cohabiteraient à spécificité
  * égale et l'ordre de la feuille générée déciderait laquelle gagne.
+ *
+ * **LE `<section>` EST PLEINE LARGEUR** (6 septembre 2026, même lot) : le fond
+ * alterné doit atteindre les deux bords de la fenêtre, pas seulement ceux de
+ * la colonne de contenu. Un conteneur intérieur (`mx-auto max-w-6xl px-4`)
+ * recentre le texte à la même largeur qu'avant ; `lg:pl-[15.5rem]` y réserve en
+ * plus la place du rail de `FeatureScroll`, désormais `position: fixed` et non
+ * plus une colonne de grille partagée avec cette section (13rem de rail +
+ * 2,5rem d'écart, l'exact `gap-10` de l'ancienne grille).
  */
 function Feature({
   id,
@@ -212,7 +220,7 @@ function Feature({
           : "pt-14 lg:pt-20",
       )}
     >
-      <div className="grid items-center gap-10 lg:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 lg:grid-cols-2 lg:pl-[15.5rem]">
         <div className={cn(reversed && "lg:order-2")}>
           <p className="eyebrow">
             {String(index).padStart(2, "0")} · {STEPS[index - 1]?.label}

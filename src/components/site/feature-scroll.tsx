@@ -5,26 +5,41 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 /**
- * La mécanique de défilement de la page « Fonctionnement ».
+ * La mécanique de la page « Fonctionnement ».
  *
- * Un seul `IntersectionObserver` fait les deux choses à la fois : révéler
- * chaque section qui entre dans la vue, et allumer l'étape courante dans le
- * rail collant de gauche. Deux observateurs auraient demandé deux seuils à
- * garder d'accord.
+ * TOUT LE CONTENU EST VISIBLE DÈS LE CHARGEMENT (6 septembre 2026) — il n'y a
+ * plus de révélation au défilement. Il y en a eu une : chaque écran restait
+ * masqué (`data-reveal="armed"`) jusqu'à ce qu'un `IntersectionObserver` le
+ * révèle. Retirée sur demande explicite (« les sections doivent apparaître dès
+ * le début »), avec le mécanisme CSS qui allait avec (`@keyframes reveal-up`,
+ * `[data-reveal]`, `globals.css`) : il n'avait plus d'appelant.
  *
- * LE SEUL COMPOSANT CLIENT DES PAGES PUBLIQUES. Les sections elles-mêmes
- * restent rendues côté serveur et lui sont passées en `children` : il ne fait
- * que poser des attributs sur des éléments qu'il n'a pas écrits, repérés par
- * leur `data-feature-section`.
+ * L'observateur qui RESTE sert à deux choses, toutes deux indépendantes de la
+ * visibilité du contenu : allumer l'étape courante du rail, et activer ce
+ * rail lui-même (voir plus bas).
  *
- * L'ORDRE DES ÉTATS EST CELUI QUI COMPTE. Le contenu est visible par défaut, et
- * c'est cet effet qui le masque au montage (`data-reveal="armed"`) avant que
- * l'observateur ne le révèle (`"in"`). Écrire `opacity: 0` dans la feuille de
- * style aurait été plus court, et aurait rendu la page entièrement blanche
- * partout où le JavaScript ne s'exécute pas — un rendu de moteur de recherche,
- * un navigateur qui bloque les scripts, un échec de chargement. Voir aussi les
- * deux garde-fous CSS de `globals.css` : à l'impression et sous « animations
- * réduites », tout est désarmé d'office.
+ * **LE RAIL EST `position: fixed`, PAS `sticky` DANS UNE GRILLE** (6 septembre
+ * 2026, même lot). Il vivait jusqu'ici dans une grille `[13rem_1fr]` avec la
+ * colonne de contenu, bornée à `max-w-6xl` — ce qui pliait chaque écran à la
+ * largeur de cette colonne, empêchant leur fond alterné et leur découpe
+ * oblique (`.diagonal-top`, dans `fonctionnement/page.tsx`) d'atteindre les
+ * bords de la fenêtre. Les écrans sont maintenant des `<section>` PLEINE
+ * LARGEUR, de simples enfants de `<main>` comme les sections de la landing ;
+ * le rail n'a donc plus de colonne à partager et doit se positionner par
+ * rapport à la fenêtre plutôt qu'à un parent qui n'a plus la largeur de
+ * référence adéquate.
+ *
+ * `left: max(1rem, calc(50vw - 35rem))` replace donc la grille : 35rem est la
+ * moitié de `max-w-6xl` (36rem) moins le `px-4` (1rem) que porte l'intérieur
+ * de chaque écran — c'est exactement là où le rail se serait trouvé dans
+ * l'ancienne mise en page. Le `max()` évite qu'il ne sorte de l'écran par la
+ * gauche entre 1024 px (le seuil `lg`) et environ 1136 px de large, où
+ * `calc(50vw - 35rem)` devient négatif.
+ *
+ * `railVisible` REMPLACE ce que le `sticky` obtenait gratuitement : ne montrer
+ * le rail que pendant que les écrans défilent, pas au-dessus (le hero) ni en
+ * dessous (l'appel final). Un second observateur, posé sur le conteneur
+ * entier plutôt que sur chaque écran, suffit.
  */
 
 export interface FeatureStep {
@@ -41,38 +56,23 @@ export function FeatureScroll({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState(steps[0]?.id ?? "");
+  const [railVisible, setRailVisible] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    if (typeof IntersectionObserver === "undefined") return;
 
     const sections = Array.from(
       root.querySelectorAll<HTMLElement>("[data-feature-section]"),
     );
     if (sections.length === 0) return;
 
-    // Navigateur sans IntersectionObserver : on ne masque rien et le rail
-    // garde sa première étape. La page reste entièrement lisible.
-    if (typeof IntersectionObserver === "undefined") return;
-
-    // On masque MAINTENANT, et pas avant : jusqu'ici la page était complète.
-    // La première section est laissée visible — elle est déjà à l'écran au
-    // chargement, et l'y faire apparaître donnerait un clignotement au lieu
-    // d'une révélation.
-    for (const section of sections.slice(1)) {
-      section.dataset.reveal = "armed";
-    }
-
-    const observer = new IntersectionObserver(
+    const stepObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          const element = entry.target as HTMLElement;
           if (!entry.isIntersecting) continue;
-
-          // Une fois révélée, une section le reste : reculer dans la page ne
-          // doit pas la faire disparaître à nouveau.
-          element.dataset.reveal = "in";
-          setActiveId(element.id);
+          setActiveId((entry.target as HTMLElement).id);
         }
       },
       {
@@ -83,46 +83,60 @@ export function FeatureScroll({
         threshold: 0,
       },
     );
+    for (const section of sections) stepObserver.observe(section);
 
-    for (const section of sections) observer.observe(section);
-    return () => observer.disconnect();
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => setRailVisible(entry.isIntersecting),
+      { rootMargin: "-112px 0px -50% 0px" },
+    );
+    visibilityObserver.observe(root);
+
+    return () => {
+      stepObserver.disconnect();
+      visibilityObserver.disconnect();
+    };
   }, []);
 
   return (
-    <div ref={rootRef} className="mx-auto w-full max-w-6xl px-4">
-      <div className="lg:grid lg:grid-cols-[13rem_1fr] lg:gap-10">
-        {/* Rail de progression. Masqué sous `lg` : sur un téléphone il
-            occuperait une colonne entière pour redire ce que les titres
-            disent déjà en défilant. */}
-        <nav aria-label="Sommaire" className="hidden lg:block">
-          <ol className="sticky top-28 space-y-1 border-l border-border">
-            {steps.map((step, index) => {
-              const active = step.id === activeId;
-              return (
-                <li key={step.id}>
-                  <a
-                    href={`#${step.id}`}
-                    aria-current={active ? "true" : undefined}
-                    className={cn(
-                      "-ml-px flex items-baseline gap-2 border-l-2 py-1.5 pl-3 text-sm transition-colors",
-                      active
-                        ? "border-primary font-semibold text-primary"
-                        : "border-transparent text-muted hover:text-foreground",
-                    )}
-                  >
-                    <span className="eyebrow shrink-0">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    {step.label}
-                  </a>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+    <div ref={rootRef} className="relative">
+      {/* Masqué sous `lg` : sur un téléphone il occuperait une colonne
+          entière pour redire ce que les titres disent déjà en défilant. */}
+      <nav
+        aria-label="Sommaire"
+        aria-hidden={!railVisible}
+        className={cn(
+          "fixed top-28 z-30 hidden w-[13rem] transition-opacity duration-200 lg:block",
+          railVisible ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+        style={{ left: "max(1rem, calc(50vw - 35rem))" }}
+      >
+        <ol className="space-y-1 border-l border-border">
+          {steps.map((step, index) => {
+            const active = step.id === activeId;
+            return (
+              <li key={step.id}>
+                <a
+                  href={`#${step.id}`}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "-ml-px flex items-baseline gap-2 border-l-2 py-1.5 pl-3 text-sm transition-colors",
+                    active
+                      ? "border-primary font-semibold text-primary"
+                      : "border-transparent text-muted hover:text-foreground",
+                  )}
+                >
+                  <span className="eyebrow shrink-0">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  {step.label}
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
-        <div>{children}</div>
-      </div>
+      {children}
     </div>
   );
 }
